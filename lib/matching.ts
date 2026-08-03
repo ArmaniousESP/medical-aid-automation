@@ -79,7 +79,7 @@ export function parseQuantity(text: string): { qty: number; cleanName: string } 
   if (!text) return { qty: CONFIG.DEFAULT_QTY, cleanName: '' };
 
   const original = String(text).trim();
-  let qty = CONFIG.DEFAULT_QTY;
+  let qty: number = CONFIG.DEFAULT_QTY;
   let clean = original;
 
   // Leading number: "2 CRESTOR", "1.5 AERIUS", "3x Forxiga"
