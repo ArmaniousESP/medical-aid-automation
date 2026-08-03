@@ -13,6 +13,7 @@ export interface ProcessResult {
   skipped: number;
   lowMatch: number;
   samples: any[];
+  rows: any[];
   dryRun: boolean;
   message: string;
 }
@@ -146,12 +147,14 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         price = match.price;
       }
 
+      const isLow = score < CONFIG.LOW_MATCH_THRESHOLD;
+      if (isLow) lowMatch++;
+
       const notesParts: string[] = [];
-      if (score < CONFIG.LOW_MATCH_THRESHOLD) {
+      if (isLow) {
         notesParts.push(
           `LOW MATCH (${score.toFixed(2)}) - review needed | original: ${medText}`
         );
-        lowMatch++;
       }
       if (resp.roshetta) notesParts.push(`روشتة: ${cleanDriveLinks(resp.roshetta)}`);
       if (resp.labs) notesParts.push(`فحوصات: ${cleanDriveLinks(resp.labs)}`);
@@ -184,6 +187,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         lastUpdate,
         patient: resp.patient,
         requestedMed: cleanName,
+        originalMed: medText,
         qty,
         priceTotal,
         companyDrug: availability,
@@ -193,6 +197,11 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         qty2: qty,
         notes,
         matchScore: score,
+        isLowMatch: isLow,
+        roshetta: cleanDriveLinks(resp.roshetta),
+        labs: cleanDriveLinks(resp.labs),
+        cardPhoto: cleanDriveLinks(resp.cardPhoto),
+        proofRelation: cleanDriveLinks(resp.proofRelation),
       });
 
       idKeys.add(idKey);
@@ -200,13 +209,19 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     }
   }
 
-  const samples = newRows.slice(0, 8).map((r) => ({
+  const samples = newRows.slice(0, 12).map((r) => ({
     employee: r.empName,
+    patient: r.patient,
     requested: r.requestedMed,
+    original: r.originalMed,
     newMed: r.newMed,
     availability: r.companyDrug,
     qty: r.qty,
     score: r.matchScore,
+    isLowMatch: r.isLowMatch,
+    roshetta: r.roshetta,
+    labs: r.labs,
+    notes: r.notes,
   }));
 
   if (!dryRun && newRows.length > 0) {
@@ -245,6 +260,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     skipped,
     lowMatch,
     samples,
+    rows: samples, // alias for UI
     dryRun,
     message,
   };
