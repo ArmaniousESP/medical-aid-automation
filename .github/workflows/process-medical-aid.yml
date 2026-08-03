@@ -1,0 +1,82 @@
+name: Process Medical Aid Responses
+
+on:
+  # Run every day at 06:00 UTC (08:00 Cairo / EEST)
+  schedule:
+    - cron: '0 6 * * *'
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (preview only, do not write)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Process new responses
+        env:
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          # Prefer calling the deployed Vercel endpoint if available,
+          # otherwise run the processor locally via a small script.
+          if [ -n "$VERCEL_URL" ]; then
+            echo "Calling deployed API..."
+            curl -sS -X POST "https://$VERCEL_URL/api/process" \
+              -H "Content-Type: application/json" \
+              -H "x-process-secret: $PROCESS_SECRET" \
+              -d "{\"dryRun\": $DRY_RUN}" | tee result.json
+          else
+            echo "Running processor locally..."
+            node -e "
+              const { processNewResponses } = require('./lib/processor.ts');
+              // Fallback: use ts-node style or simple fetch to self
+              console.log('Local run requires the app to be built or use the API.');
+            " || true
+
+            # Most reliable: call the production Vercel URL stored as secret
+            if [ -n "${{ secrets.VERCEL_APP_URL }}" ]; then
+              curl -sS -X POST "${{ secrets.VERCEL_APP_URL }}/api/process" \
+                -H "Content-Type: application/json" \
+                -H "x-process-secret: $PROCESS_SECRET" \
+                -d "{\"dryRun\": $DRY_RUN}" | tee result.json
+            else
+              echo "Set the VERCEL_APP_URL repository secret to your deployed URL."
+              exit 1
+            fi
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f result.json ]; then
+            echo "### Process Result" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat result.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
