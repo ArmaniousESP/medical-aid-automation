@@ -5,7 +5,7 @@ export const CONFIG = {
   PROCESS_FROM_DATE: '2026-07-01',
   FUZZY_THRESHOLD: 0.55,
   LOW_MATCH_THRESHOLD: 0.72,
-  DEFAULT_QTY: 1,
+  DEFAULT_QTY: 1 as number,
   MAX_MEDS: 7,
 } as const;
 
