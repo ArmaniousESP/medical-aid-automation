@@ -1,4 +1,5 @@
 import { MedEntry, normalize } from './matching';
+import { resolveExternalUnitPrice, ExternalPriceHit } from './externalPrices';
 
 /**
  * Resolve the best available unit price for a medication name
@@ -35,6 +36,31 @@ export function resolveUnitPrice(
     }
   }
   return best ? best.price : null;
+}
+
+/**
+ * Full price resolution: MEDDB3 first, then external APIs.
+ * Returns unit price + optional source metadata.
+ */
+export async function resolveUnitPriceWithExternal(
+  medName: string | null | undefined,
+  medDb: MedEntry[]
+): Promise<{ unitPrice: number | null; source: string; external?: ExternalPriceHit }> {
+  // 1. MEDDB3
+  const local = resolveUnitPrice(medName, medDb);
+  if (local !== null) {
+    return { unitPrice: local, source: 'meddb3' };
+  }
+
+  // 2. External
+  if (medName) {
+    const ext = await resolveExternalUnitPrice(medName);
+    if (ext) {
+      return { unitPrice: ext.price, source: ext.source, external: ext };
+    }
+  }
+
+  return { unitPrice: null, source: 'none' };
 }
 
 /**
