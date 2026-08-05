@@ -6,7 +6,7 @@ import {
   parseQuantity,
   cleanDriveLinks,
 } from './matching';
-import { resolveUnitPrice, computePriceTotal } from './pricing';
+import { resolveUnitPriceWithExternal, computePriceTotal } from './pricing';
 import { getSheetValues, appendRows, getSpreadsheetIdFromEnv } from './google';
 
 export interface ProcessResult {
@@ -104,7 +104,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 4. Expand + match + price
+  // 4. Expand + match + price (MEDDB3 → DwaPrices → Egyptian Drug DB)
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
@@ -128,6 +128,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       let newMed = cleanName;
       let alt = 'NOT EVA';
       let unitPrice: number | null = null;
+      let priceSource = 'none';
       const score = match.score || 0;
 
       if (match.name) {
@@ -148,14 +149,16 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
           newMed = match.name;
           alt = 'NOT EVA';
         }
+      }
 
-        // Prefer price of the FINAL chosen medication (EVA alt if used)
-        unitPrice = resolveUnitPrice(newMed, medDb);
-        if (unitPrice === null) {
-          unitPrice = resolveUnitPrice(match.name, medDb);
-        }
-        if (unitPrice === null && match.price !== null && match.price !== '' && !isNaN(Number(match.price))) {
-          unitPrice = Number(match.price);
+      // Price: prefer final med name, then original match, then cleaned request
+      const priceLookupNames = [newMed, match.name, cleanName].filter(Boolean) as string[];
+      for (const name of priceLookupNames) {
+        const resolved = await resolveUnitPriceWithExternal(name, medDb);
+        if (resolved.unitPrice !== null) {
+          unitPrice = resolved.unitPrice;
+          priceSource = resolved.source;
+          break;
         }
       }
 
@@ -167,6 +170,9 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notesParts.push(
           `LOW MATCH (${score.toFixed(2)}) - review needed | original: ${medText}`
         );
+      }
+      if (priceSource !== 'none' && priceSource !== 'meddb3') {
+        notesParts.push(`price source: ${priceSource}`);
       }
       if (resp.roshetta) notesParts.push(`روشتة: ${cleanDriveLinks(resp.roshetta)}`);
       if (resp.labs) notesParts.push(`فحوصات: ${cleanDriveLinks(resp.labs)}`);
@@ -204,6 +210,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         qty,
         unitPrice,
         priceTotal,
+        priceSource,
         companyDrug: availability,
         alt1: alt,
         alt2: alt,
@@ -233,6 +240,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     qty: r.qty,
     unitPrice: r.unitPrice,
     priceTotal: r.priceTotal,
+    priceSource: r.priceSource,
     score: r.matchScore,
     isLowMatch: r.isLowMatch,
     roshetta: r.roshetta,
