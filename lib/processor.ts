@@ -6,6 +6,7 @@ import {
   parseQuantity,
   cleanDriveLinks,
 } from './matching';
+import { resolveUnitPrice, computePriceTotal } from './pricing';
 import { getSheetValues, appendRows, getSpreadsheetIdFromEnv } from './google';
 
 export interface ProcessResult {
@@ -16,6 +17,7 @@ export interface ProcessResult {
   rows: any[];
   dryRun: boolean;
   message: string;
+  totalEstimatedCost: number | null;
 }
 
 function makeKey(a: any, b: any, med: string): string {
@@ -102,10 +104,12 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 4. Expand + match
+  // 4. Expand + match + price
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
+  let totalEstimatedCost = 0;
+  let hasAnyPrice = false;
 
   for (const resp of responses) {
     for (const medText of resp.meds) {
@@ -123,7 +127,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       let availability = 'NOT IN EVA';
       let newMed = cleanName;
       let alt = 'NOT EVA';
-      let price: any = null;
+      let unitPrice: number | null = null;
       const score = match.score || 0;
 
       if (match.name) {
@@ -144,7 +148,15 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
           newMed = match.name;
           alt = 'NOT EVA';
         }
-        price = match.price;
+
+        // Prefer price of the FINAL chosen medication (EVA alt if used)
+        unitPrice = resolveUnitPrice(newMed, medDb);
+        if (unitPrice === null) {
+          unitPrice = resolveUnitPrice(match.name, medDb);
+        }
+        if (unitPrice === null && match.price !== null && match.price !== '' && !isNaN(Number(match.price))) {
+          unitPrice = Number(match.price);
+        }
       }
 
       const isLow = score < CONFIG.LOW_MATCH_THRESHOLD;
@@ -167,10 +179,11 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notesParts.push(`تعليق: ${String(resp.comments).substring(0, 120)}`);
 
       const notes = notesParts.join(' | ');
+      const priceTotal = computePriceTotal(unitPrice, qty);
 
-      let priceTotal: number | string = '';
-      if (price !== null && price !== '' && !isNaN(Number(price))) {
-        priceTotal = Number(price) * Number(qty);
+      if (typeof priceTotal === 'number') {
+        totalEstimatedCost += priceTotal;
+        hasAnyPrice = true;
       }
 
       const lastUpdate = resp.timestamp
@@ -189,6 +202,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         requestedMed: cleanName,
         originalMed: medText,
         qty,
+        unitPrice,
         priceTotal,
         companyDrug: availability,
         alt1: alt,
@@ -217,6 +231,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     newMed: r.newMed,
     availability: r.companyDrug,
     qty: r.qty,
+    unitPrice: r.unitPrice,
+    priceTotal: r.priceTotal,
     score: r.matchScore,
     isLowMatch: r.isLowMatch,
     roshetta: r.roshetta,
@@ -248,20 +264,25 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     await appendRows(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:U`, values);
   }
 
+  const costStr = hasAnyPrice
+    ? ` | Est. total cost: ${Math.round(totalEstimatedCost)} EGP`
+    : '';
+
   const message = [
     `New rows: ${newRows.length}`,
     `Skipped (already existed): ${skipped}`,
     `Low-confidence matches: ${lowMatch}`,
     dryRun ? '[DRY RUN – nothing written]' : 'Rows appended to Approved-Requests.',
-  ].join(' | ');
+  ].join(' | ') + costStr;
 
   return {
     newRows: newRows.length,
     skipped,
     lowMatch,
     samples,
-    rows: samples, // alias for UI
+    rows: samples,
     dryRun,
     message,
+    totalEstimatedCost: hasAnyPrice ? Math.round(totalEstimatedCost * 100) / 100 : null,
   };
 }
