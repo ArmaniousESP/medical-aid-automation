@@ -10,6 +10,8 @@ type Row = {
   newMed: string;
   availability: string;
   qty: number;
+  unitPrice?: number | null;
+  priceTotal?: number | string;
   score: number;
   isLowMatch: boolean;
   roshetta?: string;
@@ -30,11 +32,18 @@ function LinkList({ raw }: { raw?: string }) {
           rel="noopener noreferrer"
           className="text-blue-600 hover:underline text-xs break-all"
         >
-          {url.includes('drive.google.com') ? `Drive link ${i + 1}` : url.substring(0, 40)}
+          {url.includes('drive.google.com') ? `Drive ${i + 1}` : url.substring(0, 36)}
         </a>
       ))}
     </div>
   );
+}
+
+function formatEGP(v: number | string | null | undefined) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('en-EG', { maximumFractionDigits: 0 }) + ' EGP';
 }
 
 export default function Home() {
@@ -74,7 +83,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-6xl mx-auto px-4 py-10">
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">
             Medical Aid Automation
@@ -83,7 +92,7 @@ export default function Home() {
             طلب مساعدة علاج شهري — استمارة 9
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Expand medications · Match EVA catalog · Parse quantity · Carry attachments
+            Expand · Match EVA · Parse qty · Attachments · <strong>Auto price from MEDDB3</strong>
           </p>
         </header>
 
@@ -112,7 +121,6 @@ export default function Home() {
 
         {result && (
           <div className="space-y-6">
-            {/* Summary cards */}
             <div className="p-5 rounded-xl bg-white border shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-lg">Result</h2>
@@ -123,7 +131,7 @@ export default function Home() {
                 )}
               </div>
               <p className="text-slate-600 text-sm mb-4">{result.message}</p>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div className="p-3 rounded-lg bg-emerald-50">
                   <div className="text-2xl font-bold text-emerald-700">{result.newRows}</div>
                   <div className="text-xs text-slate-500">New rows</div>
@@ -136,10 +144,17 @@ export default function Home() {
                   <div className="text-2xl font-bold text-amber-700">{result.lowMatch}</div>
                   <div className="text-xs text-slate-500">Low match</div>
                 </div>
+                <div className="p-3 rounded-lg bg-blue-50">
+                  <div className="text-2xl font-bold text-blue-700">
+                    {result.totalEstimatedCost != null
+                      ? formatEGP(result.totalEstimatedCost)
+                      : '—'}
+                  </div>
+                  <div className="text-xs text-slate-500">Est. total cost</div>
+                </div>
               </div>
             </div>
 
-            {/* Filters */}
             {rows.length > 0 && (
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-sm text-slate-500 mr-1">Filter:</span>
@@ -167,7 +182,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Rows table */}
             {filtered.length > 0 && (
               <div className="rounded-xl bg-white border shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
@@ -178,9 +192,10 @@ export default function Home() {
                         <th className="py-3 px-3 font-medium">Requested → New</th>
                         <th className="py-3 px-3 font-medium">Status</th>
                         <th className="py-3 px-3 font-medium">Qty</th>
+                        <th className="py-3 px-3 font-medium">Unit</th>
+                        <th className="py-3 px-3 font-medium">Total</th>
                         <th className="py-3 px-3 font-medium">Score</th>
                         <th className="py-3 px-3 font-medium">روشتة</th>
-                        <th className="py-3 px-3 font-medium">فحوصات</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -202,11 +217,6 @@ export default function Home() {
                             <div className="text-emerald-700 font-medium mt-0.5">
                               → {r.newMed}
                             </div>
-                            {r.isLowMatch && r.original && r.original !== r.requested && (
-                              <div className="text-xs text-amber-700 mt-1">
-                                original: {r.original}
-                              </div>
-                            )}
                           </td>
                           <td className="py-3 px-3 align-top">
                             <span
@@ -225,6 +235,12 @@ export default function Home() {
                             )}
                           </td>
                           <td className="py-3 px-3 align-top">{r.qty}</td>
+                          <td className="py-3 px-3 align-top text-slate-600">
+                            {formatEGP(r.unitPrice)}
+                          </td>
+                          <td className="py-3 px-3 align-top font-medium">
+                            {formatEGP(r.priceTotal)}
+                          </td>
                           <td className="py-3 px-3 align-top">
                             <span
                               className={
@@ -238,19 +254,23 @@ export default function Home() {
                               {(r.score * 100).toFixed(0)}%
                             </span>
                           </td>
-                          <td className="py-3 px-3 align-top max-w-[140px]">
+                          <td className="py-3 px-3 align-top max-w-[120px]">
                             <LinkList raw={r.roshetta} />
-                          </td>
-                          <td className="py-3 px-3 align-top max-w-[140px]">
-                            <LinkList raw={r.labs} />
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div className="px-3 py-2 text-xs text-slate-400 border-t bg-slate-50">
-                  Showing {filtered.length} of {rows.length} rows
+                <div className="px-3 py-2 text-xs text-slate-400 border-t bg-slate-50 flex justify-between">
+                  <span>
+                    Showing {filtered.length} of {rows.length} rows
+                  </span>
+                  {result.totalEstimatedCost != null && (
+                    <span className="font-medium text-slate-600">
+                      Batch est. total: {formatEGP(result.totalEstimatedCost)}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -264,7 +284,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          GitHub Actions · Vercel · Google Sheets
+          Prices auto-filled from MEDDB3 when available · GitHub Actions · Vercel
         </footer>
       </div>
     </main>
