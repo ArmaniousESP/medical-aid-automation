@@ -12,6 +12,7 @@ type Row = {
   qty: number;
   unitPrice?: number | null;
   priceTotal?: number | string;
+  priceSource?: string;
   score: number;
   isLowMatch: boolean;
   roshetta?: string;
@@ -44,6 +45,29 @@ function formatEGP(v: number | string | null | undefined) {
   const n = Number(v);
   if (isNaN(n)) return '—';
   return n.toLocaleString('en-EG', { maximumFractionDigits: 0 }) + ' EGP';
+}
+
+function PriceSourceBadge({ source }: { source?: string }) {
+  if (!source || source === 'none') return null;
+  const label =
+    source === 'meddb3'
+      ? 'MEDDB3'
+      : source === 'dwaprices'
+      ? 'DwaPrices'
+      : source === 'egyptian-drug-db'
+      ? 'Open DB'
+      : source;
+  const color =
+    source === 'meddb3'
+      ? 'bg-slate-100 text-slate-600'
+      : source === 'dwaprices'
+      ? 'bg-indigo-100 text-indigo-700'
+      : 'bg-violet-100 text-violet-700';
+  return (
+    <span className={`ml-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${color}`}>
+      {label}
+    </span>
+  );
 }
 
 export default function Home() {
@@ -92,7 +116,8 @@ export default function Home() {
             طلب مساعدة علاج شهري — استمارة 9
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Expand · Match EVA · Parse qty · Attachments · <strong>Auto price from MEDDB3</strong>
+            Expand · Match EVA · Parse qty · Attachments ·{' '}
+            <strong>Prices: MEDDB3 → DwaPrices → Open DB</strong>
           </p>
         </header>
 
@@ -236,7 +261,10 @@ export default function Home() {
                           </td>
                           <td className="py-3 px-3 align-top">{r.qty}</td>
                           <td className="py-3 px-3 align-top text-slate-600">
-                            {formatEGP(r.unitPrice)}
+                            <span className="inline-flex items-center">
+                              {formatEGP(r.unitPrice)}
+                              <PriceSourceBadge source={r.priceSource} />
+                            </span>
                           </td>
                           <td className="py-3 px-3 align-top font-medium">
                             {formatEGP(r.priceTotal)}
@@ -284,7 +312,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices auto-filled from MEDDB3 when available · GitHub Actions · Vercel
+          Prices: MEDDB3 → DwaPrices API → Egyptian Drug DB · GitHub Actions · Vercel
         </footer>
       </div>
     </main>
