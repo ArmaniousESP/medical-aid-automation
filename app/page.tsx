@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { SyncProgramsButton } from './SyncProgramsButton';
 
 type Row = {
   employee: string;
@@ -122,7 +123,7 @@ export default function Home() {
           </p>
         </header>
 
-        <div className="flex flex-wrap gap-3 mb-8 items-center">
+        <div className="flex flex-wrap gap-3 mb-8 items-start">
           <button
             onClick={() => run(true)}
             disabled={loading}
@@ -137,6 +138,7 @@ export default function Home() {
           >
             {loading ? 'Processing…' : 'Process New Responses'}
           </button>
+          <SyncProgramsButton />
           <Link
             href="/refills"
             className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
@@ -163,6 +165,15 @@ export default function Home() {
                 )}
               </div>
               <p className="text-slate-600 text-sm mb-4">{result.message}</p>
+              {result.enroll && (
+                <p className="text-sm text-indigo-700 mb-4">
+                  Chronic enroll — created: {result.enroll.created}, updated:{' '}
+                  {result.enroll.updated}, skipped: {result.enroll.skipped}
+                  {result.enroll.errors?.length
+                    ? ` (errors: ${result.enroll.errors.length})`
+                    : ''}
+                </p>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div className="p-3 rounded-lg bg-emerald-50">
                   <div className="text-2xl font-bold text-emerald-700">{result.newRows}</div>
@@ -319,7 +330,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices: MEDDB3 → DwaPrices API → Egyptian Drug DB · Neon Refills · Vercel
+          Prices: MEDDB3 → DwaPrices → Open DB · Auto enroll chronic · Neon Refills
         </footer>
       </div>
     </main>
