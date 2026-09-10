@@ -143,7 +143,19 @@ export default function Home() {
             href="/refills"
             className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
           >
-            صرف شهري (Refills)
+            صرف شهري
+          </Link>
+          <Link
+            href="/programs"
+            className="px-5 py-2.5 rounded-lg bg-slate-700 text-white hover:bg-slate-800 font-medium transition"
+          >
+            البرامج
+          </Link>
+          <Link
+            href="/reports"
+            className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-medium transition"
+          >
+            التقارير
           </Link>
         </div>
 
@@ -330,7 +342,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices: MEDDB3 → DwaPrices → Open DB · Auto enroll chronic · Neon Refills
+          Prices · Auto enroll · Neon refills · Monthly reports
         </footer>
       </div>
     </main>
