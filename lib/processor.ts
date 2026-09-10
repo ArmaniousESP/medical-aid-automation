@@ -18,6 +18,13 @@ export interface ProcessResult {
   dryRun: boolean;
   message: string;
   totalEstimatedCost: number | null;
+  enroll?: {
+    groups: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+  } | null;
 }
 
 function makeKey(a: any, b: any, med: string): string {
@@ -104,7 +111,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 4. Expand + match + price (MEDDB3 → DwaPrices → Egyptian Drug DB)
+  // 4. Expand + match + price
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
@@ -151,7 +158,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         }
       }
 
-      // Price: prefer final med name, then original match, then cleaned request
       const priceLookupNames = [newMed, match.name, cleanName].filter(Boolean) as string[];
       for (const name of priceLookupNames) {
         const resolved = await resolveUnitPriceWithExternal(name, medDb);
@@ -272,8 +278,36 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     await appendRows(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:U`, values);
   }
 
+  // 5. Auto-enroll chronic programs in Neon (unless dry-run or disabled)
+  let enroll: ProcessResult['enroll'] = null;
+  const autoEnroll = process.env.AUTO_ENROLL_CHRONIC !== 'false';
+  if (!dryRun && autoEnroll && process.env.DATABASE_URL) {
+    try {
+      const { syncApprovedToPrograms } = await import('./syncApprovedToPrograms');
+      const sync = await syncApprovedToPrograms();
+      enroll = {
+        groups: sync.groups,
+        created: sync.created,
+        updated: sync.updated,
+        skipped: sync.skipped,
+        errors: sync.errors,
+      };
+    } catch (e: unknown) {
+      enroll = {
+        groups: 0,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        errors: [e instanceof Error ? e.message : 'enroll failed'],
+      };
+    }
+  }
+
   const costStr = hasAnyPrice
     ? ` | Est. total cost: ${Math.round(totalEstimatedCost)} EGP`
+    : '';
+  const enrollStr = enroll
+    ? ` | Chronic enroll: +${enroll.created} / ~${enroll.updated} / skip ${enroll.skipped}`
     : '';
 
   const message = [
@@ -281,7 +315,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     `Skipped (already existed): ${skipped}`,
     `Low-confidence matches: ${lowMatch}`,
     dryRun ? '[DRY RUN – nothing written]' : 'Rows appended to Approved-Requests.',
-  ].join(' | ') + costStr;
+  ].join(' | ') + costStr + enrollStr;
 
   return {
     newRows: newRows.length,
@@ -292,5 +326,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     dryRun,
     message,
     totalEstimatedCost: hasAnyPrice ? Math.round(totalEstimatedCost * 100) / 100 : null,
+    enroll,
   };
 }
