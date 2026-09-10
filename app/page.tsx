@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 
 type Row = {
   employee: string;
@@ -121,7 +122,7 @@ export default function Home() {
           </p>
         </header>
 
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex flex-wrap gap-3 mb-8 items-center">
           <button
             onClick={() => run(true)}
             disabled={loading}
@@ -136,6 +137,12 @@ export default function Home() {
           >
             {loading ? 'Processing…' : 'Process New Responses'}
           </button>
+          <Link
+            href="/refills"
+            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
+          >
+            صرف شهري (Refills)
+          </Link>
         </div>
 
         {error && (
@@ -312,7 +319,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices: MEDDB3 → DwaPrices API → Egyptian Drug DB · GitHub Actions · Vercel
+          Prices: MEDDB3 → DwaPrices API → Egyptian Drug DB · Neon Refills · Vercel
         </footer>
       </div>
     </main>
