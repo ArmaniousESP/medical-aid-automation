@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { resolveUnitPriceWithExternal } from '@/lib/pricing';
 
 export type GenerateResult = {
   period: string;
@@ -19,6 +20,7 @@ function isValidPeriod(period: string): boolean {
 /**
  * Generate monthly refill cycles for all active chronic programs.
  * Idempotent per (program_id, period).
+ * Prices via external APIs (MEDDB3 optional later when sheet is loaded).
  */
 export async function generateRefills(period: string): Promise<GenerateResult> {
   if (!isValidPeriod(period)) {
@@ -86,12 +88,26 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
     for (const line of lines.rows) {
       const qty = Number(line.qty_per_cycle) || 1;
       const drugName = line.matched_name || line.requested_name;
-      // Price left null until pricing engine is wired; total stays null-safe
+
+      let unitPrice: number | null = null;
+      let priceSource: string | null = null;
+      try {
+        const priced = await resolveUnitPriceWithExternal(drugName, []);
+        unitPrice = priced.unitPrice;
+        priceSource = priced.source !== 'none' ? priced.source : null;
+      } catch {
+        // pricing is best-effort
+      }
+
+      const lineTotal =
+        unitPrice != null ? Math.round(unitPrice * qty * 100) / 100 : null;
+      if (lineTotal != null) estimated += lineTotal;
+
       await query(
         `INSERT INTO refill_items (
            refill_cycle_id, med_line_id, line_code, drug_name, qty, days_supply,
-           unit_price_egp, line_total_egp, formulary_flag, company_preferred, status
-         ) VALUES ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, 'pending')`,
+           unit_price_egp, line_total_egp, price_source, formulary_flag, company_preferred, status
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')`,
         [
           cycleId,
           line.id,
@@ -99,11 +115,13 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
           drugName,
           qty,
           line.days_supply,
+          unitPrice,
+          lineTotal,
+          priceSource,
           line.formulary_flag,
           line.company_preferred,
         ]
       );
-      estimated += 0;
     }
 
     await query(
@@ -207,11 +225,21 @@ export async function decideItem(input: {
   rejection_reason?: string;
   reviewed_by?: string;
 }) {
-  const statusMap = {
-    approved: 'approved',
-    rejected: 'rejected',
-    skipped: 'skipped',
-  } as const;
+  const itemRow = await query<{ qty: string; line_total_egp: string | null }>(
+    `SELECT qty, line_total_egp FROM refill_items WHERE id = $1 AND refill_cycle_id = $2`,
+    [input.itemId, input.cycleId]
+  );
+  const row = itemRow.rows[0];
+
+  const approvedQty =
+    input.decision === 'approved'
+      ? input.approved_qty ?? (row ? Number(row.qty) : 1)
+      : null;
+  const approvedAmount =
+    input.decision === 'approved'
+      ? input.approved_amount_egp ??
+        (row?.line_total_egp != null ? Number(row.line_total_egp) : null)
+      : null;
 
   await query(
     `UPDATE refill_items SET
@@ -222,16 +250,15 @@ export async function decideItem(input: {
        updated_at = now()
      WHERE id = $5 AND refill_cycle_id = $6`,
     [
-      statusMap[input.decision],
-      input.decision === 'approved' ? input.approved_qty ?? null : null,
-      input.decision === 'approved' ? input.approved_amount_egp ?? null : null,
+      input.decision,
+      approvedQty,
+      approvedAmount,
       input.decision === 'rejected' ? input.rejection_reason ?? null : null,
       input.itemId,
       input.cycleId,
     ]
   );
 
-  // Recalculate cycle status from items
   const items = await query<{ status: string; approved_amount_egp: string | null }>(
     `SELECT status, approved_amount_egp FROM refill_items WHERE refill_cycle_id = $1`,
     [input.cycleId]
@@ -263,6 +290,63 @@ export async function decideItem(input: {
      WHERE id = $4`,
     [cycleStatus, approvedTotal || null, input.reviewed_by ?? null, input.cycleId]
   );
+
+  return getRefillDetail(input.cycleId);
+}
+
+/**
+ * Mark approved items as dispensed and close the cycle.
+ */
+export async function dispenseCycle(input: {
+  cycleId: string;
+  notes?: string;
+  actor?: string;
+}) {
+  const cycle = await query<{ status: string }>(
+    `SELECT status FROM refill_cycles WHERE id = $1`,
+    [input.cycleId]
+  );
+  if (!cycle.rows[0]) {
+    throw new Error('Cycle not found');
+  }
+
+  const st = cycle.rows[0].status;
+  if (!['approved', 'partially_approved', 'dispensing'].includes(st)) {
+    throw new Error(
+      `Cannot dispense from status "${st}". Approve items first.`
+    );
+  }
+
+  await query(
+    `UPDATE refill_items SET
+       status = 'dispensed',
+       dispensed_qty = COALESCE(approved_qty, qty),
+       updated_at = now()
+     WHERE refill_cycle_id = $1 AND status = 'approved'`,
+    [input.cycleId]
+  );
+
+  await query(
+    `UPDATE refill_cycles SET
+       status = 'dispensed',
+       dispensed_at = now(),
+       fulfillment_notes = COALESCE($2, fulfillment_notes),
+       updated_at = now()
+     WHERE id = $1`,
+    [input.cycleId, input.notes ?? null]
+  );
+
+  if (input.actor) {
+    await query(
+      `INSERT INTO audit_log (entity_type, entity_id, action, actor, to_value)
+       VALUES ('refill_cycle', $1, 'dispensed', $2, $3::jsonb)`,
+      [
+        input.cycleId,
+        input.actor,
+        JSON.stringify({ notes: input.notes ?? null }),
+      ]
+    );
+  }
 
   return getRefillDetail(input.cycleId);
 }
