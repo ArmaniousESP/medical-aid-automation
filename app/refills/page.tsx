@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { listRefills } from '@/lib/refills';
+import { GenerateMonthButton } from './GenerateMonthButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,12 +28,14 @@ export default async function RefillsPage({
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">مراجعة الصرف الشهري</h1>
-            <p className="text-sm text-slate-600">Refill cycles · Neon</p>
+            <p className="text-sm text-slate-600">Refill cycles · Neon · MEDDB3 pricing</p>
           </div>
           <Link href="/" className="text-sm text-blue-600 hover:underline">
             ← الرئيسية
           </Link>
         </header>
+
+        <GenerateMonthButton />
 
         <div className="flex flex-wrap gap-2 text-sm">
           {['in_review', 'approved', 'partially_approved', 'dispensed', 'rejected'].map(
@@ -68,7 +71,7 @@ export default async function RefillsPage({
         )}
 
         {!error && rows.length === 0 && (
-          <p className="text-slate-500 text-sm">لا توجد دورات مطابقة.</p>
+          <p className="text-slate-500 text-sm">لا توجد دورات مطابقة. استخدم «توليد دورة الشهر».</p>
         )}
 
         <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">

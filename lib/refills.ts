@@ -1,10 +1,13 @@
 import { query } from '@/lib/db';
 import { resolveUnitPriceWithExternal } from '@/lib/pricing';
+import { loadMedDb } from '@/lib/meddb';
+import type { MedEntry } from '@/lib/matching';
 
 export type GenerateResult = {
   period: string;
   created: number;
   skipped: number;
+  medDbSize: number;
   cycles: Array<{
     program_code: string;
     cycle_id: string;
@@ -20,12 +23,14 @@ function isValidPeriod(period: string): boolean {
 /**
  * Generate monthly refill cycles for all active chronic programs.
  * Idempotent per (program_id, period).
- * Prices via external APIs (MEDDB3 optional later when sheet is loaded).
+ * Prices: MEDDB3 (sheet) → external APIs.
  */
 export async function generateRefills(period: string): Promise<GenerateResult> {
   if (!isValidPeriod(period)) {
     throw new Error('period must be YYYY-MM');
   }
+
+  const medDb: MedEntry[] = await loadMedDb();
 
   const programs = await query<{
     id: string;
@@ -42,6 +47,7 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
     period,
     created: 0,
     skipped: 0,
+    medDbSize: medDb.length,
     cycles: [],
   };
 
@@ -92,7 +98,7 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
       let unitPrice: number | null = null;
       let priceSource: string | null = null;
       try {
-        const priced = await resolveUnitPriceWithExternal(drugName, []);
+        const priced = await resolveUnitPriceWithExternal(drugName, medDb);
         unitPrice = priced.unitPrice;
         priceSource = priced.source !== 'none' ? priced.source : null;
       } catch {
@@ -294,9 +300,6 @@ export async function decideItem(input: {
   return getRefillDetail(input.cycleId);
 }
 
-/**
- * Mark approved items as dispensed and close the cycle.
- */
 export async function dispenseCycle(input: {
   cycleId: string;
   notes?: string;
