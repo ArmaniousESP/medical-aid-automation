@@ -1,0 +1,57 @@
+name: Generate Monthly Refills
+
+on:
+  # 1st of each month at 05:00 UTC (~07:00 Cairo)
+  schedule:
+    - cron: '0 5 1 * *'
+
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Period YYYY-MM (empty = current month)'
+        required: false
+        default: ''
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Resolve period
+        id: period
+        run: |
+          INPUT="${{ github.event.inputs.period }}"
+          if [ -n "$INPUT" ]; then
+            PERIOD="$INPUT"
+          else
+            PERIOD=$(date -u +%Y-%m)
+          fi
+          echo "period=$PERIOD" >> $GITHUB_OUTPUT
+          echo "Using period: $PERIOD"
+
+      - name: Generate refill cycles
+        env:
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          PERIOD: ${{ steps.period.outputs.period }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "Set repository secret VERCEL_APP_URL (e.g. https://your-app.vercel.app)"
+            exit 1
+          fi
+
+          curl -sS -X POST "$APP_URL/api/refills/generate" \
+            -H "Content-Type: application/json" \
+            -H "x-process-secret: $PROCESS_SECRET" \
+            -d "{\"period\": \"$PERIOD\"}" | tee result.json
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f result.json ]; then
+            echo "### Refill generate" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat result.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
