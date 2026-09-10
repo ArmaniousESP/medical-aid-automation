@@ -2,23 +2,49 @@
 
 ## Secrets (GitHub + Vercel)
 
-| Secret | Where | Purpose |
-|--------|--------|--------|
-| `DATABASE_URL` | Vercel | Neon pooler connection |
-| `GOOGLE_*` / `GOOGLE_SHEET_ID` | Vercel + GH | Sheets + MEDDB3 |
-| `PROCESS_SECRET` | both | Protect process / generate / enroll |
-| `VERCEL_APP_URL` | GitHub Actions | e.g. `https://xxx.vercel.app` |
+| Secret / Env | Where | Purpose |
+|--------------|--------|--------|
+| `DATABASE_URL` | Vercel | Neon pooler |
+| `GOOGLE_*` / `GOOGLE_SHEET_ID` | Vercel | Sheets + MEDDB3 |
+| `PROCESS_SECRET` | Vercel + GitHub | Protect APIs |
+| `VERCEL_APP_URL` | GitHub Actions | Production app URL |
+| `AUTO_ENROLL_CHRONIC` | Vercel | Default on; set `false` to disable auto enroll |
 
 ## Scheduled jobs
 
 | Workflow | When | Action |
 |----------|------|--------|
-| `process-medical-aid.yml` | Daily 06:00 UTC | Process form → Approved-Requests |
-| `generate-refills.yml` | 1st of month 05:00 UTC | `POST /api/refills/generate` |
+| `process-medical-aid.yml` | Daily 06:00 UTC | Process form → sheet, then `sync-from-sheet` |
+| `generate-refills.yml` | 1st of month 05:00 UTC | Generate monthly refill cycles |
 
-Manual: Actions tab → workflow → Run workflow.
+## Pipeline
 
-## Enroll a chronic program
+```
+Google Form
+  → /api/process  (match, price, append Approved-Requests)
+  → /api/programs/sync-from-sheet  (group by employee+patient → Neon programs)
+  → /api/refills/generate  (monthly)
+  → /refills UI  (review → dispense)
+```
+
+## Sync Approved-Requests → chronic programs
+
+Runs automatically after process when `DATABASE_URL` is set.
+
+Manual full resync:
+
+```bash
+curl -X POST "$APP/api/programs/sync-from-sheet" \
+  -H "x-process-secret: $PROCESS_SECRET"
+```
+
+Behaviour:
+- Group sheet rows by employee id + patient name
+- Create active program if none exists
+- Otherwise add only **missing** medication lines
+- Attach roshetta URL from Notes when present
+
+## Enroll one program (manual)
 
 ```bash
 curl -X POST "$APP/api/programs/enroll" \
@@ -29,13 +55,9 @@ curl -X POST "$APP/api/programs/enroll" \
     "employeeName": "سمير مكاري سعد نصرالله",
     "patientName": "مسعودة سعيد نصرالله",
     "relation": "spouse",
-    "startDate": "2026-07-01",
-    "endDate": "2026-12-31",
-    "roshettaUrl": "https://drive.google.com/...",
     "meds": [
       {
         "requestedName": "Blokatens 5/160",
-        "matchedName": "Blokatens 5/160",
         "companyPreferred": true,
         "formularyFlag": "EVA_PREFERRED"
       }
@@ -43,16 +65,8 @@ curl -X POST "$APP/api/programs/enroll" \
   }'
 ```
 
-Then generate the month:
-
-```bash
-curl -X POST "$APP/api/refills/generate" \
-  -H "Content-Type: application/json" \
-  -d '{"period":"2026-10"}'
-```
-
 ## UI
 
-- `/` — process form responses
+- `/` — process form + **مزامنة البرامج المزمنة**
 - `/refills` — generate month + review queue
 - `/refills/[id]` — decide items + dispense
