@@ -1,0 +1,40 @@
+{
+  "programId": "CHR-2026-11610-01",
+  "period": "2026-09",
+  "employeeId": "11610",
+  "patientName": "مسعودة سعيد نصرالله",
+  "relation": "spouse",
+  "roshettaUrl": "https://drive.google.com/file/d/EXAMPLE/view",
+  "rows": [
+    {
+      "lineId": "L1",
+      "drugName": "Blokatens 5/160",
+      "qty": 1,
+      "daysSupply": 30,
+      "unitPrice": 120,
+      "companyPreferred": true
+    },
+    {
+      "lineId": "L2",
+      "drugName": "Aspirin Protect 100",
+      "qty": 1,
+      "daysSupply": 30,
+      "unitPrice": 85,
+      "companyPreferred": false
+    },
+    {
+      "lineId": "L3",
+      "drugName": "Concor 10 plus",
+      "qty": 1,
+      "daysSupply": 30,
+      "companyPreferred": false
+    },
+    {
+      "lineId": "L4",
+      "drugName": "Donifoxate 80",
+      "qty": 1,
+      "daysSupply": 30,
+      "companyPreferred": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+program_id,period,line_id,drug_name,qty,unit_price_egp,line_total_egp,company_preferred,send_status,notes
+CHR-2026-11610-01,2026-09,L1,Blokatens 5/160,1,,,TRUE,pending,
+CHR-2026-11610-01,2026-09,L2,Aspirin Protect 100,1,,,FALSE,pending,
+CHR-2026-11610-01,2026-09,L3,Concor 10 plus,1,,,FALSE,pending,
+CHR-2026-11610-01,2026-09,L4,Donifoxate 80,1,,,TRUE,pending,
+CHR-2026-2187-01,2026-09,L1,Tresiba,1,,,FALSE,pending,
+CHR-2026-2187-01,2026-09,L2,Gliptus plus 50/1000,1,,,FALSE,pending,
+CHR-2026-2187-01,2026-09,L3,Empixera 25,1,,,FALSE,pending,

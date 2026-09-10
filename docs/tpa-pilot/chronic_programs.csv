@@ -1,0 +1,3 @@
+program_id,employee_id,employee_name,patient_name,relation,coverage_type,start_date,end_date,roshetta_url,status,member_id,phone
+CHR-2026-11610-01,11610,سمير مكاري سعد نصرالله,مسعودة سعيد نصرالله,spouse,self_funded,2026-07-01,2026-12-31,https://drive.google.com/file/d/EXAMPLE/view,active,,
+CHR-2026-2187-01,2187,سراج ثابت يونان زكي,سراج ثابت يونان زكي,self,self_funded,2026-07-01,2026-12-31,https://drive.google.com/file/d/EXAMPLE2/view,active,,

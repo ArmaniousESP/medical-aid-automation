@@ -1,0 +1,38 @@
+{
+  "event_type": "chronic_refill.status",
+  "program_id": "CHR-2026-11610-01",
+  "refill_period": "2026-09",
+  "external_claim_id": "AID-2026-09-11610-01",
+  "tpa_auth_id": "ST-AUTH-77881",
+  "status": "partially_approved",
+  "processed_at": "2026-09-01T11:22:00+03:00",
+  "items": [
+    {
+      "line_id": "L1",
+      "drug_name": "Blokatens 5/160",
+      "status": "approved",
+      "approved_qty": 1,
+      "approved_amount_egp": 120,
+      "rejection_reason": null
+    },
+    {
+      "line_id": "L2",
+      "drug_name": "Aspirin Protect 100",
+      "status": "rejected",
+      "approved_qty": 0,
+      "approved_amount_egp": 0,
+      "rejection_reason": "Not covered under plan formulary"
+    }
+  ],
+  "dispense": {
+    "status": "pending_pharmacy",
+    "provider_id": null,
+    "provider_name": null,
+    "dispensed_at": null
+  },
+  "totals": {
+    "approved_total_egp": 120,
+    "patient_share_egp": 0,
+    "employer_share_egp": 120
+  }
+}

@@ -1,0 +1,8 @@
+program_id,line_id,requested_name,matched_name,qty_per_cycle,days_supply,formulary_flag,dose_text,unit_price_egp
+CHR-2026-11610-01,L1,Blokatens 5/160,Blokatens 5/160,1,30,EVA_PREFERRED,1 tablet daily,
+CHR-2026-11610-01,L2,Aspirin Protect 100,Aspirin Protect 100,1,30,NOT_IN_EVA,1 tablet evening,
+CHR-2026-11610-01,L3,Concor 10 plus,Concor 10 plus,1,30,NOT_IN_EVA,1 tablet morning,
+CHR-2026-11610-01,L4,Donifoxate 80,Donifoxate 80,1,30,EVA_PREFERRED,as prescribed,
+CHR-2026-2187-01,L1,Tresiba,Tresiba,1,30,NOT_IN_EVA,as prescribed,
+CHR-2026-2187-01,L2,Gliptus plus 50/1000,Gliptus plus 50/1000,1,30,NOT_IN_EVA,1 tablet daily,
+CHR-2026-2187-01,L3,Empixera 25,Empixera 25,1,30,NOT_IN_EVA,1 tablet daily,
