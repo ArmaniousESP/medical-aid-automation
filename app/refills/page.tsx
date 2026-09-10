@@ -30,9 +30,14 @@ export default async function RefillsPage({
             <h1 className="text-2xl font-semibold">مراجعة الصرف الشهري</h1>
             <p className="text-sm text-slate-600">Refill cycles · Neon · MEDDB3 pricing</p>
           </div>
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            ← الرئيسية
-          </Link>
+          <div className="flex gap-3 text-sm">
+            <Link href="/programs" className="text-blue-600 hover:underline">
+              البرامج المزمنة
+            </Link>
+            <Link href="/" className="text-blue-600 hover:underline">
+              ← الرئيسية
+            </Link>
+          </div>
         </header>
 
         <GenerateMonthButton />
