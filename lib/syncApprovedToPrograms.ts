@@ -3,7 +3,6 @@ import { normalize, cleanDriveLinks } from '@/lib/matching';
 import { getSheetValues, getSpreadsheetIdFromEnv } from '@/lib/google';
 import { query, getDefaultOrgId } from '@/lib/db';
 import { enrollChronicProgram } from '@/lib/programs';
-import { buildProgramId } from '@/lib/tpa/chronic';
 
 export type SyncResult = {
   groups: number;
@@ -19,17 +18,6 @@ export type SyncResult = {
     meds?: number;
     message?: string;
   }>;
-};
-
-type SheetRow = {
-  empId: string;
-  empName: string;
-  patient: string;
-  requestedMed: string;
-  newMed: string;
-  qty: number;
-  companyDrug: string;
-  notes: string;
 };
 
 function extractRoshetta(notes: string): string | undefined {
@@ -169,7 +157,6 @@ async function upsertGroup(g: {
   const relation =
     normalize(g.patient) === normalize(g.empName) ? 'self' : 'other';
 
-  // Find existing active program for this employee + patient
   const existing = await query<{ id: string; program_code: string }>(
     `SELECT cp.id, cp.program_code
      FROM chronic_programs cp
@@ -216,7 +203,6 @@ async function upsertGroup(g: {
     };
   }
 
-  // Extend existing program with missing med lines
   const programId = existing.rows[0].id;
   const programCode = existing.rows[0].program_code;
 
