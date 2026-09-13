@@ -38,6 +38,7 @@ export default async function RefillDetailPage({
 
   const { cycle, items } = detail;
   const c = cycle as any;
+  const itemList = items as any[];
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -80,11 +81,10 @@ export default async function RefillDetailPage({
                 <th className="p-2 text-left">إجمالي</th>
                 <th className="p-2 text-left">Formulary</th>
                 <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">إجراء</th>
               </tr>
             </thead>
             <tbody>
-              {(items as any[]).map((it) => (
+              {itemList.map((it) => (
                 <tr key={it.id} className="border-t">
                   <td className="p-2 font-mono text-xs">{it.line_code}</td>
                   <td className="p-2">{it.drug_name}</td>
@@ -96,20 +96,21 @@ export default async function RefillDetailPage({
                     {it.company_preferred ? ' ★' : ''}
                   </td>
                   <td className="p-2 text-xs">{it.status}</td>
-                  <td className="p-2">
-                    {it.status === 'pending' && (
-                      <RefillActions cycleId={c.id} itemId={it.id} mode="decide" />
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {['approved', 'partially_approved', 'dispensing'].includes(c.status) && (
-          <RefillActions cycleId={c.id} mode="dispense" />
-        )}
+        <RefillActions
+          cycleId={c.id}
+          cycleStatus={c.status}
+          items={itemList.map((it) => ({
+            id: it.id,
+            status: it.status,
+            drug_name: it.drug_name,
+          }))}
+        />
       </div>
     </main>
   );
