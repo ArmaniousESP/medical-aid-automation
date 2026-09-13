@@ -115,7 +115,9 @@ export async function syncApprovedToPrograms(): Promise<SyncResult> {
     details: [],
   };
 
-  for (const g of groups.values()) {
+  const groupList = Array.from(groups.values());
+  for (let i = 0; i < groupList.length; i++) {
+    const g = groupList[i];
     try {
       const action = await upsertGroup(g);
       result.details.push(action);
@@ -171,7 +173,7 @@ async function upsertGroup(g: {
     [orgId, g.empId, g.patient]
   );
 
-  const medList = [...g.meds.values()];
+  const medList = Array.from(g.meds.values());
 
   if (!existing.rows[0]) {
     const enrolled = await enrollChronicProgram({
@@ -216,7 +218,8 @@ async function upsertGroup(g: {
 
   let added = 0;
   let lineNo = current.rows.length;
-  for (const m of medList) {
+  for (let i = 0; i < medList.length; i++) {
+    const m = medList[i];
     const n = normalize(m.matchedName || m.requestedName);
     if (existingNorms.has(n)) continue;
     lineNo += 1;
