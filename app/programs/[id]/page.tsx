@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { query } from '@/lib/db';
 import { notFound } from 'next/navigation';
+import { ProgramStatusActions, MedLineToggle } from './ProgramActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +76,7 @@ export default async function ProgramDetailPage({
           ← البرامج المزمنة
         </Link>
 
-        <header className="rounded-lg border bg-white p-4 shadow-sm">
+        <header className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
           <div className="flex flex-wrap justify-between gap-2">
             <h1 className="text-xl font-semibold font-mono">
               {program.program_code}
@@ -84,7 +85,7 @@ export default async function ProgramDetailPage({
               {program.status}
             </span>
           </div>
-          <p className="mt-2 text-sm">
+          <p className="text-sm">
             <span className="font-medium">{program.patient_name}</span>
             <span className="text-slate-500"> ({program.relation})</span>
           </p>
@@ -92,13 +93,17 @@ export default async function ProgramDetailPage({
             موظف: {program.employee_name} · {program.external_employee_id}
             {program.employee_phone ? ` · ${program.employee_phone}` : ''}
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500">
             {String(program.start_date).slice(0, 10)} →{' '}
             {program.end_date ? String(program.end_date).slice(0, 10) : '∞'}
           </p>
           {program.notes && (
-            <p className="mt-2 text-sm text-slate-600">{program.notes}</p>
+            <p className="text-sm text-slate-600">{program.notes}</p>
           )}
+          <ProgramStatusActions
+            programId={program.id}
+            status={program.status}
+          />
         </header>
 
         <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
@@ -112,11 +117,15 @@ export default async function ProgramDetailPage({
                 <th className="p-2">Qty</th>
                 <th className="p-2">Formulary</th>
                 <th className="p-2">Active</th>
+                <th className="p-2"></th>
               </tr>
             </thead>
             <tbody>
               {meds.map((m) => (
-                <tr key={m.id} className="border-t">
+                <tr
+                  key={m.id}
+                  className={`border-t ${!m.is_active ? 'opacity-50' : ''}`}
+                >
                   <td className="p-2 font-mono text-xs">{m.line_code}</td>
                   <td className="p-2">{m.requested_name}</td>
                   <td className="p-2">{m.matched_name || '—'}</td>
@@ -126,10 +135,20 @@ export default async function ProgramDetailPage({
                     {m.company_preferred ? ' ★' : ''}
                   </td>
                   <td className="p-2 text-xs">{m.is_active ? 'yes' : 'no'}</td>
+                  <td className="p-2">
+                    <MedLineToggle
+                      programId={program.id}
+                      lineId={m.id}
+                      isActive={!!m.is_active}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="p-2 text-xs text-slate-500 border-t">
+            البنود غير النشطة لا تُنسخ عند توليد دورة الشهر التالية.
+          </p>
         </section>
 
         {attachments.length > 0 && (

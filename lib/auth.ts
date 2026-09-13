@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import type { NextRequest } from 'next/server';
 
 export const ADMIN_COOKIE = 'maa_admin';
 
@@ -14,11 +15,24 @@ export function isAdminUnlocked(): boolean {
   }
 }
 
-export function assertProcessSecretHeader(
-  headerValue: string | null,
-  queryValue?: string | null
-): boolean {
+/**
+ * Allow if no secret, or x-process-secret / ?secret= / admin cookie match.
+ */
+export function authorizeRequest(req: NextRequest): boolean {
   const secret = process.env.PROCESS_SECRET;
   if (!secret) return true;
-  return headerValue === secret || queryValue === secret;
+
+  const header = req.headers.get('x-process-secret');
+  if (header === secret) return true;
+
+  const q = req.nextUrl.searchParams.get('secret');
+  if (q === secret) return true;
+
+  const auth = req.headers.get('authorization');
+  if (auth === `Bearer ${secret}`) return true;
+
+  const cookie = req.cookies.get(ADMIN_COOKIE)?.value;
+  if (cookie === secret) return true;
+
+  return false;
 }
