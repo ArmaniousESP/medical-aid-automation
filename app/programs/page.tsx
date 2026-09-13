@@ -44,6 +44,9 @@ export default async function ProgramsPage() {
             <Link href="/refills" className="text-blue-600 hover:underline">
               الصرف الشهري
             </Link>
+            <Link href="/reports" className="text-blue-600 hover:underline">
+              التقارير
+            </Link>
             <Link href="/" className="text-blue-600 hover:underline">
               الرئيسية
             </Link>
@@ -81,7 +84,14 @@ export default async function ProgramsPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t hover:bg-slate-50">
-                  <td className="p-3 font-mono text-xs">{r.program_code}</td>
+                  <td className="p-3 font-mono text-xs">
+                    <Link
+                      href={`/programs/${r.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {r.program_code}
+                    </Link>
+                  </td>
                   <td className="p-3">
                     <div>{r.employee_name}</div>
                     <div className="text-xs text-slate-500">
