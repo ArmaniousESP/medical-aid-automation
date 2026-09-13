@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/process?secret=CHANGE_ME",
+      "path": "/api/cron/daily",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-refills",
+      "schedule": "0 5 1 * *"
     }
   ]
 }
