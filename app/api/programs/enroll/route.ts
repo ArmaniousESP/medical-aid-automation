@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { enrollChronicProgram } from '@/lib/programs';
+import { authorizeRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/programs/enroll
- * Create employee/dependent/chronic program + med lines.
- */
 export async function POST(req: NextRequest) {
   try {
-    const secret = process.env.PROCESS_SECRET;
-    if (secret) {
-      const h = req.headers.get('x-process-secret');
-      if (h !== secret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!authorizeRequest(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();

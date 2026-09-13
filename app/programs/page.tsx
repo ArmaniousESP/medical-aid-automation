@@ -3,11 +3,37 @@ import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProgramsPage() {
+export default async function ProgramsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; status?: string };
+}) {
   let rows: any[] = [];
   let error: string | null = null;
+  const q = (searchParams.q || '').trim();
+  const status = (searchParams.status || '').trim();
 
   try {
+    const params: unknown[] = [];
+    const where: string[] = [];
+
+    if (status) {
+      params.push(status);
+      where.push(`cp.status = $${params.length}`);
+    }
+    if (q) {
+      params.push(`%${q}%`);
+      const i = params.length;
+      where.push(
+        `(cp.program_code ILIKE $${i}
+          OR e.full_name ILIKE $${i}
+          OR e.external_employee_id ILIKE $${i}
+          OR d.full_name ILIKE $${i})`
+      );
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
     const res = await query(
       `SELECT
          cp.id,
@@ -25,7 +51,9 @@ export default async function ProgramsPage() {
        FROM chronic_programs cp
        JOIN employees e ON e.id = cp.employee_id
        JOIN dependents d ON d.id = cp.dependent_id
-       ORDER BY cp.program_code`
+       ${whereSql}
+       ORDER BY cp.program_code`,
+      params
     );
     rows = res.rows;
   } catch (e: unknown) {
@@ -53,19 +81,40 @@ export default async function ProgramsPage() {
           </div>
         </header>
 
+        <form className="flex flex-wrap gap-2 items-center" method="get">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="بحث: اسم / رقم موظف / كود برنامج"
+            className="rounded border px-3 py-2 text-sm min-w-[220px] flex-1"
+          />
+          <select
+            name="status"
+            defaultValue={status}
+            className="rounded border px-2 py-2 text-sm"
+          >
+            <option value="">كل الحالات</option>
+            <option value="active">active</option>
+            <option value="suspended">suspended</option>
+            <option value="cancelled">cancelled</option>
+            <option value="expired">expired</option>
+          </select>
+          <button
+            type="submit"
+            className="rounded bg-slate-800 px-4 py-2 text-sm text-white"
+          >
+            بحث
+          </button>
+        </form>
+
         {error && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
             <strong>تعذر التحميل:</strong> {error}
-            <p className="mt-1 text-slate-600">
-              تأكد من <code>DATABASE_URL</code> على Vercel.
-            </p>
           </div>
         )}
 
         {!error && rows.length === 0 && (
-          <p className="text-sm text-slate-500">
-            لا توجد برامج. استخدم «مزامنة البرامج المزمنة» من الصفحة الرئيسية.
-          </p>
+          <p className="text-sm text-slate-500">لا نتائج.</p>
         )}
 
         <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
