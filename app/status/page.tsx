@@ -3,11 +3,8 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 async function loadHealth() {
-  // Server-side: call checks directly via same process logic
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+  const base = process.env.VERCEL_APP_URL || process.env.VERCEL_URL;
   try {
-    // Prefer in-process: import health logic inline by querying env
-    const { query } = await import('@/lib/db');
     const checks: Record<string, { ok: boolean; detail?: string }> = {
       env_google: {
         ok: !!(
@@ -15,18 +12,28 @@ async function loadHealth() {
           process.env.GOOGLE_PRIVATE_KEY &&
           process.env.GOOGLE_SHEET_ID
         ),
+        detail: 'GOOGLE_SERVICE_ACCOUNT_EMAIL + PRIVATE_KEY + SHEET_ID',
       },
-      env_database: { ok: !!process.env.DATABASE_URL },
-      process_secret: { ok: !!process.env.PROCESS_SECRET },
+      env_database: {
+        ok: !!process.env.DATABASE_URL,
+        detail: 'DATABASE_URL (Neon pooler)',
+      },
+      process_secret: {
+        ok: !!process.env.PROCESS_SECRET,
+        detail: process.env.PROCESS_SECRET
+          ? 'configured'
+          : 'not set — optional; create any strong random string',
+      },
     };
     if (process.env.DATABASE_URL) {
       try {
+        const { query } = await import('@/lib/db');
         const r = await query<{ n: string }>(
           `SELECT count(*)::text AS n FROM chronic_programs`
         );
         checks.neon = {
           ok: true,
-          detail: `programs=${r.rows[0]?.n ?? 0}`,
+          detail: `connected · programs=${r.rows[0]?.n ?? 0}`,
         };
       } catch (e: unknown) {
         checks.neon = {
@@ -37,7 +44,7 @@ async function loadHealth() {
     } else {
       checks.neon = { ok: false, detail: 'no DATABASE_URL' };
     }
-    const ok = checks.env_google.ok && checks.neon.ok;
+    const ok = checks.env_database.ok && checks.neon.ok;
     return { ok, checks, base };
   } catch (e: unknown) {
     return {
@@ -74,7 +81,7 @@ export default async function StatusPage() {
           }`}
         >
           <div className="font-medium">
-            {health.ok ? 'جاهز للتشغيل' : 'يحتاج إعداد'}
+            {health.ok ? 'جاهز للتشغيل (Neon)' : 'يحتاج إعداد على Vercel'}
           </div>
           <p className="text-xs text-slate-600 mt-1">GET /api/health</p>
         </div>
@@ -90,9 +97,44 @@ export default async function StatusPage() {
           ))}
         </ul>
 
+        {!health.ok && (
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm space-y-3">
+            <h2 className="font-semibold">خطوات الإعداد (Vercel)</h2>
+            <ol className="list-decimal list-inside space-y-2 text-slate-700">
+              <li>
+                افتح المشروع على Vercel →{' '}
+                <strong>Settings → Environment Variables</strong>
+              </li>
+              <li>
+                أضف <code className="text-xs bg-slate-100 px-1 rounded">DATABASE_URL</code>{' '}
+                من Neon (Connection string · <strong>pooler</strong> · sslmode=require)
+              </li>
+              <li>
+                أضف <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>{' '}
+                — أنشئه بنفسك (مثلاً:{' '}
+                <code className="text-xs bg-slate-100 px-1">openssl rand -hex 32</code>
+                ). ليس موجوداً مسبقاً في أي مكان.
+              </li>
+              <li>
+                (اختياري للشيت){' '}
+                <code className="text-xs bg-slate-100 px-1">GOOGLE_*</code> +{' '}
+                <code className="text-xs bg-slate-100 px-1">GOOGLE_SHEET_ID</code>
+              </li>
+              <li>
+                <strong>Redeploy</strong> من Deployments بعد الحفظ
+              </li>
+            </ol>
+            <p className="text-xs text-slate-500">
+              بعد الـ redeploy حدّث هذه الصفحة. Neon يحتوي حالياً بيانات seed
+              (برامج / أدوية / دورات).
+            </p>
+          </div>
+        )}
+
         <p className="text-xs text-slate-500">
           Crons: daily process 06:00 UTC · monthly refills day 1 05:00 UTC
           (vercel.json + GitHub Actions)
+          {health.base ? ` · host: ${health.base}` : ''}
         </p>
       </div>
     </main>
