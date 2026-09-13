@@ -3,28 +3,33 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export function RefillActions(props: {
+export function RefillActions({
+  cycleId,
+  items,
+  cycleStatus,
+}: {
   cycleId: string;
-  itemId?: string;
-  mode: 'decide' | 'dispense';
+  items: Array<{ id: string; status: string; drug_name: string }>;
+  cycleStatus: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function decide(decision: 'approved' | 'rejected' | 'skipped') {
-    if (!props.itemId) return;
-    setLoading(true);
+  const pending = items.filter((i) => i.status === 'pending');
+  const canDispense = ['approved', 'partially_approved'].includes(cycleStatus);
+
+  async function decide(
+    itemId: string,
+    decision: 'approved' | 'rejected' | 'skipped'
+  ) {
+    setLoading(itemId + decision);
     setErr(null);
     try {
-      const res = await fetch(`/api/refills/${props.cycleId}/decide`, {
+      const res = await fetch(`/api/refills/${cycleId}/decide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: props.itemId,
-          decision,
-          reviewed_by: 'reviewer-ui',
-        }),
+        body: JSON.stringify({ itemId, decision, reviewed_by: 'ui' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
@@ -32,18 +37,37 @@ export function RefillActions(props: {
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Error');
     } finally {
-      setLoading(false);
+      setLoading(null);
+    }
+  }
+
+  async function approveAll() {
+    setLoading('all');
+    setErr(null);
+    try {
+      const res = await fetch(`/api/refills/${cycleId}/decide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approveAll: true, reviewed_by: 'ui' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      router.refresh();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setLoading(null);
     }
   }
 
   async function dispense() {
-    setLoading(true);
+    setLoading('dispense');
     setErr(null);
     try {
-      const res = await fetch(`/api/refills/${props.cycleId}/dispense`, {
+      const res = await fetch(`/api/refills/${cycleId}/dispense`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actor: 'reviewer-ui', notes: 'Dispensed from UI' }),
+        body: JSON.stringify({ actor: 'ui' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
@@ -51,53 +75,81 @@ export function RefillActions(props: {
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Error');
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   }
 
-  if (props.mode === 'dispense') {
-    return (
-      <div className="rounded-lg border bg-white p-4 shadow-sm">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={dispense}
-          className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {loading ? '…' : 'تعليمليم تم الصرف (Dispense)'}
-        </button>
-        {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-wrap gap-1">
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => decide('approved')}
-        className="rounded bg-emerald-600 px-2 py-0.5 text-xs text-white disabled:opacity-50"
-      >
-        اعتماد
-      </button>
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => decide('rejected')}
-        className="rounded bg-red-600 px-2 py-0.5 text-xs text-white disabled:opacity-50"
-      >
-        رفض
-      </button>
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => decide('skipped')}
-        className="rounded bg-slate-500 px-2 py-0.5 text-xs text-white disabled:opacity-50"
-      >
-        تخطي
-      </button>
-      {err && <span className="text-xs text-red-600">{err}</span>}
+    <div className="space-y-4">
+      {err && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+          {err}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {pending.length > 0 && (
+          <button
+            type="button"
+            disabled={!!loading}
+            onClick={approveAll}
+            className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {loading === 'all'
+              ? '…'
+              : `اعتماد كل المعلّق (${pending.length})`}
+          </button>
+        )}
+        {canDispense && (
+          <button
+            type="button"
+            disabled={!!loading}
+            onClick={dispense}
+            className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading === 'dispense' ? '…' : 'تأكيد الصرف'}
+          </button>
+        )}
+      </div>
+
+      {pending.length > 0 && (
+        <ul className="divide-y rounded border bg-white">
+          {pending.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
+            >
+              <span>{item.drug_name}</span>
+              <span className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={!!loading}
+                  onClick={() => decide(item.id, 'approved')}
+                  className="rounded bg-emerald-100 px-2 py-1 text-emerald-800 text-xs"
+                >
+                  اعتماد
+                </button>
+                <button
+                  type="button"
+                  disabled={!!loading}
+                  onClick={() => decide(item.id, 'rejected')}
+                  className="rounded bg-red-100 px-2 py-1 text-red-800 text-xs"
+                >
+                  رفض
+                </button>
+                <button
+                  type="button"
+                  disabled={!!loading}
+                  onClick={() => decide(item.id, 'skipped')}
+                  className="rounded bg-slate-100 px-2 py-1 text-slate-600 text-xs"
+                >
+                  تخطي
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dispenseCycle } from '@/lib/refills';
+import { authorizeRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/refills/[id]/dispense
- * Body: { notes?, actor? }
- */
 export async function POST(
   req: NextRequest,
   ctx: { params: { id: string } }
 ) {
   try {
+    if (!authorizeRequest(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const detail = await dispenseCycle({
       cycleId: ctx.params.id,

@@ -1,24 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decideItem } from '@/lib/refills';
+import { decideItem, approveAllPending } from '@/lib/refills';
+import { authorizeRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/refills/[id]/decide
- * { itemId, decision: approved|rejected|skipped, approved_qty?, approved_amount_egp?, rejection_reason?, reviewed_by? }
+ * Single: { itemId, decision: approved|rejected|skipped, ... }
+ * Bulk:   { approveAll: true, reviewed_by? }
  */
 export async function POST(
   req: NextRequest,
   ctx: { params: { id: string } }
 ) {
   try {
-    const body = await req.json();
-    const { itemId, decision, approved_qty, approved_amount_egp, rejection_reason, reviewed_by } =
-      body || {};
+    if (!authorizeRequest(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+
+    if (body.approveAll === true) {
+      const detail = await approveAllPending(
+        ctx.params.id,
+        body.reviewed_by ? String(body.reviewed_by) : undefined
+      );
+      return NextResponse.json({ ok: true, ...detail });
+    }
+
+    const {
+      itemId,
+      decision,
+      approved_qty,
+      approved_amount_egp,
+      rejection_reason,
+      reviewed_by,
+    } = body || {};
 
     if (!itemId || !['approved', 'rejected', 'skipped'].includes(decision)) {
       return NextResponse.json(
-        { error: 'itemId and decision (approved|rejected|skipped) required' },
+        {
+          error:
+            'itemId + decision required, or { approveAll: true }',
+        },
         { status: 400 }
       );
     }

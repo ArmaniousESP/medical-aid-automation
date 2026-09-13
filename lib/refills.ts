@@ -7,6 +7,7 @@ export type GenerateResult = {
   period: string;
   created: number;
   skipped: number;
+  emptySkipped: number;
   medDbSize: number;
   cycles: Array<{
     program_code: string;
@@ -23,7 +24,7 @@ function isValidPeriod(period: string): boolean {
 /**
  * Generate monthly refill cycles for all active chronic programs.
  * Idempotent per (program_id, period).
- * Prices: MEDDB3 (sheet) → external APIs.
+ * Only active med lines; skips programs with zero active lines.
  */
 export async function generateRefills(period: string): Promise<GenerateResult> {
   if (!isValidPeriod(period)) {
@@ -32,10 +33,7 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
 
   const medDb: MedEntry[] = await loadMedDb();
 
-  const programs = await query<{
-    id: string;
-    program_code: string;
-  }>(
+  const programs = await query<{ id: string; program_code: string }>(
     `SELECT id, program_code FROM chronic_programs
      WHERE status = 'active'
        AND start_date <= (date_trunc('month', $1::date) + interval '1 month' - interval '1 day')::date
@@ -47,6 +45,7 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
     period,
     created: 0,
     skipped: 0,
+    emptySkipped: 0,
     medDbSize: medDb.length,
     cycles: [],
   };
@@ -60,17 +59,6 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
       result.skipped += 1;
       continue;
     }
-
-    const claimId = `AID-${period.replace('-', '')}-${prog.program_code}`;
-
-    const cycleIns = await query<{ id: string }>(
-      `INSERT INTO refill_cycles (
-         program_id, period, status, requested_at, external_claim_id, fulfillment_channel
-       ) VALUES ($1, $2, 'in_review', now(), $3, 'internal')
-       RETURNING id`,
-      [prog.id, period, claimId]
-    );
-    const cycleId = cycleIns.rows[0].id;
 
     const lines = await query<{
       id: string;
@@ -89,6 +77,22 @@ export async function generateRefills(period: string): Promise<GenerateResult> {
        ORDER BY line_code`,
       [prog.id]
     );
+
+    if (lines.rows.length === 0) {
+      result.emptySkipped += 1;
+      continue;
+    }
+
+    const claimId = `AID-${period.replace('-', '')}-${prog.program_code}`;
+
+    const cycleIns = await query<{ id: string }>(
+      `INSERT INTO refill_cycles (
+         program_id, period, status, requested_at, external_claim_id, fulfillment_channel
+       ) VALUES ($1, $2, 'in_review', now(), $3, 'internal')
+       RETURNING id`,
+      [prog.id, period, claimId]
+    );
+    const cycleId = cycleIns.rows[0].id;
 
     let estimated = 0;
     for (const line of lines.rows) {
@@ -265,9 +269,31 @@ export async function decideItem(input: {
     ]
   );
 
+  return refreshCycleStatus(input.cycleId, input.reviewed_by);
+}
+
+/** Approve every pending item on a cycle (full qty / line total). */
+export async function approveAllPending(
+  cycleId: string,
+  reviewed_by?: string
+) {
+  await query(
+    `UPDATE refill_items SET
+       status = 'approved',
+       approved_qty = qty,
+       approved_amount_egp = line_total_egp,
+       rejection_reason = NULL,
+       updated_at = now()
+     WHERE refill_cycle_id = $1 AND status = 'pending'`,
+    [cycleId]
+  );
+  return refreshCycleStatus(cycleId, reviewed_by);
+}
+
+async function refreshCycleStatus(cycleId: string, reviewed_by?: string) {
   const items = await query<{ status: string; approved_amount_egp: string | null }>(
     `SELECT status, approved_amount_egp FROM refill_items WHERE refill_cycle_id = $1`,
-    [input.cycleId]
+    [cycleId]
   );
 
   const statuses = items.rows.map((r) => r.status);
@@ -294,10 +320,10 @@ export async function decideItem(input: {
        approved_at = CASE WHEN $1 IN ('approved', 'partially_approved') THEN now() ELSE approved_at END,
        updated_at = now()
      WHERE id = $4`,
-    [cycleStatus, approvedTotal || null, input.reviewed_by ?? null, input.cycleId]
+    [cycleStatus, approvedTotal || null, reviewed_by ?? null, cycleId]
   );
 
-  return getRefillDetail(input.cycleId);
+  return getRefillDetail(cycleId);
 }
 
 export async function dispenseCycle(input: {
