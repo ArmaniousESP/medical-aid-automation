@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SyncProgramsButton } from './SyncProgramsButton';
 import { UnlockPanel } from './UnlockPanel';
+import { DashboardCards } from './DashboardCards';
 
 type Row = {
   employee: string;
@@ -131,6 +132,8 @@ export default function Home() {
             </Link>
           </div>
         </header>
+
+        <DashboardCards />
 
         <div className="flex flex-wrap gap-3 mb-8 items-start">
           <button
