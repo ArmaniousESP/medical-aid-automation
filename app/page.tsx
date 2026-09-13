@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SyncProgramsButton } from './SyncProgramsButton';
+import { UnlockPanel } from './UnlockPanel';
 
 type Row = {
   employee: string;
@@ -110,17 +111,25 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Medical Aid Automation
-          </h1>
-          <p className="mt-1 text-slate-600">
-            طلب مساعدة علاج شهري — استمارة 9
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
-            Expand · Match EVA · Parse qty · Attachments ·{' '}
-            <strong>Prices: MEDDB3 → DwaPrices → Open DB</strong>
-          </p>
+        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Medical Aid Automation
+            </h1>
+            <p className="mt-1 text-slate-600">
+              طلب مساعدة علاج شهري — استمارة 9
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Expand · Match EVA · Parse qty · Attachments ·{' '}
+              <strong>Prices: MEDDB3 → DwaPrices → Open DB</strong>
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <UnlockPanel />
+            <Link href="/status" className="text-xs text-slate-500 hover:underline">
+              حالة النظام
+            </Link>
+          </div>
         </header>
 
         <div className="flex flex-wrap gap-3 mb-8 items-start">
@@ -342,7 +351,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices · Auto enroll · Neon refills · Monthly reports
+          Prices · Auto enroll · Neon refills · Monthly reports · /status
         </footer>
       </div>
     </main>
