@@ -10,6 +10,11 @@
 | `CRON_SECRET` | Vercel | Optional; falls back to PROCESS_SECRET for crons |
 | `VERCEL_APP_URL` | GitHub Actions | Production app URL |
 | `AUTO_ENROLL_CHRONIC` | Vercel | Default on; set `false` to disable auto enroll |
+| `VERCEL_TOKEN` | GitHub Actions | Deploy workflow (CLI) |
+| `VERCEL_ORG_ID` | GitHub Actions | Deploy workflow |
+| `VERCEL_PROJECT_ID` | GitHub Actions | Deploy workflow |
+
+See **[deploy-vercel.md](./deploy-vercel.md)** for full deploy automation.
 
 ## Health
 
@@ -19,6 +24,13 @@ curl "$APP/api/health"
 
 UI: `/status`
 
+## Deploy automation
+
+| Path | When |
+|------|------|
+| Vercel Git integration | Every push to `main` (if linked) |
+| `.github/workflows/deploy-vercel.yml` | Push to `main` + manual `workflow_dispatch` |
+
 ## Scheduled jobs
 
 ### GitHub Actions
@@ -26,6 +38,7 @@ UI: `/status`
 |----------|------|--------|
 | `process-medical-aid.yml` | Daily 06:00 UTC | Process + sync-from-sheet |
 | `generate-refills.yml` | 1st of month 05:00 UTC | Generate refills |
+| `deploy-vercel.yml` | Push `main` / manual | Production deploy |
 
 ### Vercel Cron (`vercel.json`)
 | Path | Schedule |
