@@ -6,7 +6,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-/** GET /api/pharmacy/pick-list?period=2026-09&status=dispensed&format=csv */
+/** GET /api/pharmacy/pick-list?period=&status=&formulary=EVA|NOT_EVA&format=csv */
 export async function GET(req: NextRequest) {
   try {
     if (!process.env.DATABASE_URL) {
@@ -20,17 +20,25 @@ export async function GET(req: NextRequest) {
     const period = searchParams.get('period') || undefined;
     const status = searchParams.get('status') || undefined;
     const includePending = searchParams.get('includePending') === 'true';
+    const formularyRaw = (searchParams.get('formulary') || 'all').toUpperCase();
+    const formulary =
+      formularyRaw === 'EVA' || formularyRaw === 'NOT_EVA'
+        ? (formularyRaw as 'EVA' | 'NOT_EVA')
+        : 'all';
     const format = (searchParams.get('format') || 'json').toLowerCase();
 
     const lines = await buildPharmacyPickList({
       period,
       status,
       includePending,
+      formulary,
     });
 
     if (format === 'csv') {
       const csv = pharmacyPickListCsv(lines);
-      const label = period || 'all';
+      const label = [period || 'all', formulary !== 'all' ? formulary : '']
+        .filter(Boolean)
+        .join('-');
       return new NextResponse(csv, {
         status: 200,
         headers: {
@@ -43,6 +51,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       count: lines.length,
+      formulary,
       lines,
     });
   } catch (e: unknown) {

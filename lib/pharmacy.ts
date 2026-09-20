@@ -23,13 +23,14 @@ export type PharmacyLine = {
 };
 
 /**
- * Flat pick-list for pharmacy: items on cycles in approved / partially_approved / dispensed
- * (or in_review if includePending).
+ * Flat pick-list for pharmacy.
+ * formulary: 'EVA' | 'NOT_EVA' filters lines.
  */
 export async function buildPharmacyPickList(opts: {
   period?: string;
   status?: string;
   includePending?: boolean;
+  formulary?: 'EVA' | 'NOT_EVA' | 'all';
 }): Promise<PharmacyLine[]> {
   const params: unknown[] = [];
   const where: string[] = [];
@@ -45,6 +46,16 @@ export async function buildPharmacyPickList(opts: {
   } else if (!opts.includePending) {
     where.push(
       `rc.status IN ('approved', 'partially_approved', 'dispensing', 'dispensed')`
+    );
+  }
+
+  if (opts.formulary === 'EVA') {
+    where.push(
+      `(ri.company_preferred = true OR coalesce(ri.formulary_flag,'') ILIKE '%EVA%' AND coalesce(ri.formulary_flag,'') NOT ILIKE '%NOT%')`
+    );
+  } else if (opts.formulary === 'NOT_EVA') {
+    where.push(
+      `(ri.company_preferred = false AND (ri.formulary_flag IS NULL OR ri.formulary_flag NOT ILIKE '%EVA%' OR ri.formulary_flag ILIKE '%NOT%'))`
     );
   }
 
@@ -156,10 +167,6 @@ export function pharmacyPickListCsv(lines: PharmacyLine[]): string {
   return rows.join('\n');
 }
 
-/**
- * Approve all pending items then dispense for every matching cycle.
- * Default: all in_review / approved / partially_approved for period.
- */
 export async function processPharmacyBatch(opts: {
   period?: string;
   cycleIds?: string[];
