@@ -121,8 +121,7 @@ export default function Home() {
               طلب مساعدة علاج شهري — استمارة 9
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Expand · Match EVA · Parse qty · Attachments ·{' '}
-              <strong>Prices: MEDDB3 → DwaPrices → Open DB</strong>
+              Expand · Match EVA · Parse qty · Pharmacy · Inventory · Reports
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -156,6 +155,18 @@ export default function Home() {
             className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
           >
             صرف شهري
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition"
+          >
+            الصيدلية
+          </Link>
+          <Link
+            href="/inventory"
+            className="px-5 py-2.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 font-medium transition"
+          >
+            المخزون
           </Link>
           <Link
             href="/programs"
@@ -354,7 +365,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Prices · Auto enroll · Neon refills · Monthly reports · /status
+          Pharmacy · Inventory · Refills · Reports · /status
         </footer>
       </div>
     </main>
