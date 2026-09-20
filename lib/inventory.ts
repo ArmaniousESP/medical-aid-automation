@@ -1,9 +1,5 @@
 import { query } from '@/lib/db';
 
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
 function skuFromName(name: string): string {
   const base = name
     .toUpperCase()
@@ -14,7 +10,7 @@ function skuFromName(name: string): string {
 }
 
 /** Find or create SKU by drug name (case-insensitive). */
-export async function ensureSku(drugName: string) {
+export async function ensureSku(drugName: string, opts?: { min_qty?: number; unit?: string }) {
   const name = drugName.trim();
   const existing = await query<{ id: string; sku_code: string }>(
     `SELECT id, sku_code FROM inventory_skus
@@ -31,10 +27,10 @@ export async function ensureSku(drugName: string) {
   }
 
   const ins = await query<{ id: string; sku_code: string }>(
-    `INSERT INTO inventory_skus (sku_code, drug_name)
-     VALUES ($1, $2)
+    `INSERT INTO inventory_skus (sku_code, drug_name, unit, min_qty)
+     VALUES ($1, $2, $3, $4)
      RETURNING id, sku_code`,
-    [code, name]
+    [code, name, opts?.unit || 'pack', opts?.min_qty ?? 2]
   );
   const sku = ins.rows[0];
   await query(
@@ -54,11 +50,25 @@ export type StockRow = {
   min_qty: number;
   qty_on_hand: number;
   qty_reserved: number;
+  qty_available: number;
   is_low: boolean;
   is_active: boolean;
 };
 
-export async function listStock(): Promise<StockRow[]> {
+export async function listStock(opts?: {
+  lowOnly?: boolean;
+  q?: string;
+}): Promise<StockRow[]> {
+  const params: unknown[] = [];
+  const where = ['s.is_active = true'];
+
+  if (opts?.q) {
+    params.push(`%${opts.q}%`);
+    where.push(
+      `(s.drug_name ILIKE $${params.length} OR s.sku_code ILIKE $${params.length})`
+    );
+  }
+
   const res = await query(
     `SELECT
        s.id,
@@ -71,11 +81,16 @@ export async function listStock(): Promise<StockRow[]> {
        coalesce(b.qty_reserved, 0) AS qty_reserved
      FROM inventory_skus s
      LEFT JOIN inventory_balances b ON b.sku_id = s.id
-     WHERE s.is_active
-     ORDER BY s.drug_name`
+     WHERE ${where.join(' AND ')}
+     ORDER BY
+       CASE WHEN coalesce(b.qty_on_hand, 0) <= s.min_qty THEN 0 ELSE 1 END,
+       s.drug_name`,
+    params
   );
-  return (res.rows as any[]).map((r) => {
+
+  let rows = (res.rows as any[]).map((r) => {
     const onHand = Number(r.qty_on_hand) || 0;
+    const reserved = Number(r.qty_reserved) || 0;
     const minQty = Number(r.min_qty) || 0;
     return {
       id: r.id,
@@ -84,48 +99,84 @@ export async function listStock(): Promise<StockRow[]> {
       unit: r.unit,
       min_qty: minQty,
       qty_on_hand: onHand,
-      qty_reserved: Number(r.qty_reserved) || 0,
+      qty_reserved: reserved,
+      qty_available: onHand - reserved,
       is_low: onHand <= minQty,
       is_active: !!r.is_active,
     };
   });
+
+  if (opts?.lowOnly) rows = rows.filter((r) => r.is_low);
+  return rows;
 }
 
-export async function listMoves(opts: { skuId?: string; limit?: number }) {
+export async function listMoves(opts: {
+  skuId?: string;
+  move_type?: string;
+  limit?: number;
+}) {
   const limit = Math.min(opts.limit ?? 50, 200);
+  const params: unknown[] = [];
+  const where: string[] = [];
+
   if (opts.skuId) {
-    const res = await query(
-      `SELECT m.*, s.drug_name, s.sku_code
-       FROM inventory_moves m
-       JOIN inventory_skus s ON s.id = m.sku_id
-       WHERE m.sku_id = $1
-       ORDER BY m.created_at DESC
-       LIMIT $2`,
-      [opts.skuId, limit]
-    );
-    return res.rows;
+    params.push(opts.skuId);
+    where.push(`m.sku_id = $${params.length}`);
   }
+  if (opts.move_type) {
+    params.push(opts.move_type);
+    where.push(`m.move_type = $${params.length}::inventory_move_type`);
+  }
+  params.push(limit);
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
   const res = await query(
     `SELECT m.*, s.drug_name, s.sku_code
      FROM inventory_moves m
      JOIN inventory_skus s ON s.id = m.sku_id
+     ${whereSql}
      ORDER BY m.created_at DESC
-     LIMIT $1`,
-    [limit]
+     LIMIT $${params.length}`,
+    params
   );
   return res.rows;
 }
 
+export async function updateSkuMeta(input: {
+  skuId: string;
+  min_qty?: number;
+  unit?: string;
+  is_active?: boolean;
+  notes?: string;
+}) {
+  await query(
+    `UPDATE inventory_skus SET
+       min_qty = COALESCE($2, min_qty),
+       unit = COALESCE($3, unit),
+       is_active = COALESCE($4, is_active),
+       notes = COALESCE($5, notes),
+       updated_at = now()
+     WHERE id = $1`,
+    [
+      input.skuId,
+      input.min_qty ?? null,
+      input.unit ?? null,
+      input.is_active ?? null,
+      input.notes ?? null,
+    ]
+  );
+  return listStock();
+}
+
 /**
  * Apply stock movement. qty is absolute quantity moved (always positive).
- * receive/return → +qty; dispense/write_off → -qty; adjust uses signed qty in notes or positive with type.
+ * receive/return → +qty; dispense/write_off → -qty; adjust uses signedQty.
  */
 export async function applyMove(input: {
   drugName?: string;
   skuId?: string;
   move_type: 'receive' | 'dispense' | 'adjust' | 'return' | 'write_off';
   qty: number;
-  /** For adjust: positive or negative signed delta */
   signedQty?: number;
   ref_type?: string;
   ref_id?: string;
@@ -193,16 +244,52 @@ export async function applyMove(input: {
   return { sku_id: sku.id, balance_after: balanceAfter, delta };
 }
 
-/** Deduct stock for each dispensed item on a cycle (idempotent per item). */
+/** Seed SKUs from distinct active chronic med lines (qty starts at 0). */
+export async function seedSkusFromFormulary() {
+  const meds = await query<{ drug: string }>(
+    `SELECT DISTINCT coalesce(nullif(trim(matched_name), ''), requested_name) AS drug
+     FROM chronic_med_lines
+     WHERE is_active = true
+       AND coalesce(nullif(trim(matched_name), ''), requested_name) IS NOT NULL
+     ORDER BY 1`
+  );
+
+  let created = 0;
+  let existing = 0;
+  for (const row of meds.rows) {
+    const name = String(row.drug || '').trim();
+    if (!name) continue;
+    const before = await query(
+      `SELECT id FROM inventory_skus WHERE lower(trim(drug_name)) = lower(trim($1))`,
+      [name]
+    );
+    await ensureSku(name, { min_qty: 2 });
+    if (before.rows.length) existing += 1;
+    else created += 1;
+  }
+
+  return { scanned: meds.rows.length, created, existing };
+}
+
 export async function applyDispenseToInventory(cycleId: string, actor?: string) {
-  const items = await query<{ id: string; drug_name: string; dispensed_qty: string | null; qty: string }>(
+  const items = await query<{
+    id: string;
+    drug_name: string;
+    dispensed_qty: string | null;
+    qty: string;
+  }>(
     `SELECT id, drug_name, dispensed_qty, qty
      FROM refill_items
      WHERE refill_cycle_id = $1 AND status = 'dispensed'`,
     [cycleId]
   );
 
-  const results: Array<{ item_id: string; drug_name: string; ok: boolean; error?: string }> = [];
+  const results: Array<{
+    item_id: string;
+    drug_name: string;
+    ok: boolean;
+    error?: string;
+  }> = [];
 
   for (const item of items.rows) {
     const already = await query(
@@ -239,4 +326,49 @@ export async function applyDispenseToInventory(cycleId: string, actor?: string) 
   }
 
   return results;
+}
+
+export function stockToCsv(rows: StockRow[]): string {
+  const headers = [
+    'sku_code',
+    'drug_name',
+    'qty_on_hand',
+    'qty_reserved',
+    'qty_available',
+    'min_qty',
+    'unit',
+    'is_low',
+  ];
+  const esc = (v: unknown) => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(',')];
+  for (const r of rows) {
+    lines.push(
+      [
+        r.sku_code,
+        r.drug_name,
+        r.qty_on_hand,
+        r.qty_reserved,
+        r.qty_available,
+        r.min_qty,
+        r.unit,
+        r.is_low,
+      ]
+        .map(esc)
+        .join(',')
+    );
+  }
+  return lines.join('\n');
+}
+
+export async function inventorySummary() {
+  const stock = await listStock();
+  return {
+    skus: stock.length,
+    low_count: stock.filter((s) => s.is_low).length,
+    total_units: stock.reduce((a, s) => a + s.qty_on_hand, 0),
+    zero_stock: stock.filter((s) => s.qty_on_hand <= 0).length,
+  };
 }
