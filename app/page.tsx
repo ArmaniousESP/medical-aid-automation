@@ -121,7 +121,7 @@ export default function Home() {
               طلب مساعدة علاج شهري — استمارة 9
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Expand · Match EVA · Parse qty · Pharmacy · Inventory · Reports
+              Expand · Match EVA · Pharmacy · Inventory · EVA split
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -151,6 +151,12 @@ export default function Home() {
           </button>
           <SyncProgramsButton />
           <Link
+            href="/eva-split"
+            className="px-5 py-2.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-medium transition"
+          >
+            تقسيم EVA
+          </Link>
+          <Link
             href="/refills"
             className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
           >
@@ -167,6 +173,12 @@ export default function Home() {
             className="px-5 py-2.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 font-medium transition"
           >
             المخزون
+          </Link>
+          <Link
+            href="/requests"
+            className="px-5 py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-medium transition"
+          >
+            الطلبات
           </Link>
           <Link
             href="/programs"
@@ -365,7 +377,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Pharmacy · Inventory · Refills · Reports · /status
+          EVA split · Pharmacy · Inventory · Refills · /status
         </footer>
       </div>
     </main>
