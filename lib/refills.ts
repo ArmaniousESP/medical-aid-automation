@@ -2,6 +2,7 @@ import { query } from '@/lib/db';
 import { resolveUnitPriceWithExternal } from '@/lib/pricing';
 import { loadMedDb } from '@/lib/meddb';
 import type { MedEntry } from '@/lib/matching';
+import { applyDispenseToInventory } from '@/lib/inventory';
 
 export type GenerateResult = {
   period: string;
@@ -375,6 +376,13 @@ export async function dispenseCycle(input: {
         JSON.stringify({ notes: input.notes ?? null }),
       ]
     );
+  }
+
+  // Best-effort stock deduction (idempotent per refill_item)
+  try {
+    await applyDispenseToInventory(input.cycleId, input.actor);
+  } catch (e) {
+    console.error('inventory deduct failed', e);
   }
 
   return getRefillDetail(input.cycleId);
