@@ -1,0 +1,68 @@
+name: Monthly Medication Report
+
+on:
+  schedule:
+    # Day 2 of month 06:00 UTC — after refill generation on day 1
+    - cron: '0 6 2 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Period YYYY-MM (empty = current month)'
+        required: false
+        default: ''
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Snapshot monthly + medications report
+        env:
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
+          PERIOD: ${{ github.event.inputs.period }}
+        run: |
+          set -e
+          qs=""
+          if [ -n "$PERIOD" ]; then qs="?period=$PERIOD"; fi
+
+          http_code=$(curl -sS -o report.json -w "%{http_code}" \
+            -H "x-process-secret: $PROCESS_SECRET" \
+            "$APP_URL/api/cron/monthly-report$qs") || true
+
+          echo "HTTP $http_code"
+          cat report.json || true
+          echo
+
+          echo "### Medication report snapshot" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP $http_code" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f report.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat report.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Also fetch CSVs into artifacts-friendly summary links
+          curl -sS -o meds.csv "$APP_URL/api/reports/medications?format=csv" || true
+          if [ -n "$PERIOD" ]; then
+            curl -sS -o monthly.csv "$APP_URL/api/reports/monthly?period=$PERIOD&format=csv" || true
+          else
+            curl -sS -o monthly.csv "$APP_URL/api/reports/monthly?format=csv" || true
+          fi
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Report failed — ensure DATABASE_URL on Vercel"
+            exit 1
+          fi
+
+      - name: Upload CSV artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: med-reports
+          path: |
+            report.json
+            meds.csv
+            monthly.csv
+          if-no-files-found: ignore
