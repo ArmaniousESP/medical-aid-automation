@@ -1,17 +1,10 @@
 name: Deploy Vercel
 
-# Push to main → production deploy via Vercel CLI
-# Also: Actions → Deploy Vercel → Run workflow (manual)
+# Optional explicit deploy. Vercel Git integration already deploys on push to main.
+# This workflow only runs the CLI path when secrets are configured.
 #
-# Required repo secrets:
-#   VERCEL_TOKEN       — https://vercel.com/account/tokens
-#   VERCEL_ORG_ID      — Team / personal account id
-#   VERCEL_PROJECT_ID  — Project id (Settings → General)
-#
-# Note: If the Vercel project is already linked to this GitHub repo,
-# Vercel also deploys on every push automatically. This workflow is
-# an explicit/CI-controlled deploy (useful for manual redeploy or
-# when Git integration is disabled).
+# Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# Docs: docs/deploy-vercel.md
 
 on:
   push:
@@ -32,24 +25,43 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "### Deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID." >> "$GITHUB_STEP_SUMMARY"
+            echo "Rely on Vercel Git integration, or add secrets (see docs/deploy-vercel.md)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::Deploy Action skipped — secrets not set. Git→Vercel integration still deploys on push."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.check.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Vercel CLI
+        if: steps.check.outputs.skip != 'true'
         run: npm install -g vercel@latest
 
       - name: Pull Vercel env (production)
+        if: steps.check.outputs.skip != 'true'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build (production)
+        if: steps.check.outputs.skip != 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy prebuilt to production
+        if: steps.check.outputs.skip != 'true'
         id: deploy
         run: |
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
@@ -57,8 +69,8 @@ jobs:
           echo "Deployed: $url"
 
       - name: Summary
+        if: steps.check.outputs.skip != 'true'
         run: |
           echo "### Vercel production deploy" >> "$GITHUB_STEP_SUMMARY"
           echo "**URL:** ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "App: https://medical-aid-automation.vercel.app" >> "$GITHUB_STEP_SUMMARY"

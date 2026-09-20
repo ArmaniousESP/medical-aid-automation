@@ -1,10 +1,8 @@
 name: Generate Monthly Refills
 
 on:
-  # 1st of each month at 05:00 UTC (~07:00 Cairo)
   schedule:
     - cron: '0 5 1 * *'
-
   workflow_dispatch:
     inputs:
       period:
@@ -18,40 +16,36 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Resolve period
-        id: period
-        run: |
-          INPUT="${{ github.event.inputs.period }}"
-          if [ -n "$INPUT" ]; then
-            PERIOD="$INPUT"
-          else
-            PERIOD=$(date -u +%Y-%m)
-          fi
-          echo "period=$PERIOD" >> $GITHUB_OUTPUT
-          echo "Using period: $PERIOD"
-
-      - name: Generate refill cycles
+      - name: Generate refills
         env:
           PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
-          APP_URL: ${{ secrets.VERCEL_APP_URL }}
-          PERIOD: ${{ steps.period.outputs.period }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
+          PERIOD: ${{ github.event.inputs.period }}
         run: |
-          if [ -z "$APP_URL" ]; then
-            echo "Set repository secret VERCEL_APP_URL (e.g. https://your-app.vercel.app)"
-            exit 1
+          set -e
+          body='{}'
+          if [ -n "$PERIOD" ]; then
+            body="{\"period\":\"$PERIOD\"}"
           fi
 
-          curl -sS -X POST "$APP_URL/api/refills/generate" \
+          http_code=$(curl -sS -o out.json -w "%{http_code}" -X POST "$APP_URL/api/refills/generate" \
             -H "Content-Type: application/json" \
             -H "x-process-secret: $PROCESS_SECRET" \
-            -d "{\"period\": \"$PERIOD\"}" | tee result.json
+            -d "$body") || true
 
-      - name: Summary
-        if: always()
-        run: |
-          if [ -f result.json ]; then
-            echo "### Refill generate" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat result.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "HTTP $http_code"
+          cat out.json || true
+          echo
+
+          echo "### Generate refills" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP $http_code" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f out.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat out.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Generate failed. Ensure DATABASE_URL is set on Vercel and programs exist."
+            exit 1
           fi

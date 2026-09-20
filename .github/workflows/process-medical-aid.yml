@@ -1,10 +1,8 @@
 name: Process Medical Aid Responses
 
 on:
-  # Run every day at 06:00 UTC (08:00 Cairo / EEST)
   schedule:
     - cron: '0 6 * * *'
-
   workflow_dispatch:
     inputs:
       dry_run:
@@ -25,29 +23,49 @@ jobs:
       - name: Process new responses
         env:
           PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
-          APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          # Fallback to production URL if secret not set yet
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: |
-          if [ -z "$APP_URL" ]; then
-            echo "Set repository secret VERCEL_APP_URL"
-            exit 1
-          fi
+          set -e
+          echo "APP_URL=$APP_URL"
+          echo "PROCESS_SECRET set: $([ -n \"$PROCESS_SECRET\" ] && echo yes || echo no)"
 
-          curl -sS -X POST "$APP_URL/api/process" \
+          http_code=$(curl -sS -o result.json -w "%{http_code}" -X POST "$APP_URL/api/process" \
             -H "Content-Type: application/json" \
             -H "x-process-secret: $PROCESS_SECRET" \
-            -d "{\"dryRun\": $DRY_RUN}" | tee result.json
+            -d "{\"dryRun\": $DRY_RUN}") || true
+
+          echo "HTTP $http_code"
+          cat result.json || true
+          echo
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Process failed (HTTP $http_code). Check Vercel env: GOOGLE_*, DATABASE_URL, PROCESS_SECRET."
+            exit 1
+          fi
 
       - name: Sync Approved-Requests → chronic programs
         if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
-          APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
         run: |
-          # Idempotent full-sheet sync (also runs inside /api/process when DATABASE_URL is set)
-          curl -sS -X POST "$APP_URL/api/programs/sync-from-sheet" \
+          set -e
+          http_code=$(curl -sS -o sync.json -w "%{http_code}" -X POST "$APP_URL/api/programs/sync-from-sheet" \
             -H "Content-Type: application/json" \
-            -H "x-process-secret: $PROCESS_SECRET" | tee sync.json
+            -H "x-process-secret: $PROCESS_SECRET") || true
+
+          echo "HTTP $http_code"
+          cat sync.json || true
+          echo
+
+          # 503/401 often mean env not configured yet — warn but don't fail the whole pipeline hard
+          if [ "$http_code" = "200" ]; then
+            echo "Sync OK"
+          else
+            echo "::warning::Sync returned HTTP $http_code (configure DATABASE_URL + GOOGLE_* on Vercel if needed)"
+          fi
 
       - name: Summary
         if: always()
