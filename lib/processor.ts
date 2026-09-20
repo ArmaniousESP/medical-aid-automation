@@ -8,6 +8,7 @@ import {
 } from './matching';
 import { resolveUnitPriceWithExternal, computePriceTotal } from './pricing';
 import { getSheetValues, appendRows, getSpreadsheetIdFromEnv } from './google';
+import { withRetry } from './errors';
 
 export interface ProcessResult {
   newRows: number;
@@ -18,6 +19,7 @@ export interface ProcessResult {
   dryRun: boolean;
   message: string;
   totalEstimatedCost: number | null;
+  warnings: string[];
   enroll?: {
     groups: number;
     created: number;
@@ -32,10 +34,14 @@ function makeKey(a: any, b: any, med: string): string {
 }
 
 export async function processNewResponses(dryRun = false): Promise<ProcessResult> {
+  const warnings: string[] = [];
   const spreadsheetId = await getSpreadsheetIdFromEnv();
 
-  // 1. Load MEDDB3
-  const medRaw = await getSheetValues(spreadsheetId, `${CONFIG.MEDDB_SHEET}!A:C`);
+  // 1. Load MEDDB3 (retry on transient Google errors)
+  const medRaw = await withRetry(
+    () => getSheetValues(spreadsheetId, `${CONFIG.MEDDB_SHEET}!A:C`),
+    { retries: 2, label: 'meddb3' }
+  );
   const medDb: MedEntry[] = [];
   for (let i = 1; i < medRaw.length; i++) {
     const name = medRaw[i][0];
@@ -49,9 +55,9 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
   }
 
   // 2. Existing keys from Approved-Requests
-  const approvedRaw = await getSheetValues(
-    spreadsheetId,
-    `${CONFIG.APPROVED_SHEET}!A:H`
+  const approvedRaw = await withRetry(
+    () => getSheetValues(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:H`),
+    { retries: 2, label: 'approved-keys' }
   );
   const idKeys = new Set<string>();
   const nameKeys = new Set<string>();
@@ -71,7 +77,10 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
   }
 
   // 3. New form responses
-  const formRaw = await getSheetValues(spreadsheetId, `${CONFIG.FORM_SHEET}!A:AK`);
+  const formRaw = await withRetry(
+    () => getSheetValues(spreadsheetId, `${CONFIG.FORM_SHEET}!A:AK`),
+    { retries: 2, label: 'form-responses' }
+  );
   const fromDate = new Date(CONFIG.PROCESS_FROM_DATE);
   const responses: any[] = [];
 
@@ -111,7 +120,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 4. Expand + match + price
+  // 4. Expand + match + price (price failures are soft per-row)
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
@@ -158,13 +167,21 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         }
       }
 
-      const priceLookupNames = [newMed, match.name, cleanName].filter(Boolean) as string[];
+      const priceLookupNames = [newMed, match.name, cleanName].filter(
+        Boolean
+      ) as string[];
       for (const name of priceLookupNames) {
-        const resolved = await resolveUnitPriceWithExternal(name, medDb);
-        if (resolved.unitPrice !== null) {
-          unitPrice = resolved.unitPrice;
-          priceSource = resolved.source;
-          break;
+        try {
+          const resolved = await resolveUnitPriceWithExternal(name, medDb);
+          if (resolved.unitPrice !== null) {
+            unitPrice = resolved.unitPrice;
+            priceSource = resolved.source;
+            break;
+          }
+        } catch (e) {
+          warnings.push(
+            `price:${name}: ${e instanceof Error ? e.message : 'failed'}`
+          );
         }
       }
 
@@ -182,7 +199,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       }
       if (resp.roshetta) notesParts.push(`روشتة: ${cleanDriveLinks(resp.roshetta)}`);
       if (resp.labs) notesParts.push(`فحوصات: ${cleanDriveLinks(resp.labs)}`);
-      if (resp.cardPhoto) notesParts.push(`كارنيه: ${cleanDriveLinks(resp.cardPhoto)}`);
+      if (resp.cardPhoto)
+        notesParts.push(`كارنيه: ${cleanDriveLinks(resp.cardPhoto)}`);
       if (resp.proofRelation)
         notesParts.push(`إثبات قرابة: ${cleanDriveLinks(resp.proofRelation)}`);
       if (resp.rejectionEmail)
@@ -275,10 +293,13 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       return row;
     });
 
-    await appendRows(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:U`, values);
+    await withRetry(
+      () => appendRows(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:U`, values),
+      { retries: 2, label: 'append-approved' }
+    );
   }
 
-  // 5. Auto-enroll chronic programs in Neon (unless dry-run or disabled)
+  // 5. Auto-enroll (soft — never fails the whole process)
   let enroll: ProcessResult['enroll'] = null;
   const autoEnroll = process.env.AUTO_ENROLL_CHRONIC !== 'false';
   if (!dryRun && autoEnroll && process.env.DATABASE_URL) {
@@ -292,14 +313,19 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         skipped: sync.skipped,
         errors: sync.errors,
       };
+      if (sync.errors?.length) {
+        warnings.push(...sync.errors.slice(0, 20).map((e) => `enroll:${e}`));
+      }
     } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'enroll failed';
       enroll = {
         groups: 0,
         created: 0,
         updated: 0,
         skipped: 0,
-        errors: [e instanceof Error ? e.message : 'enroll failed'],
+        errors: [msg],
       };
+      warnings.push(`enroll_soft_fail:${msg}`);
     }
   }
 
@@ -310,12 +336,15 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     ? ` | Chronic enroll: +${enroll.created} / ~${enroll.updated} / skip ${enroll.skipped}`
     : '';
 
-  const message = [
-    `New rows: ${newRows.length}`,
-    `Skipped (already existed): ${skipped}`,
-    `Low-confidence matches: ${lowMatch}`,
-    dryRun ? '[DRY RUN – nothing written]' : 'Rows appended to Approved-Requests.',
-  ].join(' | ') + costStr + enrollStr;
+  const message =
+    [
+      `New rows: ${newRows.length}`,
+      `Skipped (already existed): ${skipped}`,
+      `Low-confidence matches: ${lowMatch}`,
+      dryRun ? '[DRY RUN – nothing written]' : 'Rows appended to Approved-Requests.',
+    ].join(' | ') +
+    costStr +
+    enrollStr;
 
   return {
     newRows: newRows.length,
@@ -325,7 +354,10 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     rows: samples,
     dryRun,
     message,
-    totalEstimatedCost: hasAnyPrice ? Math.round(totalEstimatedCost * 100) / 100 : null,
+    totalEstimatedCost: hasAnyPrice
+      ? Math.round(totalEstimatedCost * 100) / 100
+      : null,
+    warnings: warnings.slice(0, 50),
     enroll,
   };
 }

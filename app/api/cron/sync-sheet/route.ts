@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncApprovedToPrograms } from '@/lib/syncApprovedToPrograms';
+import { softStep, jsonError, AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-/**
- * Scheduled: Approved-Requests → Neon chronic programs.
- * Does not re-process form responses (use /api/cron/daily for that).
- */
 export async function GET(req: NextRequest) {
   return run(req);
 }
@@ -19,12 +16,20 @@ export async function POST(req: NextRequest) {
 async function run(req: NextRequest) {
   try {
     if (!authorize(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: 'Unauthorized', code: 'unauthorized' },
+        { status: 401 }
+      );
     }
 
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(
-        { ok: false, error: 'DATABASE_URL not set' },
+        {
+          ok: false,
+          error: 'DATABASE_URL not set',
+          code: 'missing_env',
+          soft: true,
+        },
         { status: 503 }
       );
     }
@@ -40,21 +45,47 @@ async function run(req: NextRequest) {
           ok: false,
           error:
             'GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEET_ID required',
+          code: 'missing_env',
+          soft: true,
         },
         { status: 503 }
       );
     }
 
     const started = Date.now();
-    const result = await syncApprovedToPrograms();
+    const step = await softStep('sync', () => syncApprovedToPrograms());
+    if (!step.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: step.error,
+          code: step.code,
+          soft: step.soft,
+          duration_ms: Date.now() - started,
+        },
+        { status: step.soft ? 503 : 500 }
+      );
+    }
+
+    // Per-group errors from sync are soft — overall still ok
+    const data = step.data as {
+      groups: number;
+      created: number;
+      updated: number;
+      skipped: number;
+      errors: string[];
+    };
+
     return NextResponse.json({
       ok: true,
+      partial: (data.errors?.length || 0) > 0,
       duration_ms: Date.now() - started,
-      ...result,
+      ...data,
+      group_errors: data.errors || [],
     });
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Sheet sync failed';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const { body, status } = jsonError(e);
+    return NextResponse.json(body, { status });
   }
 }
 
