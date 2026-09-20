@@ -1,0 +1,51 @@
+name: Sync Sheet → Database
+
+# Pull Approved-Requests from Google Sheet into Neon every 6 hours.
+# Requires on Vercel: DATABASE_URL + GOOGLE_* + optional PROCESS_SECRET
+# Requires on GitHub (optional): PROCESS_SECRET
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Sync Approved-Requests to Neon
+        env:
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
+        run: |
+          set -e
+          echo "APP_URL=$APP_URL"
+
+          http_code=$(curl -sS -o sync.json -w "%{http_code}" -X POST \
+            "$APP_URL/api/cron/sync-sheet" \
+            -H "Content-Type: application/json" \
+            -H "x-process-secret: $PROCESS_SECRET") || true
+
+          echo "HTTP $http_code"
+          cat sync.json || true
+          echo
+
+          echo "### Sheet → DB sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP $http_code" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f sync.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat sync.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$http_code" = "503" ]; then
+            echo "::warning::Missing GOOGLE_* or DATABASE_URL on Vercel — sync skipped"
+            exit 0
+          fi
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Sync failed (HTTP $http_code)"
+            exit 1
+          fi

@@ -5,6 +5,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/cron/sync-sheet",
+      "schedule": "0 */6 * * *"
+    },
+    {
       "path": "/api/cron/monthly-refills",
       "schedule": "0 5 1 * *"
     },
