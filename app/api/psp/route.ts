@@ -5,6 +5,7 @@ import {
   savePnatAssessment,
   updateJourney,
 } from '@/lib/psp';
+import { evaluatePnat, scoresFromChecklist } from '@/lib/pnat';
 import { authorizeRequest } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
 
@@ -21,6 +22,21 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     if (sp.get('summary') === '1') {
       return NextResponse.json({ ok: true, ...(await pspSummary()) });
+    }
+    // Dry-run evaluate without save
+    if (sp.get('preview') === '1') {
+      const scores: Record<string, number> = {};
+      for (const k of [
+        'social_economic',
+        'health_system',
+        'condition',
+        'therapy',
+        'patient',
+      ]) {
+        const v = sp.get(k);
+        if (v) scores[k] = Number(v);
+      }
+      return NextResponse.json({ ok: true, preview: evaluatePnat(scores) });
     }
     const rows = await listPspPrograms({
       stage: sp.get('stage') || undefined,
@@ -45,16 +61,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'update_journey');
 
-    if (action === 'pnat') {
-      if (!body.program_id || !body.scores) {
+    if (action === 'pnat' || action === 'evaluate_pnat') {
+      if (action === 'evaluate_pnat' || body.dry_run) {
+        const scores = body.checklist
+          ? scoresFromChecklist(body.checklist)
+          : body.scores || {};
+        return NextResponse.json({
+          ok: true,
+          preview: evaluatePnat(scores),
+        });
+      }
+      if (!body.program_id) {
         return NextResponse.json(
-          { ok: false, error: 'program_id and scores required' },
+          { ok: false, error: 'program_id required' },
           { status: 400 }
         );
       }
       const result = await savePnatAssessment({
         program_id: String(body.program_id),
         scores: body.scores,
+        checklist: body.checklist,
         assessor: body.assessor ? String(body.assessor) : undefined,
         interventions: body.interventions
           ? String(body.interventions)

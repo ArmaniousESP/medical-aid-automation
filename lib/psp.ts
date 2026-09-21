@@ -1,4 +1,11 @@
 import { query } from '@/lib/db';
+import {
+  evaluatePnat,
+  scoresFromChecklist,
+  type PnatChecklist,
+  type PnatScores,
+  PNAT_DIMENSIONS as PNAT_DIMS_FULL,
+} from '@/lib/pnat';
 
 export const JOURNEY_STAGES = [
   'referred',
@@ -40,28 +47,19 @@ export const ELIGIBILITY_LABELS_AR: Record<string, string> = {
   review: 'مراجعة',
 };
 
-/** WHO 5 dimensions — PNAT-inspired */
-export const PNAT_DIMENSIONS = [
-  { key: 'social_economic', label_ar: 'اجتماعي / اقتصادي' },
-  { key: 'health_system', label_ar: 'منظومة صحية' },
-  { key: 'condition', label_ar: 'مرتبط بالحالة' },
-  { key: 'therapy', label_ar: 'مرتبط بالعلاج' },
-  { key: 'patient', label_ar: 'مرتبط بالمريض' },
-] as const;
+/** @deprecated use lib/pnat — kept for UI imports */
+export const PNAT_DIMENSIONS = PNAT_DIMS_FULL.map((d) => ({
+  key: d.key,
+  label_ar: d.label_ar,
+}));
 
-export type PnatScores = Record<string, number>;
+export type { PnatScores };
 
-export function riskBandFromScores(scores: PnatScores): 'low' | 'medium' | 'high' {
-  const vals = Object.values(scores).filter((n) => typeof n === 'number');
-  if (!vals.length) return 'medium';
-  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-  if (avg <= 2) return 'low';
-  if (avg <= 3.5) return 'medium';
-  return 'high';
+export function riskBandFromScores(scores: PnatScores) {
+  return evaluatePnat(scores).risk_band;
 }
 
 export async function ensurePspColumns() {
-  // Soft: columns may already exist from migration
   try {
     await query(
       `ALTER TABLE chronic_programs
@@ -71,7 +69,7 @@ export async function ensurePspColumns() {
          ADD COLUMN IF NOT EXISTS disease_area TEXT`
     );
   } catch {
-    /* ignore if no permission mid-request */
+    /* ignore */
   }
   try {
     await query(`
@@ -130,7 +128,9 @@ export async function listPspPrograms(opts?: {
        (SELECT count(*)::int FROM chronic_med_lines ml
          WHERE ml.program_id = cp.id AND ml.is_active) AS med_count,
        (SELECT count(*)::int FROM attachments a
-         WHERE a.entity_type = 'program' AND a.entity_id = cp.id) AS doc_count
+         WHERE a.entity_type = 'program' AND a.entity_id = cp.id) AS doc_count,
+       (SELECT risk_band FROM adherence_assessments aa
+         WHERE aa.program_id = cp.id ORDER BY assessed_at DESC LIMIT 1) AS latest_risk
      FROM chronic_programs cp
      JOIN employees e ON e.id = cp.employee_id
      JOIN dependents d ON d.id = cp.dependent_id
@@ -171,13 +171,23 @@ export async function updateJourney(input: {
 
 export async function savePnatAssessment(input: {
   program_id: string;
-  scores: PnatScores;
+  scores?: PnatScores;
+  checklist?: PnatChecklist;
   assessor?: string;
   interventions?: string;
   notes?: string;
 }) {
   await ensurePspColumns();
-  const risk = riskBandFromScores(input.scores);
+
+  const scores: PnatScores = input.checklist
+    ? scoresFromChecklist(input.checklist)
+    : input.scores || {};
+
+  const result = evaluatePnat(scores);
+  const interventionsText =
+    input.interventions ||
+    result.recommended_interventions.join(' · ');
+
   const ins = await query<{ id: string }>(
     `INSERT INTO adherence_assessments (
        program_id, assessor, scores, risk_band, interventions, notes
@@ -186,14 +196,20 @@ export async function savePnatAssessment(input: {
     [
       input.program_id,
       input.assessor || 'ops',
-      JSON.stringify(input.scores),
-      risk,
-      input.interventions || null,
-      input.notes || null,
+      JSON.stringify({
+        ...result.scores,
+        _meta: {
+          composite: result.composite,
+          risk_score_0_100: result.risk_score_0_100,
+          summary_ar: result.summary_ar,
+        },
+      }),
+      result.risk_band,
+      interventionsText,
+      input.notes || result.summary_ar,
     ]
   );
 
-  // Advance journey if still early
   await query(
     `UPDATE chronic_programs SET
        journey_stage = CASE
@@ -206,7 +222,16 @@ export async function savePnatAssessment(input: {
     [input.program_id]
   );
 
-  return { id: ins.rows[0].id, risk_band: risk };
+  return {
+    id: ins.rows[0].id,
+    risk_band: result.risk_band,
+    composite: result.composite,
+    risk_score_0_100: result.risk_score_0_100,
+    high_risk_dimensions: result.high_risk_dimensions,
+    recommended_interventions: result.recommended_interventions,
+    summary_ar: result.summary_ar,
+    scores: result.scores,
+  };
 }
 
 export async function pspSummary() {
@@ -221,8 +246,30 @@ export async function pspSummary() {
      FROM chronic_programs WHERE status = 'active'
      GROUP BY 1`
   );
+  const byRisk = await query<{ risk_band: string; n: string }>(
+    `SELECT DISTINCT ON (program_id) risk_band, program_id
+     FROM adherence_assessments
+     ORDER BY program_id, assessed_at DESC`
+  ).catch(() => ({ rows: [] as any[] }));
+
+  // recount risk bands
+  const riskCounts: Record<string, number> = {};
+  try {
+    const rc = await query<{ risk_band: string; n: string }>(
+      `SELECT risk_band, count(*)::text AS n FROM (
+         SELECT DISTINCT ON (program_id) risk_band
+         FROM adherence_assessments
+         ORDER BY program_id, assessed_at DESC
+       ) t GROUP BY risk_band`
+    );
+    for (const r of rc.rows) riskCounts[r.risk_band] = Number(r.n);
+  } catch {
+    /* empty */
+  }
+
   return {
     by_stage: Object.fromEntries(byStage.rows.map((r) => [r.stage, Number(r.n)])),
     by_tier: Object.fromEntries(byTier.rows.map((r) => [r.tier, Number(r.n)])),
+    by_risk: riskCounts,
   };
 }
