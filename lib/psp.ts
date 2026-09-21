@@ -6,6 +6,7 @@ import {
   type PnatScores,
   PNAT_DIMENSIONS as PNAT_DIMS_FULL,
 } from '@/lib/pnat';
+import { sendWhatsApp } from '@/lib/whatsapp';
 
 export const JOURNEY_STAGES = [
   'referred',
@@ -176,6 +177,7 @@ export async function savePnatAssessment(input: {
   assessor?: string;
   interventions?: string;
   notes?: string;
+  notify_whatsapp?: boolean;
 }) {
   await ensurePspColumns();
 
@@ -222,6 +224,39 @@ export async function savePnatAssessment(input: {
     [input.program_id]
   );
 
+  let whatsapp: { ok: boolean; dry_run?: boolean; error?: string } | null = null;
+  const shouldNotify =
+    input.notify_whatsapp !== false &&
+    (result.risk_band === 'high' || result.risk_band === 'critical');
+
+  if (shouldNotify) {
+    try {
+      const pe = await query<{ phone: string | null; employee_name: string; patient_name: string }>(
+        `SELECT e.phone, e.full_name AS employee_name, d.full_name AS patient_name
+         FROM chronic_programs cp
+         JOIN employees e ON e.id = cp.employee_id
+         JOIN dependents d ON d.id = cp.dependent_id
+         WHERE cp.id = $1`,
+        [input.program_id]
+      );
+      const row = pe.rows[0];
+      if (row?.phone) {
+        const r = await sendWhatsApp({
+          to: row.phone,
+          template: 'pnat_high_risk',
+          program_id: input.program_id,
+          vars: {
+            name: row.employee_name,
+            patient: row.patient_name,
+          },
+        });
+        whatsapp = { ok: r.ok, dry_run: r.dry_run, error: r.error };
+      }
+    } catch {
+      whatsapp = { ok: false, error: 'notify failed' };
+    }
+  }
+
   return {
     id: ins.rows[0].id,
     risk_band: result.risk_band,
@@ -231,6 +266,7 @@ export async function savePnatAssessment(input: {
     recommended_interventions: result.recommended_interventions,
     summary_ar: result.summary_ar,
     scores: result.scores,
+    whatsapp,
   };
 }
 
@@ -246,13 +282,7 @@ export async function pspSummary() {
      FROM chronic_programs WHERE status = 'active'
      GROUP BY 1`
   );
-  const byRisk = await query<{ risk_band: string; n: string }>(
-    `SELECT DISTINCT ON (program_id) risk_band, program_id
-     FROM adherence_assessments
-     ORDER BY program_id, assessed_at DESC`
-  ).catch(() => ({ rows: [] as any[] }));
 
-  // recount risk bands
   const riskCounts: Record<string, number> = {};
   try {
     const rc = await query<{ risk_band: string; n: string }>(
