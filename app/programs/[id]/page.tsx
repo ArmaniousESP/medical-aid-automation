@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { query } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { ProgramStatusActions, MedLineToggle } from './ProgramActions';
+import { DOC_TYPE_LABELS_AR } from '@/lib/documents';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ export default async function ProgramDetailPage({
     refills = r.rows;
 
     const a = await query(
-      `SELECT * FROM attachments WHERE entity_type = 'program' AND entity_id = $1`,
+      `SELECT * FROM attachments WHERE entity_type = 'program' AND entity_id = $1 ORDER BY created_at DESC`,
       [program.id]
     );
     attachments = a.rows;
@@ -72,9 +73,14 @@ export default async function ProgramDetailPage({
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-4xl space-y-6">
-        <Link href="/programs" className="text-sm text-blue-600 hover:underline">
-          ← البرامج المزمنة
-        </Link>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link href="/programs" className="text-blue-600 hover:underline">
+            ← البرامج المزمنة
+          </Link>
+          <Link href="/documents" className="text-blue-600 hover:underline">
+            التوثيق الطبي
+          </Link>
+        </div>
 
         <header className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
           <div className="flex flex-wrap justify-between gap-2">
@@ -105,6 +111,49 @@ export default async function ProgramDetailPage({
             status={program.status}
           />
         </header>
+
+        <section className="rounded-lg border bg-white p-4 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-medium">التوثيق الطبي</h2>
+            <span className="text-xs text-slate-500">
+              {attachments.length} مستند
+            </span>
+          </div>
+          {attachments.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              لا مرفقات — سجّل من{' '}
+              <Link href="/documents" className="text-blue-600 hover:underline">
+                صفحة التوثيق
+              </Link>{' '}
+              باستخدام معرف البرنامج:{' '}
+              <code className="text-xs bg-slate-100 px-1">{program.id}</code>
+            </p>
+          ) : (
+            <ul className="text-sm space-y-2">
+              {attachments.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-wrap gap-2 items-center border-b border-slate-100 pb-2"
+                >
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                    {DOC_TYPE_LABELS_AR[a.doc_type] || a.doc_type}
+                  </span>
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all text-xs"
+                  >
+                    {a.file_name ||
+                      (String(a.url).includes('drive.google.com')
+                        ? 'Google Drive'
+                        : String(a.url).slice(0, 60))}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
           <h2 className="p-3 font-medium border-b bg-slate-50">الأدوية</h2>
@@ -146,31 +195,7 @@ export default async function ProgramDetailPage({
               ))}
             </tbody>
           </table>
-          <p className="p-2 text-xs text-slate-500 border-t">
-            البنود غير النشطة لا تُنسخ عند توليد دورة الشهر التالية.
-          </p>
         </section>
-
-        {attachments.length > 0 && (
-          <section className="rounded-lg border bg-white p-3 shadow-sm">
-            <h2 className="font-medium mb-2">مرفقات</h2>
-            <ul className="text-sm space-y-1">
-              {attachments.map((a) => (
-                <li key={a.id}>
-                  <span className="text-slate-500 text-xs">{a.doc_type}: </span>
-                  <a
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
-                  >
-                    {a.file_name || a.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
           <h2 className="p-3 font-medium border-b bg-slate-50">دورات الصرف</h2>

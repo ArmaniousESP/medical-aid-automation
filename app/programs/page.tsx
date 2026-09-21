@@ -47,7 +47,9 @@ export default async function ProgramsPage({
          d.relation,
          (SELECT count(*)::int FROM chronic_med_lines m
           WHERE m.program_id = cp.id AND m.is_active) AS med_count,
-         (SELECT count(*)::int FROM refill_cycles rc WHERE rc.program_id = cp.id) AS refill_count
+         (SELECT count(*)::int FROM refill_cycles rc WHERE rc.program_id = cp.id) AS refill_count,
+         (SELECT count(*)::int FROM attachments a
+          WHERE a.entity_type = 'program' AND a.entity_id = cp.id) AS doc_count
        FROM chronic_programs cp
        JOIN employees e ON e.id = cp.employee_id
        JOIN dependents d ON d.id = cp.dependent_id
@@ -69,11 +71,11 @@ export default async function ProgramsPage({
             <p className="text-sm text-slate-600">Chronic programs · Neon</p>
           </div>
           <div className="flex gap-3 text-sm">
-            <Link href="/refills" className="text-blue-600 hover:underline">
-              الصرف الشهري
+            <Link href="/documents" className="text-blue-600 hover:underline">
+              التوثيق
             </Link>
-            <Link href="/reports" className="text-blue-600 hover:underline">
-              التقارير
+            <Link href="/refills" className="text-blue-600 hover:underline">
+              الصرف
             </Link>
             <Link href="/" className="text-blue-600 hover:underline">
               الرئيسية
@@ -126,8 +128,8 @@ export default async function ProgramsPage({
                 <th className="p-3">المريض</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">أدوية</th>
+                <th className="p-3">مستندات</th>
                 <th className="p-3">دورات</th>
-                <th className="p-3">من → إلى</th>
               </tr>
             </thead>
             <tbody>
@@ -157,14 +159,16 @@ export default async function ProgramsPage({
                     </span>
                   </td>
                   <td className="p-3">{r.med_count}</td>
-                  <td className="p-3">{r.refill_count}</td>
-                  <td className="p-3 text-xs text-slate-600">
-                    {r.start_date
-                      ? String(r.start_date).slice(0, 10)
-                      : '—'}
-                    {' → '}
-                    {r.end_date ? String(r.end_date).slice(0, 10) : '∞'}
+                  <td className="p-3">
+                    {r.doc_count > 0 ? (
+                      <span className="text-emerald-700 font-medium">
+                        {r.doc_count}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">0</span>
+                    )}
                   </td>
+                  <td className="p-3">{r.refill_count}</td>
                 </tr>
               ))}
             </tbody>
