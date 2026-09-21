@@ -1,80 +1,71 @@
-# نشر Vercel عبر GitHub
+# Automated Vercel deployment
 
-## الطريقة 1 — الربط الأصلي (الأبسط)
+## Path A — Vercel ↔ GitHub (recommended, zero secrets in Actions)
 
-إذا كان المشروع مربوطاً بـ GitHub من لوحة Vercel:
+1. Open [Vercel Dashboard](https://vercel.com/dashboard) → your project **medical-aid-automation**
+2. **Settings → Git**
+3. Confirm connected repository: `ArmaniousESP/medical-aid-automation`
+4. Production Branch: **`main`**
+5. Enable **Auto-deploy** on push (default)
 
-1. أي `git push` على `main` → Vercel يبني وينشر تلقائياً.
-2. لا تحتاج Action إضافي.
+Then every `git push` to `main` builds and deploys production automatically.
 
-تحقق: **Vercel → Project → Settings → Git**
+**If deploys stall:** Deployments → latest → **Redeploy** once, or disconnect/reconnect Git.
 
 ---
 
-## الطريقة 2 — GitHub Action (صريح / يدوي)
+## Path B — GitHub Action CLI deploy (explicit)
 
-الملف: `.github/workflows/deploy-vercel.yml`
+Workflow: `.github/workflows/deploy-vercel.yml`
 
-- يعمل عند **push إلى `main`**
-- ويمكن تشغيله يدوياً: **Actions → Deploy Vercel → Run workflow**
+Runs on **push to `main`** and **Actions → Deploy Vercel → Run workflow**.
 
-### أسرار GitHub المطلوبة
+### Add repository secrets
 
-**Repo → Settings → Secrets and variables → Actions**
+**GitHub → repo → Settings → Secrets and variables → Actions → New repository secret**
 
-| Secret | من أين |
-|--------|--------|
-| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) → Create |
-| `VERCEL_ORG_ID` | Vercel → Team Settings → General → Team ID  
-| أو من ملف `.vercel/project.json` بعد `vercel link` |
-| `VERCEL_PROJECT_ID` | Project → Settings → General → Project ID |
+| Secret | How to get it |
+|--------|----------------|
+| `VERCEL_TOKEN` | https://vercel.com/account/tokens → Create Token |
+| `VERCEL_ORG_ID` | After `vercel link`, read `.vercel/project.json` → `orgId` |
+| `VERCEL_PROJECT_ID` | Same file → `projectId` |
+| `VERCEL_APP_URL` | Optional: `https://medical-aid-automation.vercel.app` |
 
-### كيف تحصل على Org / Project ID بسرعة
-
-على جهازك (مرة واحدة):
+Local one-time:
 
 ```bash
 npm i -g vercel
 vercel login
 cd medical-aid-automation
-vercel link   # اختر المشروع
+vercel link
 cat .vercel/project.json
 ```
 
-ستجد `orgId` و `projectId`.
+Without these secrets the Action **skips** (exit 0) and relies on Path A.
 
 ---
 
-## متغيرات البيئة على Vercel (ليست في GitHub)
+## Environment variables (Vercel only)
 
-هذه تُضبط في **Vercel → Settings → Environment Variables** وليس في الكود:
+**Vercel → Project → Settings → Environment Variables** (Production):
 
-| Variable | مطلوب |
-|----------|--------|
-| `DATABASE_URL` | نعم (Neon pooler) |
-| `PROCESS_SECRET` | مستحسن |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | لمعالجة الشيت |
-| `GOOGLE_PRIVATE_KEY` | لمعالجة الشيت |
-| `GOOGLE_SHEET_ID` | لمعالجة الشيت |
-| `VERCEL_APP_URL` | اختياري |
+| Variable | Required |
+|----------|----------|
+| `DATABASE_URL` | Yes (Neon pooler) |
+| `PROCESS_SECRET` | Yes for protected APIs |
+| `GOOGLE_*` / sheet id | For sheet processing |
+| WhatsApp vars | Optional |
 
-بعد أي تغيير في المتغيرات: **Redeploy** أو ادفع commit جديد / شغّل Action.
+After changing env vars: **Redeploy** or push a new commit.
 
 ---
 
-## أسرار GitHub للتشغيل المجدول (ليست للنشر)
-
-| Secret | الغرض |
-|--------|--------|
-| `VERCEL_APP_URL` | `https://medical-aid-automation.vercel.app` |
-| `PROCESS_SECRET` | نفس قيمة Vercel — لاستدعاء `/api/process` |
-
----
-
-## التحقق بعد النشر
+## Verify
 
 ```bash
 curl -sS https://medical-aid-automation.vercel.app/api/health
 ```
 
-أو افتح: https://medical-aid-automation.vercel.app/status
+Or open: https://medical-aid-automation.vercel.app/status
+
+GitHub: **Actions** tab → “Deploy Vercel” run summary.

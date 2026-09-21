@@ -1,10 +1,8 @@
 name: Deploy Vercel
 
-# Optional explicit deploy. Vercel Git integration already deploys on push to main.
-# This workflow only runs the CLI path when secrets are configured.
-#
-# Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-# Docs: docs/deploy-vercel.md
+# Production deploy on every push to main + manual run.
+# Requires GitHub secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# If secrets are missing, the job exits 0 with a notice (Git-linked Vercel still deploys).
 
 on:
   push:
@@ -19,7 +17,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -30,10 +28,14 @@ jobs:
         run: |
           if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "### Deploy skipped" >> "$GITHUB_STEP_SUMMARY"
-            echo "Missing VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID." >> "$GITHUB_STEP_SUMMARY"
-            echo "Rely on Vercel Git integration, or add secrets (see docs/deploy-vercel.md)." >> "$GITHUB_STEP_SUMMARY"
-            echo "::notice::Deploy Action skipped — secrets not set. Git→Vercel integration still deploys on push."
+            echo "### Deploy Action skipped (no CLI secrets)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add these **repository secrets** to force CLI deploys:" >> "$GITHUB_STEP_SUMMARY"
+            echo "- \`VERCEL_TOKEN\` from https://vercel.com/account/tokens" >> "$GITHUB_STEP_SUMMARY"
+            echo "- \`VERCEL_ORG_ID\` / \`VERCEL_PROJECT_ID\` from \`vercel link\` → .vercel/project.json" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "If the Vercel project is **linked to this GitHub repo**, a production deploy still starts from the Git push." >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::CLI deploy skipped — missing secrets. Rely on Vercel Git integration or add secrets."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -64,13 +66,23 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         id: deploy
         run: |
+          set -e
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
 
-      - name: Summary
+      - name: Health check
         if: steps.check.outputs.skip != 'true'
         run: |
-          echo "### Vercel production deploy" >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          base="${{ secrets.VERCEL_APP_URL }}"
+          if [ -z "$base" ]; then
+            base="https://medical-aid-automation.vercel.app"
+          fi
+          sleep 8
+          code=$(curl -sS -o /tmp/health.json -w "%{http_code}" "$base/api/health" || echo "000")
+          echo "Health HTTP $code"
+          cat /tmp/health.json 2>/dev/null || true
+          echo "### Deploy" >> "$GITHUB_STEP_SUMMARY"
           echo "**URL:** ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "App: https://medical-aid-automation.vercel.app" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Health:** $code · $base/api/health" >> "$GITHUB_STEP_SUMMARY"
