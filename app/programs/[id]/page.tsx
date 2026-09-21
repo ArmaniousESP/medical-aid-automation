@@ -7,6 +7,7 @@ import { PnatForm } from './PnatForm';
 import { CareLinePanel } from './CareLinePanel';
 import { PfetForm } from './PfetForm';
 import { ReleaseLetterButton } from './ReleaseLetterButton';
+import { AdverseEventForm } from './AdverseEventForm';
 import { JOURNEY_LABELS_AR, ELIGIBILITY_LABELS_AR } from '@/lib/psp';
 
 export const dynamic = 'force-dynamic';
@@ -30,17 +31,13 @@ export default async function ProgramDetailPage({
   let assessments: any[] = [];
   let contacts: any[] = [];
   let plans: any[] = [];
+  let adverse: any[] = [];
   let error: string | null = null;
 
   try {
     const p = await query(
-      `SELECT
-         cp.*,
-         e.external_employee_id,
-         e.full_name AS employee_name,
-         e.phone AS employee_phone,
-         d.full_name AS patient_name,
-         d.relation
+      `SELECT cp.*, e.external_employee_id, e.full_name AS employee_name,
+              e.phone AS employee_phone, d.full_name AS patient_name, d.relation
        FROM chronic_programs cp
        JOIN employees e ON e.id = cp.employee_id
        JOIN dependents d ON d.id = cp.dependent_id
@@ -50,53 +47,64 @@ export default async function ProgramDetailPage({
     program = p.rows[0] || null;
     if (!program) notFound();
 
-    const m = await query(
-      `SELECT * FROM chronic_med_lines WHERE program_id = $1 ORDER BY line_code`,
-      [program.id]
-    );
-    meds = m.rows;
-
-    const r = await query(
-      `SELECT id, period, status, estimated_total_egp, approved_total_egp, requested_at
-       FROM refill_cycles WHERE program_id = $1 ORDER BY period DESC LIMIT 24`,
-      [program.id]
-    );
-    refills = r.rows;
-
-    const a = await query(
-      `SELECT * FROM attachments WHERE entity_type = 'program' AND entity_id = $1 ORDER BY created_at DESC`,
-      [program.id]
-    );
-    attachments = a.rows;
+    meds = (
+      await query(`SELECT * FROM chronic_med_lines WHERE program_id = $1 ORDER BY line_code`, [
+        program.id,
+      ])
+    ).rows;
+    refills = (
+      await query(
+        `SELECT id, period, status, estimated_total_egp, approved_total_egp, requested_at
+         FROM refill_cycles WHERE program_id = $1 ORDER BY period DESC LIMIT 24`,
+        [program.id]
+      )
+    ).rows;
+    attachments = (
+      await query(
+        `SELECT * FROM attachments WHERE entity_type = 'program' AND entity_id = $1 ORDER BY created_at DESC`,
+        [program.id]
+      )
+    ).rows;
 
     try {
-      const aa = await query(
-        `SELECT * FROM adherence_assessments WHERE program_id = $1 ORDER BY assessed_at DESC LIMIT 10`,
-        [program.id]
-      );
-      assessments = aa.rows;
+      assessments = (
+        await query(
+          `SELECT * FROM adherence_assessments WHERE program_id = $1 ORDER BY assessed_at DESC LIMIT 10`,
+          [program.id]
+        )
+      ).rows;
     } catch {
       assessments = [];
     }
-
     try {
-      const cc = await query(
-        `SELECT * FROM care_line_contacts WHERE program_id = $1 ORDER BY contacted_at DESC LIMIT 15`,
-        [program.id]
-      );
-      contacts = cc.rows;
+      contacts = (
+        await query(
+          `SELECT * FROM care_line_contacts WHERE program_id = $1 ORDER BY contacted_at DESC LIMIT 15`,
+          [program.id]
+        )
+      ).rows;
     } catch {
       contacts = [];
     }
-
     try {
-      const pl = await query(
-        `SELECT * FROM adherence_plans WHERE program_id = $1 ORDER BY created_at DESC LIMIT 5`,
-        [program.id]
-      );
-      plans = pl.rows;
+      plans = (
+        await query(
+          `SELECT * FROM adherence_plans WHERE program_id = $1 ORDER BY created_at DESC LIMIT 5`,
+          [program.id]
+        )
+      ).rows;
     } catch {
       plans = [];
+    }
+    try {
+      adverse = (
+        await query(
+          `SELECT * FROM adverse_events WHERE program_id = $1 ORDER BY reported_at DESC LIMIT 10`,
+          [program.id]
+        )
+      ).rows;
+    } catch {
+      adverse = [];
     }
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed';
@@ -110,7 +118,6 @@ export default async function ProgramDetailPage({
       </main>
     );
   }
-
   if (!program) notFound();
 
   const activeMeds = meds.filter((x) => x.is_active).length;
@@ -120,18 +127,10 @@ export default async function ProgramDetailPage({
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-wrap gap-3 text-sm">
-          <Link href="/programs" className="text-blue-600 hover:underline">
-            ← Programs
-          </Link>
-          <Link href="/psp" className="text-blue-600 hover:underline">
-            PSP journey
-          </Link>
-          <Link href="/pms" className="text-blue-600 hover:underline">
-            PMS dashboard
-          </Link>
-          <Link href="/care-line" className="text-blue-600 hover:underline">
-            Care Line
-          </Link>
+          <Link href="/programs" className="text-blue-600 hover:underline">← Programs</Link>
+          <Link href="/pms" className="text-blue-600 hover:underline">PMS</Link>
+          <Link href="/psp" className="text-blue-600 hover:underline">Journey</Link>
+          <Link href="/care-line" className="text-blue-600 hover:underline">Care Line</Link>
         </div>
 
         <header className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
@@ -164,14 +163,6 @@ export default async function ProgramDetailPage({
             Employee: {program.employee_name} · {program.external_employee_id}
             {program.employee_phone ? ` · ${program.employee_phone}` : ''}
           </p>
-          {program.monthly_patient_share_egp != null && (
-            <p className="text-xs text-teal-700">
-              Patient share (PFET): {program.monthly_patient_share_egp} EGP / month
-            </p>
-          )}
-          {program.dropout_reason && (
-            <p className="text-sm text-red-700">Dropout: {program.dropout_reason}</p>
-          )}
           <ProgramStatusActions programId={program.id} status={program.status} />
         </header>
 
@@ -181,53 +172,20 @@ export default async function ProgramDetailPage({
         </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
-          <h2 className="font-medium">Adherence (PNAT-style · WHO dimensions)</h2>
+          <h2 className="font-medium">Adherence (PNAT-style)</h2>
           <PnatForm programId={program.id} medCount={activeMeds} />
-          {plans.length > 0 && (
-            <div className="border-t pt-3 text-xs space-y-2">
-              <h3 className="font-medium text-slate-500">Active adherence plan</h3>
-              {plans.filter((x) => x.status === 'active').map((pl) => (
-                <div key={pl.id} className="rounded border p-2">
-                  <div>
-                    Risk {pl.risk_band} · review by {String(pl.next_review_at).slice(0, 10)}
-                  </div>
-                  <div className="text-indigo-700 mt-1">
-                    {Array.isArray(pl.interventions)
-                      ? pl.interventions.join(' · ')
-                      : String(pl.interventions)}
-                  </div>
-                </div>
-              ))}
+          {plans.filter((x) => x.status === 'active').map((pl) => (
+            <div key={pl.id} className="text-xs rounded border p-2 bg-indigo-50/50">
+              Plan · {pl.risk_band} · review {String(pl.next_review_at).slice(0, 10)}
+              <div className="text-indigo-800 mt-1">
+                {Array.isArray(pl.interventions) ? pl.interventions.join(' · ') : String(pl.interventions || '')}
+              </div>
             </div>
-          )}
-          {assessments.length > 0 && (
-            <ul className="text-sm space-y-2 border-t pt-3">
-              {assessments.map((aa) => (
-                <li key={aa.id} className="flex flex-wrap gap-2 justify-between border-b border-slate-100 pb-2">
-                  <div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${RISK_COLOR[aa.risk_band] || 'bg-slate-100'}`}>
-                      {aa.risk_band}
-                    </span>
-                    <span className="text-xs text-slate-500 ml-2">
-                      {String(aa.assessed_at).slice(0, 16).replace('T', ' ')}
-                    </span>
-                    {aa.interventions && (
-                      <p className="text-xs text-indigo-700 mt-1">{aa.interventions}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          ))}
         </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="font-medium">Care Line</h2>
-            <Link href="/care-line" className="text-xs text-blue-600 hover:underline">
-              Release calendar
-            </Link>
-          </div>
+          <h2 className="font-medium">Care Line</h2>
           <CareLinePanel programId={program.id} />
           {contacts.length > 0 && (
             <ul className="text-xs space-y-1 border-t pt-2">
@@ -248,21 +206,34 @@ export default async function ProgramDetailPage({
           <ReleaseLetterButton programId={program.id} />
         </section>
 
+        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+          <h2 className="font-medium">Adverse events</h2>
+          <AdverseEventForm programId={program.id} />
+          {adverse.length > 0 && (
+            <ul className="text-xs space-y-2 border-t pt-2">
+              {adverse.map((ae) => (
+                <li key={ae.id} className="rounded border p-2">
+                  <span className="font-medium text-red-700">{ae.severity}</span>
+                  <span className="text-slate-500 ml-2">{String(ae.reported_at).slice(0, 10)}</span>
+                  <p className="mt-1">{ae.description}</p>
+                  {ae.med_name && <p className="text-slate-500">Med: {ae.med_name}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section className="rounded-lg border bg-white p-4 shadow-sm">
           <h2 className="font-medium mb-3">Documents</h2>
           {attachments.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              None — use <Link href="/documents" className="text-blue-600 hover:underline">Documents</Link>
-            </p>
+            <p className="text-sm text-slate-500">None</p>
           ) : (
             <ul className="text-sm space-y-2">
               {attachments.map((a) => (
-                <li key={a.id} className="flex flex-wrap gap-2 items-center">
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
-                    {DOC_TYPE_LABELS_AR[a.doc_type] || a.doc_type}
-                  </span>
-                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs break-all">
-                    {a.file_name || a.url.slice(0, 48)}
+                <li key={a.id} className="flex flex-wrap gap-2">
+                  <span className="text-xs bg-slate-100 rounded-full px-2">{DOC_TYPE_LABELS_AR[a.doc_type] || a.doc_type}</span>
+                  <a href={a.url} className="text-blue-600 text-xs break-all" target="_blank" rel="noreferrer">
+                    {a.file_name || a.url.slice(0, 40)}
                   </a>
                 </li>
               ))}
