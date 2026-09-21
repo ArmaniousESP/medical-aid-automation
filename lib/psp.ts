@@ -7,6 +7,7 @@ import {
   PNAT_DIMENSIONS as PNAT_DIMS_FULL,
 } from '@/lib/pnat';
 import { sendWhatsApp } from '@/lib/whatsapp';
+import { upsertAdherencePlan } from '@/lib/pspOps';
 
 export const JOURNEY_STAGES = [
   'referred',
@@ -224,6 +225,19 @@ export async function savePnatAssessment(input: {
     [input.program_id]
   );
 
+  // Axios-style personalized adherence plan from PNAT
+  let plan: { id: string; next_review_days: number } | null = null;
+  try {
+    plan = await upsertAdherencePlan({
+      program_id: input.program_id,
+      assessment_id: ins.rows[0].id,
+      risk_band: result.risk_band,
+      interventions: result.recommended_interventions,
+    });
+  } catch {
+    plan = null;
+  }
+
   let whatsapp: { ok: boolean; dry_run?: boolean; error?: string } | null = null;
   const shouldNotify =
     input.notify_whatsapp !== false &&
@@ -231,7 +245,11 @@ export async function savePnatAssessment(input: {
 
   if (shouldNotify) {
     try {
-      const pe = await query<{ phone: string | null; employee_name: string; patient_name: string }>(
+      const pe = await query<{
+        phone: string | null;
+        employee_name: string;
+        patient_name: string;
+      }>(
         `SELECT e.phone, e.full_name AS employee_name, d.full_name AS patient_name
          FROM chronic_programs cp
          JOIN employees e ON e.id = cp.employee_id
@@ -266,6 +284,7 @@ export async function savePnatAssessment(input: {
     recommended_interventions: result.recommended_interventions,
     summary_ar: result.summary_ar,
     scores: result.scores,
+    adherence_plan: plan,
     whatsapp,
   };
 }
