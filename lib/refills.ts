@@ -3,6 +3,8 @@ import { resolveUnitPriceWithExternal } from '@/lib/pricing';
 import { loadMedDb } from '@/lib/meddb';
 import type { MedEntry } from '@/lib/matching';
 import { applyDispenseToInventory } from '@/lib/inventory';
+import { recordFirstDispense } from '@/lib/pspOps';
+import { sendWhatsApp } from '@/lib/whatsapp';
 
 export type GenerateResult = {
   period: string;
@@ -331,9 +333,10 @@ export async function dispenseCycle(input: {
   cycleId: string;
   notes?: string;
   actor?: string;
+  notify_whatsapp?: boolean;
 }) {
-  const cycle = await query<{ status: string }>(
-    `SELECT status FROM refill_cycles WHERE id = $1`,
+  const cycle = await query<{ status: string; program_id: string; external_claim_id: string | null }>(
+    `SELECT status, program_id, external_claim_id FROM refill_cycles WHERE id = $1`,
     [input.cycleId]
   );
   if (!cycle.rows[0]) {
@@ -378,11 +381,47 @@ export async function dispenseCycle(input: {
     );
   }
 
+  // OTA: first dispense timestamp on program
+  try {
+    await recordFirstDispense(cycle.rows[0].program_id);
+  } catch (e) {
+    console.error('recordFirstDispense failed', e);
+  }
+
   // Best-effort stock deduction (idempotent per refill_item)
   try {
     await applyDispenseToInventory(input.cycleId, input.actor);
   } catch (e) {
     console.error('inventory deduct failed', e);
+  }
+
+  // Optional pickup notification
+  if (input.notify_whatsapp !== false) {
+    try {
+      const pe = await query<{ phone: string | null; employee_name: string; patient_name: string }>(
+        `SELECT e.phone, e.full_name AS employee_name, d.full_name AS patient_name
+         FROM chronic_programs cp
+         JOIN employees e ON e.id = cp.employee_id
+         JOIN dependents d ON d.id = cp.dependent_id
+         WHERE cp.id = $1`,
+        [cycle.rows[0].program_id]
+      );
+      const row = pe.rows[0];
+      if (row?.phone) {
+        await sendWhatsApp({
+          to: row.phone,
+          template: 'refill_ready',
+          program_id: cycle.rows[0].program_id,
+          vars: {
+            name: row.employee_name,
+            patient: row.patient_name,
+            claim: cycle.rows[0].external_claim_id || input.cycleId.slice(0, 8),
+          },
+        });
+      }
+    } catch (e) {
+      console.error('whatsapp refill_ready failed', e);
+    }
   }
 
   return getRefillDetail(input.cycleId);
