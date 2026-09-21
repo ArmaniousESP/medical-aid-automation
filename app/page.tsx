@@ -121,13 +121,13 @@ export default function Home() {
               طلب مساعدة علاج شهري — استمارة 9
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Expand · Match EVA · Pharmacy · Inventory · EVA split
+              PSP · Pharmacy · Inventory · Refills · OTA
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <UnlockPanel />
             <Link href="/status" className="text-xs text-slate-500 hover:underline">
-              حالة النظام
+              System status
             </Link>
           </div>
         </header>
@@ -151,46 +151,70 @@ export default function Home() {
           </button>
           <SyncProgramsButton />
           <Link
+            href="/pms"
+            className="px-5 py-2.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 font-medium transition"
+          >
+            PMS
+          </Link>
+          <Link
+            href="/psp"
+            className="px-5 py-2.5 rounded-lg bg-pink-600 text-white hover:bg-pink-700 font-medium transition"
+          >
+            Patient journey
+          </Link>
+          <Link
+            href="/care-line"
+            className="px-5 py-2.5 rounded-lg bg-sky-600 text-white hover:bg-sky-700 font-medium transition"
+          >
+            Care Line
+          </Link>
+          <Link
+            href="/notifications"
+            className="px-5 py-2.5 rounded-lg bg-green-700 text-white hover:bg-green-800 font-medium transition"
+          >
+            WhatsApp
+          </Link>
+          <Link
             href="/eva-split"
             className="px-5 py-2.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700 font-medium transition"
           >
-            تقسيم EVA
+            EVA split
           </Link>
           <Link
             href="/refills"
             className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
           >
-            صرف شهري
+            Refills
           </Link>
           <Link
             href="/pharmacy"
             className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition"
           >
-            الصيدلية
+            Pharmacy
           </Link>
           <Link
             href="/inventory"
             className="px-5 py-2.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 font-medium transition"
           >
-            المخزون
+            Inventory
           </Link>
           <Link
             href="/requests"
             className="px-5 py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 font-medium transition"
           >
-            الطلبات
+            Requests
           </Link>
           <Link
             href="/programs"
             className="px-5 py-2.5 rounded-lg bg-slate-700 text-white hover:bg-slate-800 font-medium transition"
           >
-            البرامج
+            Programs
           </Link>
           <Link
             href="/reports"
             className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-medium transition"
           >
-            التقارير
+            Reports
           </Link>
         </div>
 
@@ -285,7 +309,7 @@ export default function Home() {
                         <th className="py-3 px-3 font-medium">Unit</th>
                         <th className="py-3 px-3 font-medium">Total</th>
                         <th className="py-3 px-3 font-medium">Score</th>
-                        <th className="py-3 px-3 font-medium">روشتة</th>
+                        <th className="py-3 px-3 font-medium">Roshetta</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -377,7 +401,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          EVA split · Pharmacy · Inventory · Refills · /status
+          PMS · PSP · Care Line · Pharmacy · Refills · /status
         </footer>
       </div>
     </main>
