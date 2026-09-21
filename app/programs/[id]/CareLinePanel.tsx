@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 
 const CHANNELS = [
   ['phone', 'هاتف'],
-  ['sms', 'SMS'],
   ['whatsapp', 'واتساب'],
+  ['sms', 'SMS'],
   ['email', 'بريد'],
   ['in_person', 'حضوري'],
 ] as const;
@@ -38,6 +38,7 @@ export function CareLinePanel({ programId }: { programId: string }) {
   const [channel, setChannel] = useState('phone');
   const [outcome, setOutcome] = useState('reached');
   const [notes, setNotes] = useState('');
+  const [sendWa, setSendWa] = useState(false);
   const [dropout, setDropout] = useState('cost');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -57,11 +58,20 @@ export function CareLinePanel({ programId }: { programId: string }) {
           channel,
           outcome,
           notes: notes || undefined,
+          send_whatsapp: sendWa,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل');
-      setMsg('تم تسجيل الاتصال');
+      let t = 'تم تسجيل الاتصال';
+      if (data.whatsapp) {
+        t += data.whatsapp.ok
+          ? data.whatsapp.dry_run
+            ? ' · واتساب (تجريبي)'
+            : ' · واتساب أُرسل'
+          : ` · واتساب: ${data.whatsapp.error || 'فشل'}`;
+      }
+      setMsg(t);
       setNotes('');
       router.refresh();
     } catch (err: unknown) {
@@ -136,6 +146,14 @@ export function CareLinePanel({ programId }: { programId: string }) {
             className="rounded border px-2 py-1.5 w-full"
           />
         </div>
+        <label className="flex items-center gap-1.5 text-xs text-slate-600 pb-2">
+          <input
+            type="checkbox"
+            checked={sendWa}
+            onChange={(e) => setSendWa(e.target.checked)}
+          />
+          إرسال واتساب أيضاً
+        </label>
         <button
           type="submit"
           disabled={loading}

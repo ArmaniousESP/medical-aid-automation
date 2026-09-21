@@ -89,6 +89,8 @@ export async function POST(req: NextRequest) {
       outcome: body.outcome ? String(body.outcome) : undefined,
       notes: body.notes ? String(body.notes) : undefined,
       actor: body.actor ? String(body.actor) : 'care-line-ui',
+      send_whatsapp: body.send_whatsapp === true,
+      whatsapp_dry_run: body.whatsapp_dry_run === true,
     });
 
     return NextResponse.json({ ok: true, ...result });

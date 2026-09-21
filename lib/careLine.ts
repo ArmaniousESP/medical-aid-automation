@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { sendWhatsApp } from '@/lib/whatsapp';
 
 /** Axios-style care line emphasizes phone over email for persistence */
 export const CARE_CHANNELS = ['phone', 'sms', 'whatsapp', 'email', 'in_person'] as const;
@@ -16,56 +17,16 @@ export const CARE_OUTCOMES = [
 
 /** WHO-dimension aligned dropout reason codes */
 export const DROPOUT_REASONS = [
-  {
-    code: 'cost',
-    label_ar: 'تكلفة / عبء مالي',
-    dimension: 'social_economic',
-  },
-  {
-    code: 'access_system',
-    label_ar: 'صعوبة المنظومة / التجديد / الصرف',
-    dimension: 'health_system',
-  },
-  {
-    code: 'condition_improved',
-    label_ar: 'تحسّن الأعراض / إيقاف ذاتي',
-    dimension: 'condition',
-  },
-  {
-    code: 'side_effects',
-    label_ar: 'آثار جانبية / صعوبة العلاج',
-    dimension: 'therapy',
-  },
-  {
-    code: 'complex_regimen',
-    label_ar: 'تعقيد الجدول الدوائي',
-    dimension: 'therapy',
-  },
-  {
-    code: 'forgot_disengaged',
-    label_ar: 'نسيان / انقطاع عن المتابعة',
-    dimension: 'patient',
-  },
-  {
-    code: 'beliefs',
-    label_ar: 'معتقدات حول الدواء أو المرض',
-    dimension: 'patient',
-  },
-  {
-    code: 'moved_transferred',
-    label_ar: 'نقل / ترك العمل / تأمين آخر',
-    dimension: 'social_economic',
-  },
-  {
-    code: 'deceased',
-    label_ar: 'وفاة',
-    dimension: 'condition',
-  },
-  {
-    code: 'other',
-    label_ar: 'أخرى',
-    dimension: 'patient',
-  },
+  { code: 'cost', label_ar: 'تكلفة / عبء مالي', dimension: 'social_economic' },
+  { code: 'access_system', label_ar: 'صعوبة المنظومة / التجديد / الصرف', dimension: 'health_system' },
+  { code: 'condition_improved', label_ar: 'تحسّن الأعراض / إيقاف ذاتي', dimension: 'condition' },
+  { code: 'side_effects', label_ar: 'آثار جانبية / صعوبة العلاج', dimension: 'therapy' },
+  { code: 'complex_regimen', label_ar: 'تعقيد الجدول الدوائي', dimension: 'therapy' },
+  { code: 'forgot_disengaged', label_ar: 'نسيان / انقطاع عن المتابعة', dimension: 'patient' },
+  { code: 'beliefs', label_ar: 'معتقدات حول الدواء أو المرض', dimension: 'patient' },
+  { code: 'moved_transferred', label_ar: 'نقل / ترك العمل / تأمين آخر', dimension: 'social_economic' },
+  { code: 'deceased', label_ar: 'وفاة', dimension: 'condition' },
+  { code: 'other', label_ar: 'أخرى', dimension: 'patient' },
 ] as const;
 
 export async function ensureCareLineTable() {
@@ -92,6 +53,18 @@ export async function ensureCareLineTable() {
   }
 }
 
+async function employeePhoneForProgram(programId: string) {
+  const res = await query<{ phone: string | null; employee_name: string; patient_name: string }>(
+    `SELECT e.phone, e.full_name AS employee_name, d.full_name AS patient_name
+     FROM chronic_programs cp
+     JOIN employees e ON e.id = cp.employee_id
+     JOIN dependents d ON d.id = cp.dependent_id
+     WHERE cp.id = $1`,
+    [programId]
+  );
+  return res.rows[0] || null;
+}
+
 export async function logCareContact(input: {
   program_id: string;
   channel?: string;
@@ -100,6 +73,9 @@ export async function logCareContact(input: {
   notes?: string;
   actor?: string;
   contacted_at?: string;
+  /** Also push WhatsApp care_line_followup if phone exists */
+  send_whatsapp?: boolean;
+  whatsapp_dry_run?: boolean;
 }) {
   await ensureCareLineTable();
   const ins = await query<{ id: string }>(
@@ -118,7 +94,6 @@ export async function logCareContact(input: {
     ]
   );
 
-  // Light touch: mark follow_up if still early stage
   await query(
     `UPDATE chronic_programs SET
        journey_stage = CASE
@@ -132,7 +107,28 @@ export async function logCareContact(input: {
     [input.program_id]
   );
 
-  return { id: ins.rows[0].id };
+  let wa: { ok: boolean; dry_run?: boolean; error?: string } | null = null;
+  if (input.send_whatsapp) {
+    const info = await employeePhoneForProgram(input.program_id);
+    if (info?.phone) {
+      const r = await sendWhatsApp({
+        to: info.phone,
+        template: 'care_line_followup',
+        program_id: input.program_id,
+        dry_run: input.whatsapp_dry_run,
+        vars: {
+          name: info.employee_name,
+          patient: info.patient_name,
+          note: input.notes || '',
+        },
+      });
+      wa = { ok: r.ok, dry_run: r.dry_run, error: r.error };
+    } else {
+      wa = { ok: false, error: 'no phone' };
+    }
+  }
+
+  return { id: ins.rows[0].id, whatsapp: wa };
 }
 
 export async function listCareContacts(programId: string, limit = 20) {
@@ -184,7 +180,6 @@ export async function markDropout(input: {
   return { ok: true, reason };
 }
 
-/** Next monthly release window = first day of next period without dispensed cycle */
 export async function getReleaseCalendar(opts?: {
   period?: string;
   limit?: number;
@@ -195,7 +190,6 @@ export async function getReleaseCalendar(opts?: {
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const limit = Math.min(opts?.limit ?? 100, 300);
 
-  // Programs active without a dispensed cycle this period (due for release)
   const res = await query(
     `SELECT
        cp.id AS program_id,
@@ -227,7 +221,6 @@ export async function getReleaseCalendar(opts?: {
 
   return {
     period,
-    // Suggest release window: day 1–7 of period (ops convention)
     release_window: {
       from: `${period}-01`,
       to: `${period}-07`,

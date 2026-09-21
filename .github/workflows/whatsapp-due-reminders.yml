@@ -1,0 +1,56 @@
+name: WhatsApp Due Refill Reminders
+
+on:
+  schedule:
+    # Day 1 and 3 of each month at 07:00 UTC (~09:00 Egypt winter)
+    - cron: '0 7 1,3 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Period YYYY-MM (empty = current)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'dry_run=1 to log only'
+        required: false
+        default: '1'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Send WhatsApp due reminders
+        env:
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
+          PERIOD: ${{ github.event.inputs.period }}
+          DRY: ${{ github.event.inputs.dry_run || '1' }}
+        run: |
+          set -e
+          qs="dry_run=${DRY}"
+          if [ -n "$PERIOD" ]; then
+            qs="${qs}&period=${PERIOD}"
+          fi
+
+          http_code=$(curl -sS -o out.json -w "%{http_code}" \
+            "$APP_URL/api/cron/whatsapp-due?${qs}" \
+            -H "x-process-secret: $PROCESS_SECRET") || true
+
+          echo "HTTP $http_code"
+          cat out.json || true
+          echo
+
+          echo "### WhatsApp due reminders" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP $http_code · dry_run=$DRY" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f out.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat out.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::WhatsApp cron failed. Check PROCESS_SECRET, APP_URL, and WhatsApp env on Vercel."
+            exit 1
+          fi
