@@ -4,6 +4,7 @@ import {
   listSynonyms,
 } from '@/lib/drugSynonyms';
 import { SynonymForm } from './SynonymForm';
+import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export default async function SynonymsPage() {
           <div>
             <h1 className="text-2xl font-semibold">Ingredient synonyms</h1>
             <p className="text-sm text-slate-600">
-              Trade / Egypt brands → generic names for DDInter matching
+              Trade / Egypt brands → generic names for DDInter & allergy matching
             </p>
           </div>
           <div className="flex gap-3 text-sm">
@@ -36,8 +37,16 @@ export default async function SynonymsPage() {
           </div>
         </header>
 
+        <ClinicalDisclaimer
+          extra="Synonym rows are operational maps only — verify the active substance on the product label before clinical decisions."
+        />
+
         <section className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
           <h2 className="font-medium text-sm">Add / update mapping</h2>
+          <p className="text-xs text-slate-500">
+            Example: alias <code className="bg-slate-100 px-1 rounded">Gliptus plus</code>{' '}
+            → ingredient <code className="bg-slate-100 px-1 rounded">sitagliptin</code>
+          </p>
           <SynonymForm />
         </section>
 
@@ -92,6 +101,8 @@ export default async function SynonymsPage() {
             </table>
           </div>
         </section>
+
+        <ClinicalDisclaimer compact />
       </div>
     </main>
   );
