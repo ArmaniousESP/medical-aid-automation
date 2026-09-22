@@ -25,9 +25,14 @@ const STEPS = [
     body: 'See common co-prescriptions, DDInter levels, and regimens with Major hits.',
   },
   {
-    title: '5. Escalate Major / High only — do not auto-block',
+    title: '5. Work the refill safety queue',
+    href: '/refills/safety',
+    body: 'Cycles with DDI Major or allergy High. Open each, check acknowledge, then approve/dispense.',
+  },
+  {
+    title: '6. Escalate Major / High — do not silent-auto-approve',
     href: '/pharmacy',
-    body: 'Route alerts to pharmacist. Tools are triage, not a dispense lock.',
+    body: 'Route alerts to pharmacist. Soft gate requires acknowledge_safety; tools are triage, not a clinical lock.',
   },
 ];
 
@@ -42,9 +47,14 @@ export default function SafetyPage() {
               Monthly ops flow for interactions & allergies
             </p>
           </div>
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            Home
-          </Link>
+          <div className="flex gap-3 text-sm">
+            <Link href="/refills/safety" className="text-blue-600 hover:underline">
+              Safety queue
+            </Link>
+            <Link href="/" className="text-blue-600 hover:underline">
+              Home
+            </Link>
+          </div>
         </header>
 
         <ClinicalDisclaimer />
@@ -71,9 +81,9 @@ export default function SafetyPage() {
           <pre className="bg-slate-50 border rounded p-2 overflow-x-auto text-[11px]">{`GET  /api/ddinter/check?drugs=Warfarin,Aspirin
 GET  /api/allergies?program_id=UUID
 GET  /api/synonyms?resolve=Gliptus%20plus
-GET  /api/ddinter/scan?limit=25`}</pre>
+GET  /api/refills/safety-queue?limit=40`}</pre>
           <p>
-            Full guide in repo:{' '}
+            Full guide:{' '}
             <code className="bg-slate-100 px-1 rounded">docs/clinical-tools-usage.md</code>
           </p>
         </section>
