@@ -9,6 +9,7 @@ import { PfetForm } from './PfetForm';
 import { ReleaseLetterButton } from './ReleaseLetterButton';
 import { AdverseEventForm } from './AdverseEventForm';
 import { JOURNEY_LABELS_AR, ELIGIBILITY_LABELS_AR } from '@/lib/psp';
+import { checkProgramInteractions, ddinterStats } from '@/lib/ddinter';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,8 @@ export default async function ProgramDetailPage({
   let contacts: any[] = [];
   let plans: any[] = [];
   let adverse: any[] = [];
+  let ddi: Awaited<ReturnType<typeof checkProgramInteractions>> | null = null;
+  let ddiPairs = 0;
   let error: string | null = null;
 
   try {
@@ -106,6 +109,16 @@ export default async function ProgramDetailPage({
     } catch {
       adverse = [];
     }
+
+    try {
+      const st = await ddinterStats();
+      ddiPairs = st.pairs;
+      if (st.pairs > 0) {
+        ddi = await checkProgramInteractions(program.id);
+      }
+    } catch {
+      ddi = null;
+    }
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed';
   }
@@ -128,9 +141,9 @@ export default async function ProgramDetailPage({
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex flex-wrap gap-3 text-sm">
           <Link href="/programs" className="text-blue-600 hover:underline">← Programs</Link>
+          <Link href="/combinations" className="text-blue-600 hover:underline">Combinations</Link>
+          <Link href="/ddinter" className="text-blue-600 hover:underline">DDInter</Link>
           <Link href="/pms" className="text-blue-600 hover:underline">PMS</Link>
-          <Link href="/psp" className="text-blue-600 hover:underline">Journey</Link>
-          <Link href="/care-line" className="text-blue-600 hover:underline">Care Line</Link>
         </div>
 
         <header className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
@@ -153,6 +166,11 @@ export default async function ProgramDetailPage({
                   PNAT: {latest.risk_band}
                 </span>
               )}
+              {ddi && ddi.hits.some((h) => /major/i.test(h.level)) && (
+                <span className="rounded bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium">
+                  DDI Major
+                </span>
+              )}
             </div>
           </div>
           <p className="text-sm">
@@ -165,6 +183,48 @@ export default async function ProgramDetailPage({
           </p>
           <ProgramStatusActions programId={program.id} status={program.status} />
         </header>
+
+        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-2">
+          <div className="flex flex-wrap justify-between gap-2">
+            <h2 className="font-medium">Drug interactions (DDInter)</h2>
+            <Link href="/ddinter" className="text-xs text-blue-600 hover:underline">
+              Manage database
+            </Link>
+          </div>
+          {ddiPairs === 0 ? (
+            <p className="text-xs text-amber-700">
+              No DDInter pairs loaded. Import CSVs on /ddinter.
+            </p>
+          ) : !ddi || ddi.hits.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No DDInter matches among active meds ({ddiPairs.toLocaleString()} pairs in DB).
+              Trade names may need ingredient mapping for better coverage.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {ddi.hits.map((h, i) => (
+                <li
+                  key={i}
+                  className={`rounded border p-2 text-xs ${
+                    /major/i.test(h.level)
+                      ? 'border-red-300 bg-red-50'
+                      : /moderate/i.test(h.level)
+                        ? 'border-amber-300 bg-amber-50'
+                        : 'border-slate-200 bg-slate-50'
+                  }`}
+                >
+                  <span className="font-semibold">{h.level}</span>
+                  {': '}
+                  {h.drug_a} × {h.drug_b}
+                  <div className="text-slate-500 mt-0.5">{h.matched_via}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[10px] text-slate-400">
+            Ops triage only · DDInter 2.0 CC BY-NC-SA · not clinical CDS
+          </p>
+        </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-medium">Eligibility (PFET-style)</h2>
