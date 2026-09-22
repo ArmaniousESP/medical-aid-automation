@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decideItem, approveAllPending } from '@/lib/refills';
 import { authorizeRequest } from '@/lib/auth';
+import { assertRefillSafetyAck, getRefillSafetyReport } from '@/lib/refillSafety';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/refills/[id]/decide
- * Single: { itemId, decision: approved|rejected|skipped, ... }
- * Bulk:   { approveAll: true, reviewed_by? }
+ * Single: { itemId, decision, acknowledge_safety? }
+ * Bulk:   { approveAll: true, acknowledge_safety? }
  */
 export async function POST(
   req: NextRequest,
@@ -19,6 +20,27 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => ({}));
+    const acknowledge_safety = body.acknowledge_safety === true;
+
+    // Soft gate only when approving (not reject/skip)
+    const isApprove =
+      body.approveAll === true || body.decision === 'approved';
+
+    if (isApprove) {
+      try {
+        await assertRefillSafetyAck(ctx.params.id, acknowledge_safety);
+      } catch (e: unknown) {
+        const safety = await getRefillSafetyReport(ctx.params.id);
+        return NextResponse.json(
+          {
+            error: e instanceof Error ? e.message : 'Safety gate',
+            code: 'safety_ack_required',
+            safety,
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     if (body.approveAll === true) {
       const detail = await approveAllPending(
