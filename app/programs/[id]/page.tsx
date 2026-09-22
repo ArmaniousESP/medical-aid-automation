@@ -10,6 +10,8 @@ import { ReleaseLetterButton } from './ReleaseLetterButton';
 import { AdverseEventForm } from './AdverseEventForm';
 import { JOURNEY_LABELS_AR, ELIGIBILITY_LABELS_AR } from '@/lib/psp';
 import { checkProgramInteractions, ddinterStats } from '@/lib/ddinter';
+import { checkProgramAllergies } from '@/lib/allergyCrossReact';
+import { AllergyPanel } from './AllergyPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,8 @@ export default async function ProgramDetailPage({
   let adverse: any[] = [];
   let ddi: Awaited<ReturnType<typeof checkProgramInteractions>> | null = null;
   let ddiPairs = 0;
+  let allergyData: Awaited<ReturnType<typeof checkProgramAllergies>> | null =
+    null;
   let error: string | null = null;
 
   try {
@@ -119,6 +123,12 @@ export default async function ProgramDetailPage({
     } catch {
       ddi = null;
     }
+
+    try {
+      allergyData = await checkProgramAllergies(program.id);
+    } catch {
+      allergyData = null;
+    }
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed';
   }
@@ -135,6 +145,8 @@ export default async function ProgramDetailPage({
 
   const activeMeds = meds.filter((x) => x.is_active).length;
   const latest = assessments[0];
+  const allergyHigh =
+    allergyData?.hits?.some((h) => h.risk === 'high') ?? false;
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -143,6 +155,7 @@ export default async function ProgramDetailPage({
           <Link href="/programs" className="text-blue-600 hover:underline">← Programs</Link>
           <Link href="/combinations" className="text-blue-600 hover:underline">Combinations</Link>
           <Link href="/ddinter" className="text-blue-600 hover:underline">DDInter</Link>
+          <Link href="/synonyms" className="text-blue-600 hover:underline">Synonyms</Link>
           <Link href="/pms" className="text-blue-600 hover:underline">PMS</Link>
         </div>
 
@@ -171,6 +184,11 @@ export default async function ProgramDetailPage({
                   DDI Major
                 </span>
               )}
+              {allergyHigh && (
+                <span className="rounded bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium">
+                  Allergy risk
+                </span>
+              )}
             </div>
           </div>
           <p className="text-sm">
@@ -183,6 +201,16 @@ export default async function ProgramDetailPage({
           </p>
           <ProgramStatusActions programId={program.id} status={program.status} />
         </header>
+
+        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-2">
+          <h2 className="font-medium">Allergies & cross-reactivity</h2>
+          <AllergyPanel
+            programId={program.id}
+            dependentId={program.dependent_id}
+            initialAllergies={allergyData?.allergies || []}
+            initialHits={allergyData?.hits || []}
+          />
+        </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-2">
           <div className="flex flex-wrap justify-between gap-2">
@@ -198,7 +226,6 @@ export default async function ProgramDetailPage({
           ) : !ddi || ddi.hits.length === 0 ? (
             <p className="text-xs text-slate-500">
               No DDInter matches among active meds ({ddiPairs.toLocaleString()} pairs in DB).
-              Trade names may need ingredient mapping for better coverage.
             </p>
           ) : (
             <ul className="space-y-2 text-sm">
