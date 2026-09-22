@@ -19,182 +19,112 @@ severe/anaphylaxis histories to a clinician.
 
 ---
 
+## Recommended monthly flow
+
+1. `/ddinter` — import pairs (at least ATC B, or all)
+2. `/synonyms` — seed + Egypt brands
+3. Programs — document allergies
+4. `/combinations` — population patterns
+5. `/refills/safety` — **safety queue** (Major / High only)
+6. Open each flagged cycle → check acknowledgment → approve/dispense
+7. `/pharmacy` — pick list (banner shows flagged count)
+
+---
+
+## Refill soft safety gate
+
+On approve or dispense:
+
+- If the program has **DDI Major** or **allergy High**, the API returns **HTTP 409**
+  with `code: "safety_ack_required"` unless the body includes:
+
+```json
+{ "acknowledge_safety": true, "reviewed_by": "pharmacist" }
+```
+
+- UI: checkbox on `/refills/[id]` unlocks Approve / Dispense
+- Audit: `audit_log` action `safety_acknowledged` when ack is used
+- Reject / Skip are never gated
+
+```bash
+# Will 409 if high flags
+POST /api/refills/{id}/decide  {"approveAll":true}
+
+# After review
+POST /api/refills/{id}/decide  {
+  "approveAll": true,
+  "acknowledge_safety": true,
+  "reviewed_by": "pharmacist"
+}
+
+# Queue
+GET /api/refills/safety-queue?limit=40
+```
+
+---
+
 ## 1. Ingredient synonyms
 
 **UI:** `/synonyms`
 
-**Purpose:** Map Egyptian / brand names to generic ingredients so DDInter and allergy
-checks can match.
-
-### Examples
-
-| Alias (brand) | Ingredient |
-|---------------|------------|
-| Gliptus plus | sitagliptin |
-| Empixera | empagliflozin |
-| Tresiba | insulin degludec |
-| Augmentin | amoxicillin |
-| Brufen | ibuprofen |
-| Coaxilor / Coxritor | etoricoxib |
-
-### API
-
 ```bash
-# Resolve one name
 curl -sS "https://YOUR_APP/api/synonyms?resolve=Gliptus%20plus"
 
-# Add mapping (requires PROCESS_SECRET / unlock)
 curl -sS -X POST "https://YOUR_APP/api/synonyms" \
   -H "Content-Type: application/json" \
   -H "x-process-secret: $PROCESS_SECRET" \
   -d '{"alias":"SomeBrand","ingredient":"metformin"}'
-
-# Seed built-in list into DB
-curl -sS -X POST "https://YOUR_APP/api/synonyms" \
-  -H "Content-Type: application/json" \
-  -H "x-process-secret: $PROCESS_SECRET" \
-  -d '{"seed_builtin":true}'
 ```
 
 ---
 
-## 2. DDInter import & check
+## 2. DDInter
 
 **UI:** `/ddinter`
 
-### Import (once per environment)
-
 ```bash
-# Small test file (blood/ATC B)
-curl -sS -X POST "https://YOUR_APP/api/ddinter/import" \
-  -H "Content-Type: application/json" \
-  -H "x-process-secret: $PROCESS_SECRET" \
-  -d '{"codes":["B"]}'
-
-# All ATC download files (may take minutes; watch Vercel timeout)
-curl -sS -X POST "https://YOUR_APP/api/ddinter/import" \
-  -H "Content-Type: application/json" \
-  -H "x-process-secret: $PROCESS_SECRET" \
-  -d '{}'
+POST /api/ddinter/import  {"codes":["B"]}
+GET  /api/ddinter/check?drugs=Warfarin,Aspirin
+GET  /api/ddinter/check?program_id=UUID
+GET  /api/ddinter/scan?limit=25
 ```
-
-### Check interactions
-
-```bash
-# By drug names
-curl -sS "https://YOUR_APP/api/ddinter/check?drugs=Warfarin,Aspirin,Ibuprofen"
-
-# By chronic program UUID
-curl -sS "https://YOUR_APP/api/ddinter/check?program_id=PROGRAM_UUID"
-
-# POST
-curl -sS -X POST "https://YOUR_APP/api/ddinter/check" \
-  -H "Content-Type: application/json" \
-  -d '{"drugs":["Warfarin","Aspirin"]}'
-```
-
-**Example interpretation**
-
-```json
-{
-  "hits": [
-    {
-      "level": "Major",
-      "drug_a": "Aspirin",
-      "drug_b": "Warfarin",
-      "matched_via": "Aspirin × Warfarin"
-    }
-  ],
-  "resolved": [
-    { "original": "Gliptus plus", "ingredient": "sitagliptin" }
-  ]
-}
-```
-
-`matched_via` may show `Brand→ingredient` when synonyms apply.
 
 ---
 
-## 3. Combinations + DDInter scan
+## 3. Combinations
 
 **UI:** `/combinations`
 
-- Co-prescription frequency across active programs
-- Optional **DDInter level** column on common pairs
-- Scan of multi-drug regimens with hits
-
 ```bash
-curl -sS "https://YOUR_APP/api/combinations"
-curl -sS "https://YOUR_APP/api/ddinter/scan?limit=25"
+GET /api/combinations
 ```
 
 ---
 
 ## 4. Allergy cross-reactivity
 
-**UI:** Program detail → **Allergies & cross-reactivity**
-
-### Document an allergy
+**UI:** Program detail → Allergies
 
 ```bash
-curl -sS -X POST "https://YOUR_APP/api/allergies" \
-  -H "Content-Type: application/json" \
-  -H "x-process-secret: $PROCESS_SECRET" \
-  -d '{
-    "dependent_id": "DEPENDENT_UUID",
-    "allergen_label": "Penicillin",
-    "severity": "anaphylaxis",
-    "reaction_note": "ER visit 2019"
-  }'
+GET  /api/allergies?program_id=UUID
+POST /api/allergies  {
+  "dependent_id": "…",
+  "allergen_label": "Penicillin",
+  "severity": "anaphylaxis"
+}
+POST /api/allergies  {
+  "action": "check",
+  "allergies": [{"allergen_label":"Penicillin","severity":"severe"}],
+  "meds": ["Cefalexin","Augmentin"]
+}
 ```
-
-### Check program regimen
-
-```bash
-curl -sS "https://YOUR_APP/api/allergies?program_id=PROGRAM_UUID"
-```
-
-### Ad-hoc check (no patient record)
-
-```bash
-curl -sS -X POST "https://YOUR_APP/api/allergies" \
-  -H "Content-Type: application/json" \
-  -H "x-process-secret: $PROCESS_SECRET" \
-  -d '{
-    "action": "check",
-    "allergies": [{ "allergen_label": "Penicillin", "severity": "severe" }],
-    "meds": ["Cefalexin", "Azithromycin", "Augmentin"]
-  }'
-```
-
-**Example expected flags**
-
-| Allergen | Med | Typical flag |
-|----------|-----|----------------|
-| Penicillin | Augmentin (amoxicillin) | High — same class |
-| Penicillin | Cefalexin | Moderate — amino side-chain |
-| Penicillin | Ceftriaxone | Low — dissimilar side chain (still review if anaphylaxis) |
-| Penicillin | Azithromycin | None |
-| Sulfa / Bactrim | Septrin | High |
-| NSAID | Brufen / Ibuprofen | High |
 
 ---
 
-## 5. Recommended ops workflow
-
-1. Deploy + set `DATABASE_URL`, `PROCESS_SECRET`
-2. `/ddinter` → import at least ATC **B** (or all files)
-3. `/synonyms` → seed builtin + add missing Egypt brands
-4. On each program: document allergies → review **Allergy** + **DDInter** panels
-5. `/combinations` for population patterns before pharmacy batch
-6. **Never** auto-block dispense solely on a flag — route **Major / High** to pharmacist
-
----
-
-## 6. What to tell clinicians / auditors
+## What to tell auditors
 
 > Automated interaction and allergy screens are used for triage inside our corporate
 > chronic medication program. Alerts are reviewed by operations and escalated to a
-> pharmacist or physician when severity is Major/High or the patient has a severe
-> allergy history. The tools do not constitute a certified clinical decision-support
-> system.
+> pharmacist or physician when severity is Major/High. Approve/dispense requires an
+> explicit acknowledgment when high flags are present. The tools do not constitute a
+> certified clinical decision-support system.

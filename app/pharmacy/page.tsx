@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { buildPharmacyPickList } from '@/lib/pharmacy';
+import { scanRefillSafetyQueue } from '@/lib/refillSafety';
 import { PharmacyBatchButton } from './PharmacyBatchButton';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 function defaultPeriod() {
   const d = new Date();
@@ -23,6 +25,7 @@ export default async function PharmacyPage({
       : 'all';
 
   let lines: Awaited<ReturnType<typeof buildPharmacyPickList>> = [];
+  let safetyFlagged = 0;
   let error: string | null = null;
 
   try {
@@ -34,6 +37,16 @@ export default async function PharmacyPage({
     });
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed';
+  }
+
+  try {
+    const q = await scanRefillSafetyQueue({
+      limit: 40,
+      statuses: ['in_review', 'approved', 'partially_approved'],
+    });
+    safetyFlagged = q.flagged;
+  } catch {
+    safetyFlagged = 0;
   }
 
   const groups = new Map<string, typeof lines>();
@@ -55,23 +68,41 @@ export default async function PharmacyPage({
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">الصيدلية — قائمة التحضير</h1>
+            <h1 className="text-2xl font-semibold">Pharmacy pick list</h1>
             <p className="text-sm text-slate-600">
-              Pick list · EVA / NOT EVA · صرف دفعة · {period}
+              EVA / NOT EVA · batch dispense · {period}
             </p>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
+            <Link
+              href="/refills/safety"
+              className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
+            >
+              Safety queue{safetyFlagged > 0 ? ` (${safetyFlagged})` : ''}
+            </Link>
             <Link href="/eva-split" className="text-blue-600 hover:underline">
-              تقسيم EVA
+              EVA split
             </Link>
             <Link href="/refills" className="text-blue-600 hover:underline">
-              الصرف
+              Refills
             </Link>
             <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
+              Home
             </Link>
           </div>
         </header>
+
+        {safetyFlagged > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+            <strong>{safetyFlagged}</strong> cycle(s) have DDInter Major or allergy High.
+            Review the{' '}
+            <Link href="/refills/safety" className="underline font-medium">
+              safety queue
+            </Link>{' '}
+            before bulk approve/dispense. Soft gate requires acknowledge_safety on the
+            cycle page.
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 items-center text-sm">
           <form className="flex gap-2 items-center">
@@ -86,14 +117,14 @@ export default async function PharmacyPage({
             )}
             {status && <input type="hidden" name="status" value={status} />}
             <button type="submit" className="rounded bg-slate-800 px-3 py-1 text-white">
-              عرض
+              Go
             </button>
           </form>
           <a
             href={`/api/pharmacy/pick-list?period=${period}&format=csv&includePending=true&formulary=${formulary}`}
             className="rounded bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-700"
           >
-            CSV صيدلية
+            CSV
           </a>
           <a
             href={`/api/pharmacy/pick-list?period=${period}&format=csv&includePending=true&formulary=EVA`}
@@ -114,7 +145,7 @@ export default async function PharmacyPage({
           <span className="text-slate-500 self-center">Formulary:</span>
           {(
             [
-              ['all', 'الكل'],
+              ['all', 'All'],
               ['EVA', 'Available in EVA'],
               ['NOT_EVA', 'NOT IN EVA'],
             ] as const
@@ -138,10 +169,10 @@ export default async function PharmacyPage({
 
         <div className="flex flex-wrap gap-2 text-sm">
           {[
-            ['', 'كل الحالات'],
-            ['in_review', 'قيد المراجعة'],
-            ['approved', 'معتمد'],
-            ['dispensed', 'مصروف'],
+            ['', 'All statuses'],
+            ['in_review', 'In review'],
+            ['approved', 'Approved'],
+            ['dispensed', 'Dispensed'],
           ].map(([s, label]) => (
             <Link
               key={s || 'all'}
@@ -167,11 +198,13 @@ export default async function PharmacyPage({
 
         {!error && groups.size === 0 && (
           <p className="text-slate-500 text-sm">
-            لا بنود لهذه الفترة/الفلتر. ولّد دورات الصرف أولاً أو غيّر الفلتر.
+            No lines for this period/filter. Generate refill cycles first.
           </p>
         )}
 
-        <p className="text-xs text-slate-500">{lines.length} بند · {groups.size} مطالبة</p>
+        <p className="text-xs text-slate-500">
+          {lines.length} lines · {groups.size} claims
+        </p>
 
         {Array.from(groups.entries()).map(([cycleId, group]) => {
           const head = group[0];
@@ -193,7 +226,7 @@ export default async function PharmacyPage({
                     href={`/refills/${cycleId}`}
                     className="text-blue-600 hover:underline text-xs"
                   >
-                    تفاصيل الدورة
+                    Cycle detail
                   </Link>
                 </div>
               </div>
@@ -201,10 +234,10 @@ export default async function PharmacyPage({
                 <thead className="text-slate-500 text-left">
                   <tr>
                     <th className="p-2">Line</th>
-                    <th className="p-2">الدواء</th>
-                    <th className="p-2">كمية</th>
+                    <th className="p-2">Drug</th>
+                    <th className="p-2">Qty</th>
                     <th className="p-2">Formulary</th>
-                    <th className="p-2">حالة</th>
+                    <th className="p-2">Status</th>
                   </tr>
                 </thead>
                 <tbody>
