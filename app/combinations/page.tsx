@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getCombinationReport } from '@/lib/medCombinations';
 import { annotatePairsWithDdinter, scanProgramsForDdi } from '@/lib/ddinterScan';
 import { ddinterStats } from '@/lib/ddinter';
+import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,16 +48,21 @@ export default async function CombinationsPage() {
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
             <Link href="/ddinter" className="text-blue-600 hover:underline">
-              DDInter import
+              DDInter
             </Link>
-            <Link href="/analytics" className="text-blue-600 hover:underline">
-              Analytics
+            <Link href="/synonyms" className="text-blue-600 hover:underline">
+              Synonyms
+            </Link>
+            <Link href="/safety" className="text-blue-600 hover:underline">
+              Safety checklist
             </Link>
             <Link href="/" className="text-blue-600 hover:underline">
               Home
             </Link>
           </div>
         </header>
+
+        <ClinicalDisclaimer />
 
         {error && (
           <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm">
@@ -298,10 +304,7 @@ export default async function CombinationsPage() {
           </>
         )}
 
-        <p className="text-xs text-slate-400">
-          GET /api/combinations · GET /api/ddinter/scan · DDInter CC BY-NC-SA · not
-          clinical CDS.
-        </p>
+        <ClinicalDisclaimer compact />
       </div>
     </main>
   );
