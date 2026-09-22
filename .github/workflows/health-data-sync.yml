@@ -1,0 +1,58 @@
+name: Health Data Sync
+
+# Form → Approved → Neon programs every 6 hours + manual
+on:
+  schedule:
+    - cron: '15 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'dry_run=1 process without sheet writes'
+        required: false
+        default: '0'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Run health data sync
+        env:
+          PROCESS_SECRET: ${{ secrets.PROCESS_SECRET }}
+          APP_URL: ${{ secrets.VERCEL_APP_URL || 'https://medical-aid-automation.vercel.app' }}
+          DRY: ${{ github.event.inputs.dry_run || '0' }}
+        run: |
+          set -e
+          qs="trigger=github-action"
+          if [ "$DRY" = "1" ]; then
+            qs="${qs}&dry_run=1"
+          fi
+
+          http_code=$(curl -sS -o out.json -w "%{http_code}" -X POST \
+            "$APP_URL/api/cron/health-sync?${qs}" \
+            -H "Content-Type: application/json" \
+            -H "x-process-secret: $PROCESS_SECRET" \
+            -d '{}') || true
+
+          echo "HTTP $http_code"
+          cat out.json || true
+          echo
+
+          echo "### Health data sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "HTTP $http_code" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f out.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat out.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$http_code" = "503" ] || [ "$http_code" = "207" ]; then
+            echo "::warning::Partial or missing env — check GOOGLE_* and DATABASE_URL on Vercel"
+            exit 0
+          fi
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Health sync failed (HTTP $http_code)"
+            exit 1
+          fi
