@@ -121,7 +121,7 @@ export default function Home() {
               طلب مساعدة علاج شهري — استمارة 9
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              PSP · Pharmacy · Inventory · Refills · OTA
+              PSP · Pharmacy · Safety triage · Refills
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -150,6 +150,36 @@ export default function Home() {
             {loading ? 'Processing…' : 'Process New Responses'}
           </button>
           <SyncProgramsButton />
+          <Link
+            href="/safety"
+            className="px-5 py-2.5 rounded-lg bg-red-700 text-white hover:bg-red-800 font-medium transition"
+          >
+            Safety checklist
+          </Link>
+          <Link
+            href="/ddinter"
+            className="px-5 py-2.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 font-medium transition"
+          >
+            DDInter
+          </Link>
+          <Link
+            href="/combinations"
+            className="px-5 py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 font-medium transition"
+          >
+            Combinations
+          </Link>
+          <Link
+            href="/synonyms"
+            className="px-5 py-2.5 rounded-lg border border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100 font-medium transition"
+          >
+            Synonyms
+          </Link>
+          <Link
+            href="/health-sync"
+            className="px-5 py-2.5 rounded-lg bg-cyan-700 text-white hover:bg-cyan-800 font-medium transition"
+          >
+            Health sync
+          </Link>
           <Link
             href="/pms"
             className="px-5 py-2.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 font-medium transition"
@@ -401,7 +431,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          PMS · PSP · Care Line · Pharmacy · Refills · /status
+          Safety · DDInter · Combinations · Pharmacy · Refills · /status
         </footer>
       </div>
     </main>
