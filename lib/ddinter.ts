@@ -7,6 +7,7 @@
  */
 
 import { query } from '@/lib/db';
+import { expandDrugTokens } from '@/lib/drugSynonyms';
 
 export const DDINTER_CSV_URLS: Array<{ code: string; url: string }> = [
   {
@@ -56,7 +57,6 @@ export function drugTokens(name: string): string[] {
   const n = normalizeDrugName(name);
   if (!n) return [];
   const parts = n.split(/[\s\/\+,]+/).filter((p) => p.length > 2);
-  // Prefer longer tokens first for matching
   return [...new Set([n, ...parts])].sort((a, b) => b.length - a.length);
 }
 
@@ -135,7 +135,6 @@ export async function importDdinterFromCsvText(
       skipped += 1;
       continue;
     }
-    // Canonical order for unique constraint
     const [na, nb, la, lb] =
       aNorm < bNorm
         ? [aNorm, bNorm, drugA, drugB]
@@ -154,7 +153,6 @@ export async function importDdinterFromCsvText(
 async function flushBatch(
   batch: Array<[string, string, string, string, string, string]>
 ): Promise<number> {
-  // Multi-row insert with ON CONFLICT DO NOTHING
   const values: unknown[] = [];
   const placeholders: string[] = [];
   batch.forEach((row, i) => {
@@ -172,8 +170,7 @@ async function flushBatch(
       values
     );
     return res.rowCount ?? 0;
-  } catch (e) {
-    // Fallback row-by-row if unique index missing
+  } catch {
     let n = 0;
     for (const row of batch) {
       try {
@@ -248,13 +245,28 @@ export type DdiHit = {
   matched_via: string;
 };
 
+function tokenMatchesSide(tokens: string[], sideNorm: string): boolean {
+  return tokens.some(
+    (t) =>
+      sideNorm === t ||
+      sideNorm.startsWith(t + ' ') ||
+      sideNorm.startsWith(t) ||
+      t.startsWith(sideNorm)
+  );
+}
+
 /**
  * Check all pairs among a list of drug names against imported DDInter pairs.
- * Uses token expansion so "Metformin 500" can match "Metformin".
+ * Uses synonym expansion (Egypt brands → ingredients) + token matching.
  */
 export async function checkInteractions(
   drugNames: string[]
-): Promise<{ hits: DdiHit[]; drugs_checked: string[]; pair_db_count: number }> {
+): Promise<{
+  hits: DdiHit[];
+  drugs_checked: string[];
+  resolved: Array<{ original: string; ingredient: string | null }>;
+  pair_db_count: number;
+}> {
   await ensureDdinterTables();
 
   const countRes = await query<{ n: string }>(
@@ -264,21 +276,27 @@ export async function checkInteractions(
 
   const cleaned = [...new Set(drugNames.map((d) => d.trim()).filter(Boolean))];
   if (cleaned.length < 2 || pair_db_count === 0) {
-    return { hits: [], drugs_checked: cleaned, pair_db_count };
+    return {
+      hits: [],
+      drugs_checked: cleaned,
+      resolved: cleaned.map((d) => ({ original: d, ingredient: null })),
+      pair_db_count,
+    };
   }
 
-  // Build token set per input drug
-  const drugTokensMap = cleaned.map((d) => ({
-    original: d,
-    tokens: drugTokens(d),
-  }));
+  const drugTokensMap = await Promise.all(
+    cleaned.map(async (d) => {
+      const exp = await expandDrugTokens(d);
+      return {
+        original: d,
+        tokens: exp.tokens,
+        ingredient: exp.resolved_ingredient,
+      };
+    })
+  );
 
-  const allTokens = [
-    ...new Set(drugTokensMap.flatMap((d) => d.tokens)),
-  ];
+  const allTokens = [...new Set(drugTokensMap.flatMap((d) => d.tokens))];
 
-  // Fetch candidate pairs where either side matches any token (prefix/exact)
-  // Use exact norm match on tokens for performance
   const res = await query<{
     drug_a: string;
     drug_b: string;
@@ -288,30 +306,16 @@ export async function checkInteractions(
   }>(
     `SELECT drug_a, drug_b, drug_a_norm, drug_b_norm, level
      FROM ddinter_pairs
-     WHERE drug_a_norm = ANY($1::text[])
-        OR drug_b_norm = ANY($1::text[])
-        OR drug_a_norm LIKE ANY(
-             (SELECT array_agg(t || '%') FROM unnest($1::text[]) AS t)
-           )
-        OR drug_b_norm LIKE ANY(
-             (SELECT array_agg(t || '%') FROM unnest($1::text[]) AS t)
-           )`,
+     WHERE drug_a_norm = ANY($1::text[]) OR drug_b_norm = ANY($1::text[])`,
     [allTokens]
-  ).catch(async () => {
-    // Simpler fallback if array_agg fails
-    return query<{{
-      drug_a: string;
-      drug_b: string;
-      drug_a_norm: string;
-      drug_b_norm: string;
-      level: string;
-    }>(
+  ).catch(async () =>
+    query(
       `SELECT drug_a, drug_b, drug_a_norm, drug_b_norm, level
        FROM ddinter_pairs
        WHERE drug_a_norm = ANY($1::text[]) OR drug_b_norm = ANY($1::text[])`,
       [allTokens]
-    );
-  });
+    )
+  );
 
   const hits: DdiHit[] = [];
   const seen = new Set<string>();
@@ -321,56 +325,26 @@ export async function checkInteractions(
       const A = drugTokensMap[i];
       const B = drugTokensMap[j];
       for (const row of res.rows) {
-        const aMatch =
-          A.tokens.some(
-            (t) =>
-              row.drug_a_norm === t ||
-              row.drug_a_norm.startsWith(t + ' ') ||
-              t.startsWith(row.drug_a_norm)
-          ) ||
-          B.tokens.some(
-            (t) =>
-              row.drug_a_norm === t ||
-              row.drug_a_norm.startsWith(t + ' ') ||
-              t.startsWith(row.drug_a_norm)
-          );
-        const bMatch =
-          A.tokens.some(
-            (t) =>
-              row.drug_b_norm === t ||
-              row.drug_b_norm.startsWith(t + ' ') ||
-              t.startsWith(row.drug_b_norm)
-          ) ||
-          B.tokens.some(
-            (t) =>
-              row.drug_b_norm === t ||
-              row.drug_b_norm.startsWith(t + ' ') ||
-              t.startsWith(row.drug_b_norm)
-          );
-
-        // Require one side matching A and the other matching B
-        const aOnA = A.tokens.some(
-          (t) => row.drug_a_norm === t || row.drug_a_norm.startsWith(t)
-        );
-        const bOnB = B.tokens.some(
-          (t) => row.drug_b_norm === t || row.drug_b_norm.startsWith(t)
-        );
-        const aOnB = A.tokens.some(
-          (t) => row.drug_b_norm === t || row.drug_b_norm.startsWith(t)
-        );
-        const bOnA = B.tokens.some(
-          (t) => row.drug_a_norm === t || row.drug_a_norm.startsWith(t)
-        );
+        const aOnA = tokenMatchesSide(A.tokens, row.drug_a_norm);
+        const bOnB = tokenMatchesSide(B.tokens, row.drug_b_norm);
+        const aOnB = tokenMatchesSide(A.tokens, row.drug_b_norm);
+        const bOnA = tokenMatchesSide(B.tokens, row.drug_a_norm);
 
         if ((aOnA && bOnB) || (aOnB && bOnA)) {
           const key = `${row.drug_a_norm}|${row.drug_b_norm}|${row.level}`;
           if (seen.has(key)) continue;
           seen.add(key);
+          const viaA = A.ingredient
+            ? `${A.original}→${A.ingredient}`
+            : A.original;
+          const viaB = B.ingredient
+            ? `${B.original}→${B.ingredient}`
+            : B.original;
           hits.push({
             drug_a: row.drug_a,
             drug_b: row.drug_b,
             level: row.level,
-            matched_via: `${A.original} × ${B.original}`,
+            matched_via: `${viaA} × ${viaB}`,
           });
         }
       }
@@ -384,7 +358,15 @@ export async function checkInteractions(
       (order[b.level as keyof typeof order] ?? 9)
   );
 
-  return { hits, drugs_checked: cleaned, pair_db_count };
+  return {
+    hits,
+    drugs_checked: cleaned,
+    resolved: drugTokensMap.map((d) => ({
+      original: d.original,
+      ingredient: d.ingredient,
+    })),
+    pair_db_count,
+  };
 }
 
 export async function checkProgramInteractions(programId: string) {
