@@ -21,14 +21,14 @@ export async function POST(
 
     const body = await req.json().catch(() => ({}));
     const acknowledge_safety = body.acknowledge_safety === true;
+    const actor = body.reviewed_by ? String(body.reviewed_by) : 'api';
 
-    // Soft gate only when approving (not reject/skip)
     const isApprove =
       body.approveAll === true || body.decision === 'approved';
 
     if (isApprove) {
       try {
-        await assertRefillSafetyAck(ctx.params.id, acknowledge_safety);
+        await assertRefillSafetyAck(ctx.params.id, acknowledge_safety, actor);
       } catch (e: unknown) {
         const safety = await getRefillSafetyReport(ctx.params.id);
         return NextResponse.json(

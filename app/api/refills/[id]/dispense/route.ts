@@ -16,9 +16,10 @@ export async function POST(
 
     const body = await req.json().catch(() => ({}));
     const acknowledge_safety = body.acknowledge_safety === true;
+    const actor = body.actor ? String(body.actor) : 'api';
 
     try {
-      await assertRefillSafetyAck(ctx.params.id, acknowledge_safety);
+      await assertRefillSafetyAck(ctx.params.id, acknowledge_safety, actor);
     } catch (e: unknown) {
       const safety = await getRefillSafetyReport(ctx.params.id);
       return NextResponse.json(
@@ -34,7 +35,7 @@ export async function POST(
     const detail = await dispenseCycle({
       cycleId: ctx.params.id,
       notes: body.notes ? String(body.notes) : undefined,
-      actor: body.actor ? String(body.actor) : 'api',
+      actor,
       notify_whatsapp: body.notify_whatsapp !== false,
     });
 

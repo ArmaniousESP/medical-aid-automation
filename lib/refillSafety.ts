@@ -91,13 +91,104 @@ export async function getRefillSafetyReport(
 /** Throws if high flags present and not acknowledged */
 export async function assertRefillSafetyAck(
   cycleId: string,
-  acknowledge_safety?: boolean
+  acknowledge_safety?: boolean,
+  actor?: string
 ) {
   const report = await getRefillSafetyReport(cycleId);
   if (!report || !report.requires_ack) return report;
-  if (acknowledge_safety === true) return report;
+  if (acknowledge_safety === true) {
+    try {
+      await query(
+        `INSERT INTO audit_log (entity_type, entity_id, action, actor, to_value)
+         VALUES ('refill_cycle', $1, 'safety_acknowledged', $2, $3::jsonb)`,
+        [
+          cycleId,
+          actor || 'api',
+          JSON.stringify({
+            summary: report.summary,
+            ddi_major: report.ddi_major,
+            allergy_high: report.allergy_high,
+          }),
+        ]
+      );
+    } catch {
+      /* audit optional */
+    }
+    return report;
+  }
   throw new Error(
     `Safety review required before approve/dispense: ${report.summary}. ` +
       `Pass acknowledge_safety: true after pharmacist review. (Ops triage — not clinical CDS.)`
   );
+}
+
+export type SafetyQueueRow = {
+  cycle_id: string;
+  period: string;
+  status: string;
+  program_code: string;
+  patient_name: string;
+  employee_name: string;
+  requires_ack: boolean;
+  summary: string;
+  ddi_major: number;
+  allergy_high: number;
+};
+
+/** Scan recent in-review / approved cycles for high safety flags (capped). */
+export async function scanRefillSafetyQueue(opts?: {
+  limit?: number;
+  statuses?: string[];
+}): Promise<{ scanned: number; flagged: number; rows: SafetyQueueRow[] }> {
+  const limit = Math.min(opts?.limit ?? 40, 80);
+  const statuses = opts?.statuses ?? ['in_review', 'approved', 'partially_approved'];
+
+  const cycles = await query<{
+    id: string;
+    period: string;
+    status: string;
+    program_code: string;
+    patient_name: string;
+    employee_name: string;
+  }>(
+    `SELECT rc.id, rc.period, rc.status, cp.program_code,
+            d.full_name AS patient_name, e.full_name AS employee_name
+     FROM refill_cycles rc
+     JOIN chronic_programs cp ON cp.id = rc.program_id
+     JOIN employees e ON e.id = cp.employee_id
+     JOIN dependents d ON d.id = cp.dependent_id
+     WHERE rc.status = ANY($1::text[])
+     ORDER BY rc.period DESC, rc.requested_at DESC NULLS LAST
+     LIMIT $2`,
+    [statuses, limit]
+  );
+
+  const rows: SafetyQueueRow[] = [];
+  for (const c of cycles.rows) {
+    const report = await getRefillSafetyReport(c.id);
+    if (!report || !report.requires_ack) continue;
+    rows.push({
+      cycle_id: c.id,
+      period: c.period,
+      status: c.status,
+      program_code: c.program_code,
+      patient_name: c.patient_name,
+      employee_name: c.employee_name,
+      requires_ack: report.requires_ack,
+      summary: report.summary,
+      ddi_major: report.ddi_major,
+      allergy_high: report.allergy_high,
+    });
+  }
+
+  rows.sort(
+    (a, b) =>
+      b.ddi_major + b.allergy_high - (a.ddi_major + a.allergy_high)
+  );
+
+  return {
+    scanned: cycles.rows.length,
+    flagged: rows.length,
+    rows,
+  };
 }
