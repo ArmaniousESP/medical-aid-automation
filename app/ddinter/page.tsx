@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ddinterStats } from '@/lib/ddinter';
 import { DdinterImportButton } from './DdinterImportButton';
 import { DdinterCheckForm } from './DdinterCheckForm';
+import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,9 @@ export default async function DdinterPage() {
             </p>
           </div>
           <div className="flex gap-3 text-sm">
+            <Link href="/synonyms" className="text-blue-600 hover:underline">
+              Synonyms
+            </Link>
             <Link href="/combinations" className="text-blue-600 hover:underline">
               Combinations
             </Link>
@@ -42,6 +46,8 @@ export default async function DdinterPage() {
             </Link>
           </div>
         </header>
+
+        <ClinicalDisclaimer />
 
         {error && (
           <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
@@ -77,13 +83,33 @@ export default async function DdinterPage() {
 
         <section className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
           <h2 className="font-medium text-sm">Check a list of drugs</h2>
+          <p className="text-xs text-slate-500">
+            Example: <code className="bg-slate-100 px-1 rounded">Warfarin, Aspirin, Ibuprofen</code>
+            {' '}or Egyptian brands after synonyms (e.g. Brufen → ibuprofen).
+          </p>
           <DdinterCheckForm />
         </section>
 
-        <p className="text-xs text-slate-400">
-          API: POST /api/ddinter/import · GET /api/ddinter/check?drugs=Warfarin,Aspirin
-          · GET /api/ddinter/check?program_id=… · Ops triage only — not clinical CDS.
-        </p>
+        <section className="rounded-xl border bg-white p-5 shadow-sm space-y-2 text-xs text-slate-600">
+          <h2 className="font-medium text-sm text-slate-900">Usage examples (API)</h2>
+          <pre className="bg-slate-50 border rounded p-2 overflow-x-auto text-[11px] leading-relaxed">{`# Status
+GET /api/ddinter/import
+
+# Import ATC B only
+POST /api/ddinter/import  {"codes":["B"]}
+
+# Check names
+GET /api/ddinter/check?drugs=Warfarin,Aspirin
+
+# Check a program regimen
+GET /api/ddinter/check?program_id=UUID`}</pre>
+          <p>
+            Full guide:{' '}
+            <code className="bg-slate-100 px-1 rounded">docs/clinical-tools-usage.md</code>
+          </p>
+        </section>
+
+        <ClinicalDisclaimer compact />
       </div>
     </main>
   );
