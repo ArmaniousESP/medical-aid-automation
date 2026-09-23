@@ -6,11 +6,11 @@
     },
     {
       "path": "/api/cron/health-sync",
-      "schedule": "30 */6 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/sync-sheet",
-      "schedule": "0 */6 * * *"
+      "schedule": "30 6 * * *"
     },
     {
       "path": "/api/cron/monthly-refills",
@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/whatsapp-due",
-      "schedule": "0 7 1,3 * *"
+      "schedule": "0 7 1 * *"
     }
   ]
 }
