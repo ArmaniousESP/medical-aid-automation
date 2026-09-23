@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   runPrescriptionOcr,
+  runBatchOcr,
   hasOcrProvider,
   parseOcrTextToMedLines,
 } from '@/lib/prescriptionOcr';
+import { parseInvoiceText } from '@/lib/invoiceOcr';
 import { loadMedDb } from '@/lib/meddb';
 import { authorizeRequest } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
@@ -22,22 +24,27 @@ export async function GET() {
       : providers.ocr_space
         ? 'OCR.space ready'
         : 'Set GOOGLE_VISION_API_KEY or OCR_SPACE_API_KEY',
+    drive_sa: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY),
   });
 }
 
 /**
  * POST /api/ocr
- * { imageUrl } | { imageBase64, mime? } | { text }
- * Optional: match against med DB (default true)
+ * { imageUrl } | { imageBase64, mime? } | { text } | { urls: string[] }
+ * { docKind?: 'prescription' | 'invoice' | 'auto' }
  */
 export async function POST(req: NextRequest) {
   try {
-    // Allow unlocked session or secret; public read of status is GET only
     if (!authorizeRequest(req)) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));
+    const docKind =
+      body.docKind === 'invoice' || body.docKind === 'prescription'
+        ? body.docKind
+        : 'auto';
+
     let medDb;
     try {
       if (body.match !== false) {
@@ -47,15 +54,32 @@ export async function POST(req: NextRequest) {
       medDb = undefined;
     }
 
+    // Batch multiple attachment URLs (roshetta + invoices)
+    if (Array.isArray(body.urls) && body.urls.length) {
+      const batch = await runBatchOcr({
+        urls: body.urls.map(String),
+        medDb,
+        docKind,
+      });
+      return NextResponse.json({ ok: true, ...batch });
+    }
+
     if (body.text && !body.imageUrl && !body.imageBase64) {
-      const lines = await parseOcrTextToMedLines(String(body.text), medDb);
+      const text = String(body.text);
+      const lines = await parseOcrTextToMedLines(text, medDb);
+      const invoice =
+        docKind === 'invoice' || /فاتورة|invoice|إجمالي/i.test(text)
+          ? parseInvoiceText(text)
+          : undefined;
       return NextResponse.json({
         ok: true,
         provider: 'manual',
-        full_text: String(body.text),
+        full_text: text,
         lines,
+        doc_kind: invoice ? 'invoice' : 'prescription',
+        invoice,
         disclaimer:
-          'OCR is probabilistic. Verify every line against the original roshetta.',
+          'OCR is probabilistic. Verify every line against the original image.',
       });
     }
 
@@ -65,6 +89,7 @@ export async function POST(req: NextRequest) {
       mime: body.mime ? String(body.mime) : undefined,
       text: body.text ? String(body.text) : undefined,
       medDb,
+      docKind,
     });
 
     const status = result.ok ? 200 : 422;

@@ -12,40 +12,73 @@ type Line = {
   formulary_hint: string | null;
 };
 
+type InvoiceInfo = {
+  total_egp: number | null;
+  pharmacy_hint: string | null;
+  date_hint: string | null;
+};
+
 export function OcrForm() {
   const [imageUrl, setImageUrl] = useState('');
+  const [batchUrls, setBatchUrls] = useState('');
   const [text, setText] = useState('');
+  const [docKind, setDocKind] = useState<'auto' | 'prescription' | 'invoice'>('auto');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullText, setFullText] = useState('');
   const [provider, setProvider] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
+  const [invoice, setInvoice] = useState<InvoiceInfo | null>(null);
+  const [kind, setKind] = useState('');
+  const [via, setVia] = useState('');
 
-  async function run(mode: 'url' | 'text') {
+  async function post(body: Record<string, unknown>) {
     setLoading(true);
     setError(null);
     setLines([]);
     setFullText('');
+    setInvoice(null);
+    setKind('');
+    setVia('');
     try {
-      const body =
-        mode === 'text'
-          ? { text }
-          : { imageUrl: imageUrl.trim() };
       const res = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, docKind }),
       });
       const data = await res.json();
+
+      if (data.results && Array.isArray(data.results)) {
+        // Batch
+        const ok = data.results.filter((r: { ok: boolean }) => r.ok);
+        const first = ok[0] || data.results[0];
+        setProvider(`batch ${data.ok_count}/${data.results.length}`);
+        setFullText(
+          data.results
+            .map(
+              (r: { source_url?: string; full_text?: string; error?: string }, i: number) =>
+                `--- file ${i + 1} ${r.source_url || ''}\n${r.full_text || r.error || ''}`
+            )
+            .join('\n\n')
+        );
+        const allLines = data.results.flatMap((r: { lines?: Line[] }) => r.lines || []);
+        setLines(allLines);
+        const inv = data.results.find((r: { invoice?: InvoiceInfo }) => r.invoice)?.invoice;
+        if (inv) setInvoice(inv);
+        if (!data.ok_count) setError(first?.error || 'All OCR attempts failed');
+        return;
+      }
+
       if (!res.ok && !data.lines) {
         throw new Error(data.error || 'OCR failed');
       }
-      if (data.error && !data.ok) {
-        setError(data.error);
-      }
+      if (data.error && !data.ok) setError(data.error);
       setProvider(data.provider || '');
       setFullText(data.full_text || '');
       setLines(Array.isArray(data.lines) ? data.lines : []);
+      setKind(data.doc_kind || '');
+      setVia(data.download_via || '');
+      if (data.invoice) setInvoice(data.invoice);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -53,11 +86,61 @@ export function OcrForm() {
     }
   }
 
+  function onFile(file: File | null) {
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) {
+      setError('Max 12MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!m) {
+        setError('Could not read file');
+        return;
+      }
+      post({ imageBase64: m[2], mime: m[1] });
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="space-y-4 text-sm">
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-slate-500">Document type:</span>
+        {(['auto', 'prescription', 'invoice'] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setDocKind(k)}
+            className={`rounded-full px-3 py-1 text-xs border ${
+              docKind === k
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white'
+            }`}
+          >
+            {k === 'auto' ? 'Auto' : k === 'prescription' ? 'Roshetta' : 'Invoice'}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-2">
         <label className="block text-xs text-slate-500">
-          Roshetta image URL (Drive share or direct)
+          Upload photo (phone camera / scan)
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => onFile(e.target.files?.[0] || null)}
+          className="block w-full text-xs"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-xs text-slate-500">
+          Or Drive / image URL
         </label>
         <input
           value={imageUrl}
@@ -68,10 +151,38 @@ export function OcrForm() {
         <button
           type="button"
           disabled={loading || !imageUrl.trim()}
-          onClick={() => run('url')}
+          onClick={() => post({ imageUrl: imageUrl.trim() })}
           className="rounded bg-indigo-600 px-4 py-2 text-white text-xs disabled:opacity-50"
         >
           {loading ? 'Running OCR…' : 'OCR from URL'}
+        </button>
+      </div>
+
+      <div className="space-y-2 border-t pt-4">
+        <label className="block text-xs text-slate-500">
+          Batch URLs (one per line — roshetta + invoices from form)
+        </label>
+        <textarea
+          value={batchUrls}
+          onChange={(e) => setBatchUrls(e.target.value)}
+          rows={3}
+          className="w-full rounded border px-3 py-2 text-xs font-mono"
+          placeholder={'https://drive.google.com/.../roshetta\nhttps://drive.google.com/.../invoice'}
+        />
+        <button
+          type="button"
+          disabled={loading || !batchUrls.trim()}
+          onClick={() =>
+            post({
+              urls: batchUrls
+                .split(/[\n,]+/)
+                .map((s) => s.trim())
+                .filter(Boolean),
+            })
+          }
+          className="rounded bg-violet-700 px-4 py-2 text-white text-xs disabled:opacity-50"
+        >
+          OCR batch
         </button>
       </div>
 
@@ -82,14 +193,14 @@ export function OcrForm() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={5}
+          rows={4}
           className="w-full rounded border px-3 py-2 text-sm font-mono"
           placeholder={'1 Crestor 20 mg once daily\nGlucophage 500 × 2'}
         />
         <button
           type="button"
           disabled={loading || text.trim().length < 3}
-          onClick={() => run('text')}
+          onClick={() => post({ text })}
           className="rounded bg-slate-800 px-4 py-2 text-white text-xs disabled:opacity-50"
         >
           Parse text
@@ -102,10 +213,40 @@ export function OcrForm() {
         </p>
       )}
 
-      {provider && (
+      {(provider || kind || via) && (
         <p className="text-xs text-slate-500">
-          Provider: <strong>{provider}</strong>
+          {provider && (
+            <>
+              Provider: <strong>{provider}</strong>{' '}
+            </>
+          )}
+          {kind && (
+            <>
+              · Kind: <strong>{kind}</strong>{' '}
+            </>
+          )}
+          {via && (
+            <>
+              · Download: <strong>{via}</strong>
+            </>
+          )}
         </p>
+      )}
+
+      {invoice && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs space-y-1">
+          <div className="font-medium text-emerald-900">Invoice parse</div>
+          <div>
+            Total:{' '}
+            <strong>
+              {invoice.total_egp != null
+                ? `${invoice.total_egp.toLocaleString('en-EG')} EGP`
+                : '—'}
+            </strong>
+          </div>
+          {invoice.pharmacy_hint && <div>Pharmacy: {invoice.pharmacy_hint}</div>}
+          {invoice.date_hint && <div>Date: {invoice.date_hint}</div>}
+        </div>
       )}
 
       {fullText && (
