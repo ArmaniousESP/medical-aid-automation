@@ -201,7 +201,7 @@ export async function getPmsDashboard() {
     `SELECT count(*)::text AS n FROM adverse_events WHERE status = 'open'`
   ).catch(() => ({ rows: [{ n: '0' }] }));
 
-  const ota = await query<{{
+  const ota = await query<{
     with_dispense: string;
     avg_days: string | null;
     median_days: string | null;
