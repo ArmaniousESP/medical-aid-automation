@@ -1,6 +1,6 @@
 /**
- * Invoice OCR helpers — extract totals / pharmacy hints from pharmacy bills.
- * Ops aid only; amounts must be verified against the original image.
+ * Invoice OCR parse + total validation.
+ * Ops aid only — always verify against the original pharmacy invoice image.
  */
 
 export type InvoiceParseResult = {
@@ -12,28 +12,34 @@ export type InvoiceParseResult = {
   pharmacy_hint: string | null;
   date_hint: string | null;
   line_candidates: string[];
-  /** Amounts found on non-total lines (for cross-check) */
   line_amounts: number[];
+  /** true if total came from an explicit label (الإجمالي / total) */
+  total_from_label: boolean;
 };
 
 export type InvoiceValidationStatus = 'pass' | 'warn' | 'fail' | 'unknown';
 
 export type InvoiceValidation = {
   status: InvoiceValidationStatus;
-  /** OCR / labeled total */
   ocr_total_egp: number | null;
-  /** Sum of numeric amounts on item-like lines (if any) */
   lines_sum_egp: number | null;
-  /** unitPrice × qty from formulary for mapped meds */
   formulary_estimate_egp: number | null;
-  /** |ocr - lines_sum| / ocr */
+  subtotal_plus_tax_egp: number | null;
   vs_lines_pct: number | null;
-  /** |ocr - formulary| / ocr */
   vs_formulary_pct: number | null;
-  /** |ocr - (subtotal+tax)| when both present */
   vs_subtotal_tax_pct: number | null;
+  vs_lines_egp: number | null;
+  vs_formulary_egp: number | null;
+  cross_checks: number;
+  confidence: number;
   messages: string[];
   ok_for_auto_price: boolean;
+  thresholds: {
+    warn_pct: number;
+    fail_pct: number;
+    warn_egp: number;
+    fail_egp: number;
+  };
 };
 
 function parseNum(s: string): number | null {
@@ -65,7 +71,6 @@ function amountsInLine(line: string): number[] {
   return out;
 }
 
-/** Parse OCR text of a pharmacy invoice for total EGP and metadata. */
 export function parseInvoiceText(fullText: string): InvoiceParseResult {
   const text = String(fullText || '');
   const lines = text
@@ -74,48 +79,62 @@ export function parseInvoiceText(fullText: string): InvoiceParseResult {
     .filter(Boolean);
 
   let total_egp: number | null = null;
+  let total_from_label = false;
   let subtotal_egp: number | null = null;
   let tax_egp: number | null = null;
   const currency_hints: string[] = [];
   const line_amounts: number[] = [];
 
   const totalLabel =
-    /(?:الإجمالي|اجمالي|الصافي|المطلوب|grand\s*total|total\s*due|amount\s*due|\btotal\b|net\s*amount|قيمة\s*الفاتورة)/i;
-  const subtotalLabel = /(?:sub\s*total|المجموع|قبل\s*الضريبة|صافي\s*البضاعة)/i;
-  const taxLabel = /(?:VAT|ضريبة|tax|14\s*%|ض\.?ق\.?م)/i;
+    /(?:الإجمالي|اجمالي|الصافي|المطلوب|القيمة\s*المطلوبة|grand\s*total|total\s*due|amount\s*due|\btotal\b|net\s*amount|قيمة\s*الفاتورة|الإجمالى)/i;
+  const subtotalLabel =
+    /(?:sub\s*total|المجموع(?!\s*الكلي)|قبل\s*الضريبة|صافي\s*البضاعة|قيمة\s*الأصناف)/i;
+  const taxLabel = /(?:VAT|ضريبة|tax|14\s*%|ض\.?ق\.?م|ضريبة\s*القيمة)/i;
 
-  const candidates: number[] = [];
+  const labeledTotals: number[] = [];
 
   for (const line of lines) {
     const amts = amountsInLine(line);
     if (!amts.length) continue;
 
     if (totalLabel.test(line) && !subtotalLabel.test(line)) {
-      total_egp = amts[amts.length - 1];
-      candidates.push(...amts);
+      const v = amts[amts.length - 1];
+      total_egp = v;
+      total_from_label = true;
+      labeledTotals.push(v);
     } else if (subtotalLabel.test(line)) {
       subtotal_egp = amts[amts.length - 1];
     } else if (taxLabel.test(line)) {
       tax_egp = amts[amts.length - 1];
     } else if (
-      /[A-Za-z]{3,}|قرص|علبة|شريط|mg|tab|عبوة|علبه/i.test(line) &&
-      !/tel|phone|تاريخ|date|فاتورة\s*رقم/i.test(line)
+      /[A-Za-z]{3,}|قرص|علبة|شريط|mg|tab|عبوة|علبه|كبسول|شراب/i.test(line) &&
+      !/tel|phone|تاريخ|date|فاتورة\s*رقم|invoice\s*no/i.test(line)
     ) {
-      // Likely item line — take last amount on the line as line total
       line_amounts.push(amts[amts.length - 1]);
     }
 
     if (/EGP|ج\.?م|LE/i.test(line)) currency_hints.push(line.slice(0, 80));
   }
 
-  if (total_egp == null && candidates.length) {
-    total_egp = Math.max(...candidates);
+  if (total_egp == null && labeledTotals.length) {
+    total_egp = Math.max(...labeledTotals);
+    total_from_label = true;
   }
-  // Fallback: largest amount on the whole document if nothing labeled
+
+  // Prefer subtotal+tax as total if no explicit total but both present
+  if (total_egp == null && subtotal_egp != null && tax_egp != null) {
+    total_egp = Math.round((subtotal_egp + tax_egp) * 100) / 100;
+    total_from_label = true;
+  }
+
+  // Last resort: largest amount on document (weak signal)
   if (total_egp == null) {
     const all: number[] = [];
     for (const line of lines) all.push(...amountsInLine(line));
-    if (all.length) total_egp = Math.max(...all);
+    if (all.length) {
+      total_egp = Math.max(...all);
+      total_from_label = false;
+    }
   }
 
   let pharmacy_hint: string | null = null;
@@ -154,6 +173,7 @@ export function parseInvoiceText(fullText: string): InvoiceParseResult {
     date_hint,
     line_candidates,
     line_amounts,
+    total_from_label,
   };
 }
 
@@ -162,20 +182,57 @@ function pctDiff(a: number, b: number): number {
   return (Math.abs(a - b) / Math.abs(a)) * 100;
 }
 
+function severity(
+  pct: number | null,
+  abs: number | null,
+  warnPct: number,
+  failPct: number,
+  warnEgp: number,
+  failEgp: number
+): InvoiceValidationStatus | null {
+  if (pct == null && abs == null) return null;
+  const p = pct ?? 0;
+  const a = abs ?? 0;
+  if (p > failPct || a > failEgp) return 'fail';
+  if (p > warnPct || a > warnEgp) return 'warn';
+  return 'pass';
+}
+
+function rank(s: InvoiceValidationStatus): number {
+  if (s === 'fail') return 3;
+  if (s === 'warn') return 2;
+  if (s === 'pass') return 1;
+  return 0;
+}
+
 /**
- * Validate OCR invoice total against line amounts and formulary estimate.
+ * Validate OCR invoice total against:
+ * 1) sum of item-line amounts
+ * 2) formulary unit×qty estimate
+ * 3) subtotal + tax when both present
  *
- * Defaults: warn if variance > 8%, fail if > 25% (tunable via env).
+ * Pass requires at least one cross-check within thresholds.
+ * Unlabeled “max amount on page” totals cannot pass (warn at best).
  */
 export function validateInvoiceTotal(input: {
   invoice: InvoiceParseResult;
-  /** Sum of unitPrice × qty for OCR/form meds */
   formulary_estimate_egp?: number | null;
   warn_pct?: number;
   fail_pct?: number;
+  warn_egp?: number;
+  fail_egp?: number;
 }): InvoiceValidation {
   const warnPct = input.warn_pct ?? Number(process.env.INVOICE_WARN_PCT || 8);
   const failPct = input.fail_pct ?? Number(process.env.INVOICE_FAIL_PCT || 25);
+  const warnEgp = input.warn_egp ?? Number(process.env.INVOICE_WARN_EGP || 50);
+  const failEgp = input.fail_egp ?? Number(process.env.INVOICE_FAIL_EGP || 200);
+  const thresholds = {
+    warn_pct: warnPct,
+    fail_pct: failPct,
+    warn_egp: warnEgp,
+    fail_egp: failEgp,
+  };
+
   const inv = input.invoice;
   const ocr = inv.total_egp;
   const messages: string[] = [];
@@ -189,37 +246,78 @@ export function validateInvoiceTotal(input: {
 
   const formulary =
     input.formulary_estimate_egp != null &&
-    Number.isFinite(input.formulary_estimate_egp)
+    Number.isFinite(input.formulary_estimate_egp) &&
+    Number(input.formulary_estimate_egp) > 0
       ? Math.round(Number(input.formulary_estimate_egp) * 100) / 100
+      : null;
+
+  const subtotal_plus_tax =
+    inv.subtotal_egp != null && inv.tax_egp != null
+      ? Math.round((inv.subtotal_egp + inv.tax_egp) * 100) / 100
       : null;
 
   let vs_lines_pct: number | null = null;
   let vs_formulary_pct: number | null = null;
   let vs_subtotal_tax_pct: number | null = null;
+  let vs_lines_egp: number | null = null;
+  let vs_formulary_egp: number | null = null;
+
+  const checkStatuses: InvoiceValidationStatus[] = [];
 
   if (ocr != null && lines_sum != null) {
     vs_lines_pct = Math.round(pctDiff(ocr, lines_sum) * 10) / 10;
+    vs_lines_egp = Math.round(Math.abs(ocr - lines_sum) * 100) / 100;
     messages.push(
-      `OCR total ${ocr} vs item lines sum ${lines_sum} (Δ ${vs_lines_pct}%)`
+      `OCR total ${ocr} vs item lines sum ${lines_sum} (Δ ${vs_lines_pct}% / ${vs_lines_egp} EGP)`
     );
-  } else if (lines_sum == null) {
+    const s = severity(
+      vs_lines_pct,
+      vs_lines_egp,
+      warnPct,
+      failPct,
+      warnEgp,
+      failEgp
+    );
+    if (s) checkStatuses.push(s);
+  } else {
     messages.push('No reliable item-line amounts to sum');
   }
 
-  if (ocr != null && formulary != null && formulary > 0) {
+  if (ocr != null && formulary != null) {
     vs_formulary_pct = Math.round(pctDiff(ocr, formulary) * 10) / 10;
+    vs_formulary_egp = Math.round(Math.abs(ocr - formulary) * 100) / 100;
     messages.push(
-      `OCR total ${ocr} vs formulary estimate ${formulary} (Δ ${vs_formulary_pct}%)`
+      `OCR total ${ocr} vs formulary estimate ${formulary} (Δ ${vs_formulary_pct}% / ${vs_formulary_egp} EGP)`
     );
+    const s = severity(
+      vs_formulary_pct,
+      vs_formulary_egp,
+      warnPct,
+      failPct,
+      warnEgp,
+      failEgp
+    );
+    if (s) checkStatuses.push(s);
   }
 
-  if (ocr != null && inv.subtotal_egp != null && inv.tax_egp != null) {
-    const st = Math.round((inv.subtotal_egp + inv.tax_egp) * 100) / 100;
-    vs_subtotal_tax_pct = Math.round(pctDiff(ocr, st) * 10) / 10;
+  if (ocr != null && subtotal_plus_tax != null) {
+    vs_subtotal_tax_pct =
+      Math.round(pctDiff(ocr, subtotal_plus_tax) * 10) / 10;
     messages.push(
-      `OCR total ${ocr} vs subtotal+tax ${st} (Δ ${vs_subtotal_tax_pct}%)`
+      `OCR total ${ocr} vs subtotal+tax ${subtotal_plus_tax} (Δ ${vs_subtotal_tax_pct}%)`
     );
+    const s = severity(
+      vs_subtotal_tax_pct,
+      Math.abs(ocr - subtotal_plus_tax),
+      warnPct,
+      failPct,
+      warnEgp,
+      failEgp
+    );
+    if (s) checkStatuses.push(s);
   }
+
+  const cross_checks = checkStatuses.length;
 
   if (ocr == null) {
     return {
@@ -227,43 +325,108 @@ export function validateInvoiceTotal(input: {
       ocr_total_egp: null,
       lines_sum_egp: lines_sum,
       formulary_estimate_egp: formulary,
+      subtotal_plus_tax_egp: subtotal_plus_tax,
       vs_lines_pct,
       vs_formulary_pct,
       vs_subtotal_tax_pct,
+      vs_lines_egp,
+      vs_formulary_egp,
+      cross_checks: 0,
+      confidence: 0,
       messages: ['No OCR total detected', ...messages],
       ok_for_auto_price: false,
+      thresholds,
     };
   }
 
-  const deltas = [vs_lines_pct, vs_formulary_pct, vs_subtotal_tax_pct].filter(
-    (x): x is number => x != null
-  );
-  const worst = deltas.length ? Math.max(...deltas) : null;
+  if (!inv.total_from_label) {
+    messages.push(
+      'Total was inferred (largest amount on page), not an explicit label'
+    );
+  }
 
-  let status: InvoiceValidationStatus = 'unknown';
-  if (worst == null) {
+  let status: InvoiceValidationStatus;
+  if (cross_checks === 0) {
     status = 'warn';
     messages.push('Total found but no cross-check available — verify manually');
-  } else if (worst > failPct) {
-    status = 'fail';
-    messages.push(`Variance ${worst}% exceeds fail threshold ${failPct}%`);
-  } else if (worst > warnPct) {
-    status = 'warn';
-    messages.push(`Variance ${worst}% exceeds warn threshold ${warnPct}%`);
   } else {
-    status = 'pass';
-    messages.push(`Within ${warnPct}% tolerance`);
+    status = checkStatuses.reduce((a, b) => (rank(b) > rank(a) ? b : a), 'pass');
+    if (status === 'pass') messages.push(`Within tolerance (${warnPct}% / ${warnEgp} EGP)`);
+    if (status === 'warn')
+      messages.push(`Exceeds warn threshold (${warnPct}% or ${warnEgp} EGP)`);
+    if (status === 'fail')
+      messages.push(`Exceeds fail threshold (${failPct}% or ${failEgp} EGP)`);
   }
+
+  // Unlabeled totals cannot auto-price even if numbers align
+  if (!inv.total_from_label && status === 'pass') {
+    status = 'warn';
+    messages.push('Downgraded to warn: unlabeled total');
+  }
+
+  // Confidence 0–1
+  let confidence = 0.2;
+  if (inv.total_from_label) confidence += 0.25;
+  if (cross_checks >= 1) confidence += 0.2;
+  if (cross_checks >= 2) confidence += 0.15;
+  if (status === 'pass') confidence += 0.2;
+  if (status === 'fail') confidence = Math.min(confidence, 0.35);
+  confidence = Math.round(Math.min(1, confidence) * 100) / 100;
 
   return {
     status,
     ocr_total_egp: ocr,
     lines_sum_egp: lines_sum,
     formulary_estimate_egp: formulary,
+    subtotal_plus_tax_egp: subtotal_plus_tax,
     vs_lines_pct,
     vs_formulary_pct,
     vs_subtotal_tax_pct,
+    vs_lines_egp,
+    vs_formulary_egp,
+    cross_checks,
+    confidence,
     messages,
-    ok_for_auto_price: status === 'pass',
+    ok_for_auto_price: status === 'pass' && inv.total_from_label && cross_checks >= 1,
+    thresholds,
+  };
+}
+
+/**
+ * Use OCR total for price only when validation says so.
+ * Otherwise keep formulary/unit price.
+ */
+export function applyValidatedInvoicePrice(input: {
+  validation: InvoiceValidation | null | undefined;
+  currentPriceTotal: number | string | null;
+  singleMedLine: boolean;
+}): { priceTotal: number | string | null; applied: boolean; reason: string } {
+  const cur = input.currentPriceTotal;
+  const v = input.validation;
+  if (!v || !v.ok_for_auto_price || v.ocr_total_egp == null) {
+    return {
+      priceTotal: cur,
+      applied: false,
+      reason: v ? `validation_${v.status}` : 'no_validation',
+    };
+  }
+  if (!input.singleMedLine) {
+    return {
+      priceTotal: cur,
+      applied: false,
+      reason: 'multi_line_skip',
+    };
+  }
+  if (cur !== null && cur !== '' && typeof cur === 'number' && cur > 0) {
+    // Prefer keeping formulary if already set and close
+    const delta = Math.abs(cur - v.ocr_total_egp);
+    if (delta <= (v.thresholds?.warn_egp ?? 50)) {
+      return { priceTotal: cur, applied: false, reason: 'keep_formulary_close' };
+    }
+  }
+  return {
+    priceTotal: v.ocr_total_egp,
+    applied: true,
+    reason: 'ocr_invoice_validated',
   };
 }
