@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ddinterStats } from '@/lib/ddinter';
+import { webhookRetryDefaults } from '@/lib/httpRetry';
 import { DdinterImportButton } from './DdinterImportButton';
 import { DdinterCheckForm } from './DdinterCheckForm';
 import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
@@ -14,6 +15,8 @@ export default async function DdinterPage() {
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'DB error';
   }
+
+  const retry = webhookRetryDefaults();
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -40,6 +43,9 @@ export default async function DdinterPage() {
             </Link>
             <Link href="/combinations" className="text-blue-600 hover:underline">
               Combinations
+            </Link>
+            <Link href="/refills/safety" className="text-blue-600 hover:underline">
+              Safety queue
             </Link>
             <Link href="/" className="text-blue-600 hover:underline">
               Home
@@ -75,8 +81,9 @@ export default async function DdinterPage() {
         <section className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
           <h2 className="font-medium text-sm">Import from DDInter</h2>
           <p className="text-xs text-slate-500">
-            Downloads official CSV files (ATC A/B/D/H/L/P/R/V) into Neon. Run once
-            (or when DDInter updates). Non-commercial license.
+            Downloads official CSV files (ATC A/B/D/H/L/P/R/V) into Neon. HTTP download
+            uses shared retry ({retry.maxAttempts} attempts, base {retry.baseDelayMs}ms).
+            Only the download is retried — not CSV parse/insert. Non-commercial license.
           </p>
           <DdinterImportButton />
         </section>
@@ -95,7 +102,7 @@ export default async function DdinterPage() {
           <pre className="bg-slate-50 border rounded p-2 overflow-x-auto text-[11px] leading-relaxed">{`# Status
 GET /api/ddinter/import
 
-# Import ATC B only
+# Import ATC B only (download retried on 5xx/429)
 POST /api/ddinter/import  {"codes":["B"]}
 
 # Check names

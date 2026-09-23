@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { webhookRetryDefaults } from '@/lib/httpRetry';
+import { whatsappConfigStatus } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +11,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
+  const retry = webhookRetryDefaults();
+  const wa = whatsappConfigStatus();
 
   checks.env_google = {
     ok: !!(
@@ -29,9 +33,21 @@ export async function GET() {
     detail: process.env.PROCESS_SECRET ? 'configured' : 'optional but recommended',
   };
 
+  checks.http_retry = {
+    ok: true,
+    detail: `${retry.maxAttempts} attempts · base ${retry.baseDelayMs}ms · max ${retry.maxDelayMs}ms (WhatsApp + DDInter download)`,
+  };
+
+  checks.whatsapp = {
+    ok: wa.mode !== 'none' || wa.dry_run_default,
+    detail: `mode=${wa.mode} · safety_to=${wa.has_safety_to ? 'yes' : 'no'} · dry=${wa.dry_run_default}`,
+  };
+
   if (process.env.DATABASE_URL) {
     try {
-      const r = await query<{ n: string }>(`SELECT count(*)::text AS n FROM chronic_programs`);
+      const r = await query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM chronic_programs`
+      );
       checks.neon = {
         ok: true,
         detail: `connected · programs=${r.rows[0]?.n ?? 0}`,
@@ -54,6 +70,7 @@ export async function GET() {
       service: 'medical-aid-automation',
       time: new Date().toISOString(),
       checks,
+      retry,
     },
     { status: ok ? 200 : 503 }
   );
