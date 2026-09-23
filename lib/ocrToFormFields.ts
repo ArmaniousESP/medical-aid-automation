@@ -1,5 +1,5 @@
 /**
- * Map OCR output → same conceptual fields as Google Form responses / Approved-Requests.
+ * Map OCR output → form med fields + invoice validation + confidence.
  */
 
 import { CONFIG } from '@/lib/config';
@@ -9,6 +9,12 @@ import {
   validateInvoiceTotal,
   type InvoiceValidation,
 } from '@/lib/invoiceOcr';
+import {
+  ocrMedsConfidence,
+  invoiceConfidence,
+  requestConfidence,
+  type ConfidenceResult,
+} from '@/lib/confidence';
 
 export type FormMedSlot = {
   slot: number;
@@ -30,9 +36,14 @@ export type FormFieldMapping = {
   pharmacy_hint: string | null;
   roshetta_urls: string[];
   invoice_urls: string[];
+  /** Legacy coarse label */
   confidence: 'high' | 'medium' | 'low';
   needs_review: boolean;
   invoice_validation?: InvoiceValidation;
+  /** Multi-factor confidence engine */
+  confidence_detail?: ConfidenceResult;
+  ocr_meds_confidence?: ConfidenceResult;
+  invoice_confidence?: ConfidenceResult;
 };
 
 function lineToFormValue(line: ParsedMedLine): string {
@@ -42,11 +53,18 @@ function lineToFormValue(line: ParsedMedLine): string {
   return name.trim();
 }
 
+function legacyFromBand(
+  band: ConfidenceResult['band']
+): 'high' | 'medium' | 'low' {
+  if (band === 'auto') return 'high';
+  if (band === 'review') return 'medium';
+  return 'low';
+}
+
 export function ocrResultToFormFields(
   result: OcrResult | OcrResult[],
   opts?: {
     maxMeds?: number;
-    /** Pre-computed formulary sum (unit × qty) for validation */
     formulary_estimate_egp?: number | null;
   }
 ): FormFieldMapping {
@@ -101,21 +119,6 @@ export function ocrResultToFormFields(
 
   const med_fields = med_slots.map((s) => s.form_value);
 
-  const lowScores = med_slots.filter(
-    (s) => s.match_score > 0 && s.match_score < 0.72
-  );
-  const avgScore =
-    med_slots.length > 0
-      ? med_slots.reduce((a, s) => a + (s.match_score || 0), 0) / med_slots.length
-      : 0;
-
-  let confidence: FormFieldMapping['confidence'] = 'low';
-  if (med_slots.length >= 1 && avgScore >= 0.85 && lowScores.length === 0) {
-    confidence = 'high';
-  } else if (med_slots.length >= 1 && avgScore >= 0.55) {
-    confidence = 'medium';
-  }
-
   let invoice_validation: InvoiceValidation | undefined;
   if (invoice) {
     invoice_validation = validateInvoiceTotal({
@@ -123,6 +126,21 @@ export function ocrResultToFormFields(
       formulary_estimate_egp: opts?.formulary_estimate_egp ?? null,
     });
   }
+
+  const ocr_meds_confidence = ocrMedsConfidence({
+    matchScores: med_slots.map((s) => s.match_score || 0),
+    lineCount: med_slots.length,
+    maxMeds,
+  });
+  const invoice_confidence = invoice_validation
+    ? invoiceConfidence(invoice_validation)
+    : null;
+  const confidence_detail = requestConfidence({
+    ocrMeds: ocr_meds_confidence,
+    invoice: invoice_confidence,
+  });
+
+  const confidence = legacyFromBand(confidence_detail.band);
 
   const notesParts: string[] = [];
   if (med_slots.length) {
@@ -137,6 +155,7 @@ export function ocrResultToFormFields(
       notesParts.push(`vs formulary Δ ${invoice_validation.vs_formulary_pct}%`);
     }
   }
+  notesParts.push(confidence_detail.summary);
   if (invoice?.pharmacy_hint) {
     notesParts.push(`OCR pharmacy: ${invoice.pharmacy_hint}`);
   }
@@ -148,7 +167,7 @@ export function ocrResultToFormFields(
   }
 
   const needs_review =
-    confidence !== 'high' ||
+    confidence_detail.band !== 'auto' ||
     med_slots.length === 0 ||
     (invoice_validation != null && invoice_validation.status !== 'pass');
 
@@ -163,6 +182,9 @@ export function ocrResultToFormFields(
     confidence,
     needs_review,
     invoice_validation,
+    confidence_detail,
+    ocr_meds_confidence,
+    invoice_confidence: invoice_confidence || undefined,
   };
 }
 
