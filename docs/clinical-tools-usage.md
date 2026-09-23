@@ -13,57 +13,49 @@ They are **not**:
 (non-commercial). Source: https://ddinter2.scbdd.com
 
 **Allergy rules** encode common teaching points (e.g. penicillin ↔ amino-cephalosporin
-side chains; NSAID class). Modern evidence shows true beta-lactam cross-reactivity is
-often lower than older “10%” figures and is side-chain dependent — still escalate
+side chains; NSAID class). True risk depends on reaction phenotype — escalate
 severe/anaphylaxis histories to a clinician.
 
 ---
 
-## Recommended monthly flow
+## Monthly ops sequence
 
-1. `/ddinter` — import pairs (at least ATC B, or all)
+1. `/ddinter` — import CSVs (at least ATC **B**)
 2. `/synonyms` — seed + Egypt brands
 3. Programs — document allergies
-4. `/combinations` — population patterns
-5. `/refills/safety` — **safety queue** (Major / High only)
-6. Open each flagged cycle → check acknowledgment → approve/dispense
-7. `/pharmacy` — pick list (banner shows flagged count)
+4. Generate refill cycles for the month
+5. **`/refills/safety`** — clear Major / High queue
+6. Approve/dispense with `acknowledge_safety: true` when gated
+7. `/pharmacy` — pick list / CSV (banner shows flag count)
 
 ---
 
-## Refill soft safety gate
+## Refill soft gate
 
-On approve or dispense:
-
-- If the program has **DDI Major** or **allergy High**, the API returns **HTTP 409**
-  with `code: "safety_ack_required"` unless the body includes:
+Approve or dispense on a cycle with **DDI Major** or **allergy High** returns **HTTP 409**:
 
 ```json
-{ "acknowledge_safety": true, "reviewed_by": "pharmacist" }
+{ "code": "safety_ack_required", "safety": { "summary": "…" } }
 ```
 
-- UI: checkbox on `/refills/[id]` unlocks Approve / Dispense
-- Audit: `audit_log` action `safety_acknowledged` when ack is used
-- Reject / Skip are never gated
+Retry with:
 
 ```bash
-# Will 409 if high flags
-POST /api/refills/{id}/decide  {"approveAll":true}
+curl -X POST "https://YOUR_APP/api/refills/CYCLE_ID/decide" \
+  -H "Content-Type: application/json" \
+  -H "x-process-secret: $PROCESS_SECRET" \
+  -d '{"approveAll":true,"acknowledge_safety":true,"reviewed_by":"pharmacist"}'
+```
 
-# After review
-POST /api/refills/{id}/decide  {
-  "approveAll": true,
-  "acknowledge_safety": true,
-  "reviewed_by": "pharmacist"
-}
+Acknowledgment is written to **`audit_log`** (`action = safety_acknowledged`).
 
-# Queue
+```bash
 GET /api/refills/safety-queue?limit=40
 ```
 
 ---
 
-## 1. Ingredient synonyms
+## Synonyms
 
 **UI:** `/synonyms`
 
@@ -78,9 +70,7 @@ curl -sS -X POST "https://YOUR_APP/api/synonyms" \
 
 ---
 
-## 2. DDInter
-
-**UI:** `/ddinter`
+## DDInter
 
 ```bash
 POST /api/ddinter/import  {"codes":["B"]}
@@ -91,31 +81,21 @@ GET  /api/ddinter/scan?limit=25
 
 ---
 
-## 3. Combinations
-
-**UI:** `/combinations`
+## Allergies
 
 ```bash
-GET /api/combinations
-```
-
----
-
-## 4. Allergy cross-reactivity
-
-**UI:** Program detail → Allergies
-
-```bash
-GET  /api/allergies?program_id=UUID
 POST /api/allergies  {
   "dependent_id": "…",
   "allergen_label": "Penicillin",
   "severity": "anaphylaxis"
 }
+
+GET  /api/allergies?program_id=UUID
+
 POST /api/allergies  {
   "action": "check",
-  "allergies": [{"allergen_label":"Penicillin","severity":"severe"}],
-  "meds": ["Cefalexin","Augmentin"]
+  "allergies": [{ "allergen_label": "Penicillin", "severity": "severe" }],
+  "meds": ["Cefalexin", "Augmentin"]
 }
 ```
 
@@ -123,8 +103,7 @@ POST /api/allergies  {
 
 ## What to tell auditors
 
-> Automated interaction and allergy screens are used for triage inside our corporate
-> chronic medication program. Alerts are reviewed by operations and escalated to a
-> pharmacist or physician when severity is Major/High. Approve/dispense requires an
-> explicit acknowledgment when high flags are present. The tools do not constitute a
-> certified clinical decision-support system.
+> Automated interaction and allergy screens support triage inside our corporate
+> chronic medication program. Major/High alerts require an explicit
+> acknowledge_safety step before approve/dispense. This is not a certified
+> clinical decision-support system.
