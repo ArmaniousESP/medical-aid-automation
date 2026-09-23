@@ -3,6 +3,7 @@ import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { NotifyDueButton } from './NotifyDueButton';
 import { SafetyAlertButton } from './SafetyAlertButton';
 import { ReplayFailedButton } from './ReplayFailedButton';
+import { EmailPanel } from './EmailPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,17 +15,17 @@ export default function NotificationsPage() {
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="flex flex-wrap justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">WhatsApp notifications</h1>
+            <h1 className="text-2xl font-semibold">Notifications</h1>
             <p className="text-sm text-slate-600">
-              Refill due · Safety ops · Retry / replay
+              Email · WhatsApp · Refill due · Safety ops
             </p>
           </div>
           <div className="flex gap-3 text-sm">
+            <Link href="/review" className="text-blue-600 hover:underline">
+              Review queue
+            </Link>
             <Link href="/refills/safety" className="text-blue-600 hover:underline">
               Safety queue
-            </Link>
-            <Link href="/care-line" className="text-blue-600 hover:underline">
-              Care Line
             </Link>
             <Link href="/" className="text-blue-600 hover:underline">
               Home
@@ -32,7 +33,10 @@ export default function NotificationsPage() {
           </div>
         </header>
 
+        <EmailPanel />
+
         <div className="rounded-lg border bg-white p-4 shadow-sm space-y-2 text-sm">
+          <p className="font-medium">WhatsApp</p>
           <p>
             <span className="text-slate-500">Provider: </span>
             <strong>{status.mode}</strong>
@@ -68,7 +72,11 @@ export default function NotificationsPage() {
         <div className="rounded-lg border bg-white p-4 text-sm text-slate-700 space-y-2">
           <p className="font-medium">Setup (Vercel env)</p>
           <ol className="list-decimal list-inside text-xs space-y-1 text-slate-600">
-            <li>Configure Meta or Twilio WhatsApp credentials</li>
+            <li>
+              Email: <code>RESEND_API_KEY</code>, <code>EMAIL_FROM</code>, <code>EMAIL_TO</code>,{' '}
+              <code>EMAIL_NOTIFY_ON_PROCESS=true</code>
+            </li>
+            <li>WhatsApp: Meta or Twilio credentials</li>
             <li>
               Set <code>SAFETY_WHATSAPP_TO</code> to ops phones (comma-separated)
             </li>
@@ -77,9 +85,6 @@ export default function NotificationsPage() {
               <code>WEBHOOK_RETRY_BASE_MS</code>, <code>WEBHOOK_RETRY_MAX_MS</code>
             </li>
             <li>Optional: WHATSAPP_DRY_RUN=1 for testing</li>
-            <li>
-              Replay API: POST /api/notifications/replay · list GET same path
-            </li>
           </ol>
         </div>
       </div>
