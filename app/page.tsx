@@ -157,6 +157,12 @@ export default function Home() {
             Safety checklist
           </Link>
           <Link
+            href="/refills/safety"
+            className="px-5 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition"
+          >
+            Refill safety queue
+          </Link>
+          <Link
             href="/ddinter"
             className="px-5 py-2.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 font-medium transition"
           >
@@ -431,7 +437,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Safety · DDInter · Combinations · Pharmacy · Refills · /status
+          Safety queue · DDInter · Pharmacy · Refills · /status
         </footer>
       </div>
     </main>
