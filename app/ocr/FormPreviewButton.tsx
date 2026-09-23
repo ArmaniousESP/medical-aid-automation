@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ConfidenceBadge } from '@/components/ConfidenceBadge';
 
 export function FormPreviewButton() {
   const [loading, setLoading] = useState(false);
@@ -51,20 +52,21 @@ export function FormPreviewButton() {
       )}
       {data?.previews?.map((p: any) => (
         <div key={p.rowIndex} className="border rounded p-2 text-xs space-y-1">
-          <div className="font-medium">
-            Row {p.rowIndex} · {p.empName} · {p.patient}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="font-medium">
+              Row {p.rowIndex} · {p.empName} · {p.patient}
+            </div>
+            {p.form_fields?.confidence_detail && (
+              <ConfidenceBadge detail={p.form_fields.confidence_detail} compact />
+            )}
           </div>
           {p.error && <div className="text-red-700">{p.error}</div>}
           {p.form_fields && (
             <>
-              <div>
-                Meds: {p.form_fields.med_fields?.join(' · ') || '—'}
-              </div>
+              <div>Meds: {p.form_fields.med_fields?.join(' · ') || '—'}</div>
               <div>
                 Invoice val:{' '}
-                <strong>
-                  {p.form_fields.invoice_validation?.status || 'n/a'}
-                </strong>
+                <strong>{p.form_fields.invoice_validation?.status || 'n/a'}</strong>
                 {p.form_fields.invoice_total_egp != null &&
                   ` · ${p.form_fields.invoice_total_egp} EGP`}
               </div>

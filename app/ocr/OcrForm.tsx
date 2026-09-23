@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ConfidenceBadge, type ConfidenceDetail } from '@/components/ConfidenceBadge';
 
 type Line = {
   raw: string;
@@ -37,6 +38,9 @@ type FormFields = {
   confidence: string;
   needs_review: boolean;
   invoice_validation?: InvoiceValidation;
+  confidence_detail?: ConfidenceDetail;
+  ocr_meds_confidence?: ConfidenceDetail;
+  invoice_confidence?: ConfidenceDetail;
 };
 
 export function OcrForm() {
@@ -272,6 +276,27 @@ export function OcrForm() {
         </p>
       )}
 
+      {formFields?.confidence_detail && (
+        <ConfidenceBadge detail={formFields.confidence_detail} />
+      )}
+
+      {(formFields?.ocr_meds_confidence || formFields?.invoice_confidence) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {formFields.ocr_meds_confidence && (
+            <div>
+              <p className="text-[10px] text-slate-500 mb-1">OCR meds</p>
+              <ConfidenceBadge detail={formFields.ocr_meds_confidence} compact />
+            </div>
+          )}
+          {formFields.invoice_confidence && (
+            <div>
+              <p className="text-[10px] text-slate-500 mb-1">Invoice</p>
+              <ConfidenceBadge detail={formFields.invoice_confidence} compact />
+            </div>
+          )}
+        </div>
+      )}
+
       {v && (
         <div className={`rounded-lg border p-3 text-xs space-y-1 ${vColor}`}>
           <div className="font-semibold uppercase tracking-wide">
@@ -298,9 +323,8 @@ export function OcrForm() {
         <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-xs font-semibold text-indigo-900">
-              Form fields (med 1–{formFields.med_fields.length}) · confidence:{' '}
-              {formFields.confidence}
-              {formFields.needs_review ? ' · needs review' : ''}
+              Form fields (med 1–{formFields.med_fields.length})
+              {formFields.needs_review ? ' · needs review' : ' · ready'}
             </h3>
             <button
               type="button"
