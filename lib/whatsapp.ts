@@ -5,6 +5,7 @@ export type WaTemplateKey =
   | 'refill_ready'
   | 'pnat_high_risk'
   | 'care_line_followup'
+  | 'safety_alert'
   | 'custom';
 
 export const WA_TEMPLATES: Record<
@@ -35,6 +36,16 @@ export const WA_TEMPLATES: Record<
     body: (p) =>
       `مرحباً ${p.name || ''}،\nمتابعة من خط الرعاية بخصوص ${p.patient || ''}${p.note ? ': ' + p.note : '.'}\n— دعم العلاج الشهري`,
   },
+  safety_alert: {
+    key: 'safety_alert',
+    label_ar: 'تنبيه سلامة صرف (للفريق)',
+    body: (p) =>
+      `⚠️ Safety queue alert\n` +
+      `Flagged cycles: ${p.flagged || '0'} (scanned ${p.scanned || '0'})\n` +
+      `${p.summary || ''}\n` +
+      `Review: ${p.link || '/refills/safety'}\n` +
+      `— Medical aid ops (triage only, not CDS)`,
+  },
   custom: {
     key: 'custom',
     label_ar: 'رسالة مخصصة',
@@ -48,7 +59,7 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   let d = String(raw).replace(/\D/g, '');
   if (!d) return null;
   if (d.startsWith('00')) d = d.slice(2);
-  if (d.startsWith('0') && d.length === 11) d = '20' + d.slice(1); // 01xxxxxxxxx → 201…
+  if (d.startsWith('0') && d.length === 11) d = '20' + d.slice(1);
   if (d.length === 10 && d.startsWith('1')) d = '20' + d;
   if (!d.startsWith('20') && d.length < 11) return null;
   return d;
@@ -67,7 +78,11 @@ export type SendResult = {
 function providerMode(): 'meta' | 'twilio' | 'webhook' | 'none' {
   if (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
     return 'meta';
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM)
+  if (
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_WHATSAPP_FROM
+  )
     return 'twilio';
   if (process.env.WHATSAPP_WEBHOOK_URL) return 'webhook';
   return 'none';
@@ -114,7 +129,7 @@ async function sendMeta(to: string, body: string): Promise<SendResult> {
 async function sendTwilio(to: string, body: string): Promise<SendResult> {
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
-  const from = process.env.TWILIO_WHATSAPP_FROM!; // e.g. whatsapp:+14155238886
+  const from = process.env.TWILIO_WHATSAPP_FROM!;
   const toWa = to.startsWith('whatsapp:') ? to : `whatsapp:+${to}`;
   const auth = Buffer.from(`${sid}:${token}`).toString('base64');
   const params = new URLSearchParams({
@@ -152,7 +167,11 @@ async function sendTwilio(to: string, body: string): Promise<SendResult> {
   };
 }
 
-async function sendWebhook(to: string, body: string, meta: Record<string, unknown>): Promise<SendResult> {
+async function sendWebhook(
+  to: string,
+  body: string,
+  meta: Record<string, unknown>
+): Promise<SendResult> {
   const url = process.env.WHATSAPP_WEBHOOK_URL!;
   const res = await fetch(url, {
     method: 'POST',
@@ -186,9 +205,7 @@ export async function sendWhatsApp(input: {
 
   const mode = providerMode();
   const forceDry =
-    input.dry_run ||
-    process.env.WHATSAPP_DRY_RUN === '1' ||
-    mode === 'none';
+    input.dry_run || process.env.WHATSAPP_DRY_RUN === '1' || mode === 'none';
 
   let result: SendResult;
 
@@ -248,7 +265,7 @@ export async function notifyDueRefills(opts: {
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const limit = Math.min(opts.limit ?? 50, 200);
 
-  const res = await query<{ 
+  const res = await query<{
     program_id: string;
     program_code: string;
     employee_name: string;
@@ -313,6 +330,91 @@ export async function notifyDueRefills(opts: {
   };
 }
 
+/**
+ * Ops alert: safety queue has Major DDI / High allergy cycles.
+ * Sends to SAFETY_WHATSAPP_TO (comma-separated) — NOT to patients.
+ */
+export async function notifySafetyQueue(opts?: {
+  dry_run?: boolean;
+  limit?: number;
+  force?: boolean;
+  app_base_url?: string;
+}) {
+  const { scanRefillSafetyQueue } = await import('@/lib/refillSafety');
+  const scan = await scanRefillSafetyQueue({ limit: opts?.limit ?? 40 });
+
+  if (scan.flagged === 0 && !opts?.force) {
+    return {
+      skipped: true,
+      reason: 'no_flags',
+      scanned: scan.scanned,
+      flagged: 0,
+      sent: [] as SendResult[],
+    };
+  }
+
+  const raw =
+    process.env.SAFETY_WHATSAPP_TO ||
+    process.env.WHATSAPP_OPS_PHONE ||
+    '';
+  const phones = raw
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (phones.length === 0) {
+    return {
+      skipped: true,
+      reason: 'SAFETY_WHATSAPP_TO not set',
+      scanned: scan.scanned,
+      flagged: scan.flagged,
+      sent: [] as SendResult[],
+    };
+  }
+
+  const top = scan.rows
+    .slice(0, 8)
+    .map(
+      (r) =>
+        `• ${r.program_code} ${r.patient_name} (${r.period}): ${r.summary}`
+    )
+    .join('\n');
+
+  const base =
+    opts?.app_base_url ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : '';
+  const link = base ? `${base.replace(/\/$/, '')}/refills/safety` : '/refills/safety';
+
+  const sent: Array<SendResult & { log_id?: string }> = [];
+  for (const phone of phones) {
+    const r = await sendWhatsApp({
+      to: phone,
+      template: 'safety_alert',
+      dry_run: opts?.dry_run,
+      vars: {
+        flagged: String(scan.flagged),
+        scanned: String(scan.scanned),
+        summary: top || 'See safety queue',
+        link,
+      },
+    });
+    sent.push(r);
+  }
+
+  return {
+    skipped: false,
+    scanned: scan.scanned,
+    flagged: scan.flagged,
+    provider: providerMode(),
+    recipients: phones.length,
+    ok_count: sent.filter((s) => s.ok).length,
+    sent,
+  };
+}
+
 export function whatsappConfigStatus() {
   const mode = providerMode();
   return {
@@ -321,6 +423,7 @@ export function whatsappConfigStatus() {
     has_meta: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
     has_twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     has_webhook: !!process.env.WHATSAPP_WEBHOOK_URL,
+    has_safety_to: !!(process.env.SAFETY_WHATSAPP_TO || process.env.WHATSAPP_OPS_PHONE),
     templates: Object.keys(WA_TEMPLATES),
   };
 }
