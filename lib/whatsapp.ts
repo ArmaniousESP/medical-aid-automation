@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { fetchWithRetry, webhookRetryDefaults } from '@/lib/httpRetry';
 
 export type WaTemplateKey =
   | 'refill_due'
@@ -73,6 +74,7 @@ export type SendResult = {
   error?: string;
   body?: string;
   to?: string;
+  attempts?: number;
 };
 
 function providerMode(): 'meta' | 'twilio' | 'webhook' | 'none' {
@@ -91,39 +93,58 @@ function providerMode(): 'meta' | 'twilio' | 'webhook' | 'none' {
 async function sendMeta(to: string, body: string): Promise<SendResult> {
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
   const token = process.env.WHATSAPP_TOKEN!;
-  const res = await fetch(
-    `https://graph.facebook.com/v19.0/${phoneId}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+  const retry = webhookRetryDefaults();
+
+  try {
+    const { response, attempts, errors } = await fetchWithRetry(
+      `https://graph.facebook.com/v19.0/${phoneId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to,
+          type: 'text',
+          text: { body },
+        }),
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
+      retry
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        ok: false,
+        provider: 'meta',
+        error:
+          data?.error?.message ||
+          JSON.stringify(data) ||
+          errors.join('; '),
         to,
-        type: 'text',
-        text: { body },
-      }),
+        body,
+        attempts,
+      };
     }
-  );
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
+    return {
+      ok: true,
+      provider: 'meta',
+      message_id: data?.messages?.[0]?.id,
+      to,
+      body,
+      attempts,
+    };
+  } catch (e: unknown) {
     return {
       ok: false,
       provider: 'meta',
-      error: data?.error?.message || JSON.stringify(data),
+      error: e instanceof Error ? e.message : 'meta fetch failed',
       to,
       body,
+      attempts: retry.maxAttempts,
     };
   }
-  return {
-    ok: true,
-    provider: 'meta',
-    message_id: data?.messages?.[0]?.id,
-    to,
-    body,
-  };
 }
 
 async function sendTwilio(to: string, body: string): Promise<SendResult> {
@@ -137,34 +158,50 @@ async function sendTwilio(to: string, body: string): Promise<SendResult> {
     To: toWa,
     Body: body,
   });
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+  const retry = webhookRetryDefaults();
+
+  try {
+    const { response, attempts, errors } = await fetchWithRetry(
+      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
       },
-      body: params.toString(),
+      retry
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        ok: false,
+        provider: 'twilio',
+        error: data?.message || JSON.stringify(data) || errors.join('; '),
+        to,
+        body,
+        attempts,
+      };
     }
-  );
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
+    return {
+      ok: true,
+      provider: 'twilio',
+      message_id: data?.sid,
+      to,
+      body,
+      attempts,
+    };
+  } catch (e: unknown) {
     return {
       ok: false,
       provider: 'twilio',
-      error: data?.message || JSON.stringify(data),
+      error: e instanceof Error ? e.message : 'twilio fetch failed',
       to,
       body,
+      attempts: retry.maxAttempts,
     };
   }
-  return {
-    ok: true,
-    provider: 'twilio',
-    message_id: data?.sid,
-    to,
-    body,
-  };
 }
 
 async function sendWebhook(
@@ -173,16 +210,58 @@ async function sendWebhook(
   meta: Record<string, unknown>
 ): Promise<SendResult> {
   const url = process.env.WHATSAPP_WEBHOOK_URL!;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, body, channel: 'whatsapp', ...meta }),
+  const retry = webhookRetryDefaults();
+  const payload = JSON.stringify({
+    to,
+    body,
+    channel: 'whatsapp',
+    ...meta,
   });
-  const text = await res.text();
-  if (!res.ok) {
-    return { ok: false, provider: 'webhook', error: text.slice(0, 500), to, body };
+
+  try {
+    const { response, attempts, errors } = await fetchWithRetry(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.WHATSAPP_WEBHOOK_SECRET
+            ? { 'X-Webhook-Secret': process.env.WHATSAPP_WEBHOOK_SECRET }
+            : {}),
+        },
+        body: payload,
+      },
+      retry
+    );
+    const text = await response.text();
+    if (!response.ok) {
+      return {
+        ok: false,
+        provider: 'webhook',
+        error: text.slice(0, 500) || errors.join('; ') || `HTTP ${response.status}`,
+        to,
+        body,
+        attempts,
+      };
+    }
+    return {
+      ok: true,
+      provider: 'webhook',
+      message_id: text.slice(0, 80) || `webhook-ok-${attempts}`,
+      to,
+      body,
+      attempts,
+    };
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      provider: 'webhook',
+      error: e instanceof Error ? e.message : 'webhook fetch failed',
+      to,
+      body,
+      attempts: retry.maxAttempts,
+    };
   }
-  return { ok: true, provider: 'webhook', message_id: text.slice(0, 80), to, body };
 }
 
 export async function sendWhatsApp(input: {
@@ -217,6 +296,7 @@ export async function sendWhatsApp(input: {
       to,
       body,
       message_id: `dry-${Date.now()}`,
+      attempts: 1,
     };
   } else if (mode === 'meta') {
     result = await sendMeta(to, body);
@@ -241,7 +321,12 @@ export async function sendWhatsApp(input: {
         input.template,
         to,
         input.program_id || null,
-        JSON.stringify({ vars: input.vars, body, provider: result.provider }),
+        JSON.stringify({
+          vars: input.vars,
+          body,
+          provider: result.provider,
+          attempts: result.attempts ?? 1,
+        }),
         result.dry_run ? 'dry_run' : result.ok ? 'sent' : 'failed',
         result.message_id || null,
         result.error || null,
@@ -298,6 +383,7 @@ export async function notifyDueRefills(opts: {
     ok: boolean;
     dry_run?: boolean;
     error?: string;
+    attempts?: number;
   }> = [];
 
   for (const row of res.rows) {
@@ -318,6 +404,7 @@ export async function notifyDueRefills(opts: {
       ok: r.ok,
       dry_run: r.dry_run,
       error: r.error,
+      attempts: r.attempts,
     });
   }
 
@@ -383,9 +470,7 @@ export async function notifySafetyQueue(opts?: {
   const base =
     opts?.app_base_url ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : '';
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
   const link = base ? `${base.replace(/\/$/, '')}/refills/safety` : '/refills/safety';
 
   const sent: Array<SendResult & { log_id?: string }> = [];
@@ -417,6 +502,7 @@ export async function notifySafetyQueue(opts?: {
 
 export function whatsappConfigStatus() {
   const mode = providerMode();
+  const retry = webhookRetryDefaults();
   return {
     mode,
     dry_run_default: process.env.WHATSAPP_DRY_RUN === '1' || mode === 'none',
@@ -424,6 +510,11 @@ export function whatsappConfigStatus() {
     has_twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     has_webhook: !!process.env.WHATSAPP_WEBHOOK_URL,
     has_safety_to: !!(process.env.SAFETY_WHATSAPP_TO || process.env.WHATSAPP_OPS_PHONE),
+    retry: {
+      maxAttempts: retry.maxAttempts,
+      baseDelayMs: retry.baseDelayMs,
+      maxDelayMs: retry.maxDelayMs,
+    },
     templates: Object.keys(WA_TEMPLATES),
   };
 }
