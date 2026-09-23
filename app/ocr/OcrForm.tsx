@@ -18,6 +18,15 @@ type InvoiceInfo = {
   date_hint: string | null;
 };
 
+type FormFields = {
+  med_fields: string[];
+  med_slots: Array<{ slot: number; form_value: string; match_score: number }>;
+  notes_fragment: string;
+  invoice_total_egp: number | null;
+  confidence: string;
+  needs_review: boolean;
+};
+
 export function OcrForm() {
   const [imageUrl, setImageUrl] = useState('');
   const [batchUrls, setBatchUrls] = useState('');
@@ -31,6 +40,8 @@ export function OcrForm() {
   const [invoice, setInvoice] = useState<InvoiceInfo | null>(null);
   const [kind, setKind] = useState('');
   const [via, setVia] = useState('');
+  const [formFields, setFormFields] = useState<FormFields | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function post(body: Record<string, unknown>) {
     setLoading(true);
@@ -40,6 +51,8 @@ export function OcrForm() {
     setInvoice(null);
     setKind('');
     setVia('');
+    setFormFields(null);
+    setCopied(false);
     try {
       const res = await fetch('/api/ocr', {
         method: 'POST',
@@ -48,8 +61,9 @@ export function OcrForm() {
       });
       const data = await res.json();
 
+      if (data.form_fields) setFormFields(data.form_fields);
+
       if (data.results && Array.isArray(data.results)) {
-        // Batch
         const ok = data.results.filter((r: { ok: boolean }) => r.ok);
         const first = ok[0] || data.results[0];
         setProvider(`batch ${data.ok_count}/${data.results.length}`);
@@ -105,6 +119,13 @@ export function OcrForm() {
     reader.readAsDataURL(file);
   }
 
+  async function copyMedFields() {
+    if (!formFields?.med_fields?.length) return;
+    await navigator.clipboard.writeText(formFields.med_fields.join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap gap-2 items-center">
@@ -139,9 +160,7 @@ export function OcrForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs text-slate-500">
-          Or Drive / image URL
-        </label>
+        <label className="block text-xs text-slate-500">Or Drive / image URL</label>
         <input
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
@@ -160,7 +179,7 @@ export function OcrForm() {
 
       <div className="space-y-2 border-t pt-4">
         <label className="block text-xs text-slate-500">
-          Batch URLs (one per line — roshetta + invoices from form)
+          Batch URLs (one per line — roshetta + invoices)
         </label>
         <textarea
           value={batchUrls}
@@ -187,9 +206,7 @@ export function OcrForm() {
       </div>
 
       <div className="border-t pt-4 space-y-2">
-        <label className="block text-xs text-slate-500">
-          Or paste text (manual / external OCR)
-        </label>
+        <label className="block text-xs text-slate-500">Or paste text</label>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -231,6 +248,41 @@ export function OcrForm() {
             </>
           )}
         </p>
+      )}
+
+      {formFields && formFields.med_fields.length > 0 && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold text-indigo-900">
+              Form fields (med 1–{formFields.med_fields.length}) · confidence:{' '}
+              {formFields.confidence}
+              {formFields.needs_review ? ' · needs review' : ''}
+            </h3>
+            <button
+              type="button"
+              onClick={copyMedFields}
+              className="rounded bg-indigo-700 px-2 py-1 text-[11px] text-white"
+            >
+              {copied ? 'Copied' : 'Copy med lines'}
+            </button>
+          </div>
+          <ol className="list-decimal list-inside text-xs space-y-1 font-mono">
+            {formFields.med_fields.map((m, i) => (
+              <li key={i}>{m}</li>
+            ))}
+          </ol>
+          {formFields.invoice_total_egp != null && (
+            <p className="text-xs">
+              Invoice total → price field:{' '}
+              <strong>{formFields.invoice_total_egp} EGP</strong>
+            </p>
+          )}
+          {formFields.notes_fragment && (
+            <p className="text-[11px] text-slate-600 break-all">
+              Notes: {formFields.notes_fragment}
+            </p>
+          )}
+        </div>
       )}
 
       {invoice && (
@@ -282,9 +334,6 @@ export function OcrForm() {
                   <td className="p-2 text-xs">{l.frequency_hint || '—'}</td>
                   <td className="p-2 text-xs text-emerald-800">
                     {l.matched_name || '—'}
-                    {l.formulary_hint ? (
-                      <span className="text-slate-400"> · {l.formulary_hint}</span>
-                    ) : null}
                   </td>
                   <td className="p-2 text-xs">
                     {l.match_score

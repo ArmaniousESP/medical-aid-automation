@@ -20,6 +20,7 @@ export interface ProcessResult {
   message: string;
   totalEstimatedCost: number | null;
   warnings: string[];
+  ocr_filled?: number;
   enroll?: {
     groups: number;
     created: number;
@@ -33,11 +34,23 @@ function makeKey(a: any, b: any, med: string): string {
   return `${String(a || '').trim()}||${String(b || '').trim()}||${normalize(med)}`;
 }
 
+function splitAttachmentUrls(raw: string): string[] {
+  return String(raw || '')
+    .split(/[,\n]+/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\//i.test(s))
+    .slice(0, 6);
+}
+
 export async function processNewResponses(dryRun = false): Promise<ProcessResult> {
   const warnings: string[] = [];
   const spreadsheetId = await getSpreadsheetIdFromEnv();
+  const ocrFill =
+    process.env.OCR_FILL_EMPTY_MEDS === '1' ||
+    process.env.OCR_FILL_EMPTY_MEDS === 'true';
+  let ocr_filled = 0;
 
-  // 1. Load MEDDB3 (retry on transient Google errors)
+  // 1. Load MEDDB3
   const medRaw = await withRetry(
     () => getSheetValues(spreadsheetId, `${CONFIG.MEDDB_SHEET}!A:C`),
     { retries: 2, label: 'meddb3' }
@@ -101,7 +114,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       const val = row[c - 1];
       if (val && String(val).trim()) meds.push(String(val).trim());
     }
-    if (meds.length === 0) continue;
 
     responses.push({
       timestamp: ts,
@@ -120,14 +132,55 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 4. Expand + match + price (price failures are soft per-row)
+  // Optional: OCR fill empty med columns from roshetta attachments
+  if (ocrFill) {
+    try {
+      const { runBatchOcr } = await import('./prescriptionOcr');
+      const { ocrResultToFormFields, mergeOcrIntoFormMeds } = await import(
+        './ocrToFormFields'
+      );
+      for (const resp of responses) {
+        if (resp.meds.length > 0) continue;
+        const urls = splitAttachmentUrls(resp.roshetta);
+        if (!urls.length) continue;
+        try {
+          const batch = await runBatchOcr({
+            urls,
+            medDb,
+            docKind: 'prescription',
+          });
+          const mapping = ocrResultToFormFields(batch.results);
+          const merged = mergeOcrIntoFormMeds(resp.meds, mapping);
+          if (merged.used_ocr && merged.meds.length) {
+            resp.meds = merged.meds;
+            resp.ocrNotes = mapping.notes_fragment;
+            resp.ocrInvoiceTotal = mapping.invoice_total_egp;
+            ocr_filled += 1;
+          }
+        } catch (e: unknown) {
+          warnings.push(
+            `ocr:${resp.empName}: ${e instanceof Error ? e.message : 'failed'}`
+          );
+        }
+      }
+    } catch (e: unknown) {
+      warnings.push(
+        `ocr_fill_init: ${e instanceof Error ? e.message : 'failed'}`
+      );
+    }
+  }
+
+  // Skip responses still without meds
+  const withMeds = responses.filter((r) => r.meds.length > 0);
+
+  // 4. Expand + match + price
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
   let totalEstimatedCost = 0;
   let hasAnyPrice = false;
 
-  for (const resp of responses) {
+  for (const resp of withMeds) {
     for (const medText of resp.meds) {
       const idKey = makeKey(resp.empId, resp.patient, medText);
       const nameKey = makeKey(resp.empName, resp.patient, medText);
@@ -197,6 +250,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       if (priceSource !== 'none' && priceSource !== 'meddb3') {
         notesParts.push(`price source: ${priceSource}`);
       }
+      if (resp.ocrNotes) notesParts.push(String(resp.ocrNotes));
       if (resp.roshetta) notesParts.push(`روشتة: ${cleanDriveLinks(resp.roshetta)}`);
       if (resp.labs) notesParts.push(`فحوصات: ${cleanDriveLinks(resp.labs)}`);
       if (resp.cardPhoto)
@@ -209,7 +263,16 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notesParts.push(`تعليق: ${String(resp.comments).substring(0, 120)}`);
 
       const notes = notesParts.join(' | ');
-      const priceTotal = computePriceTotal(unitPrice, qty);
+      let priceTotal = computePriceTotal(unitPrice, qty);
+      // Prefer invoice total only when single med line from OCR (conservative)
+      if (
+        resp.ocrInvoiceTotal != null &&
+        resp.meds.length === 1 &&
+        (priceTotal === null || priceTotal === '')
+      ) {
+        priceTotal = resp.ocrInvoiceTotal;
+        notesParts.push('price from OCR invoice total');
+      }
 
       if (typeof priceTotal === 'number') {
         totalEstimatedCost += priceTotal;
@@ -247,6 +310,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         labs: cleanDriveLinks(resp.labs),
         cardPhoto: cleanDriveLinks(resp.cardPhoto),
         proofRelation: cleanDriveLinks(resp.proofRelation),
+        fromOcr: !!resp.ocrNotes,
       });
 
       idKeys.add(idKey);
@@ -270,6 +334,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     roshetta: r.roshetta,
     labs: r.labs,
     notes: r.notes,
+    fromOcr: r.fromOcr,
   }));
 
   if (!dryRun && newRows.length > 0) {
@@ -299,7 +364,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     );
   }
 
-  // 5. Auto-enroll (soft — never fails the whole process)
   let enroll: ProcessResult['enroll'] = null;
   const autoEnroll = process.env.AUTO_ENROLL_CHRONIC !== 'false';
   if (!dryRun && autoEnroll && process.env.DATABASE_URL) {
@@ -335,6 +399,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
   const enrollStr = enroll
     ? ` | Chronic enroll: +${enroll.created} / ~${enroll.updated} / skip ${enroll.skipped}`
     : '';
+  const ocrStr = ocr_filled ? ` | OCR-filled forms: ${ocr_filled}` : '';
 
   const message =
     [
@@ -344,7 +409,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       dryRun ? '[DRY RUN – nothing written]' : 'Rows appended to Approved-Requests.',
     ].join(' | ') +
     costStr +
-    enrollStr;
+    enrollStr +
+    ocrStr;
 
   return {
     newRows: newRows.length,
@@ -358,6 +424,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       ? Math.round(totalEstimatedCost * 100) / 100
       : null,
     warnings: warnings.slice(0, 50),
+    ocr_filled,
     enroll,
   };
 }

@@ -6,6 +6,7 @@ import {
   parseOcrTextToMedLines,
 } from '@/lib/prescriptionOcr';
 import { parseInvoiceText } from '@/lib/invoiceOcr';
+import { ocrResultToFormFields } from '@/lib/ocrToFormFields';
 import { loadMedDb } from '@/lib/meddb';
 import { authorizeRequest } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
@@ -32,6 +33,7 @@ export async function GET() {
  * POST /api/ocr
  * { imageUrl } | { imageBase64, mime? } | { text } | { urls: string[] }
  * { docKind?: 'prescription' | 'invoice' | 'auto' }
+ * Response includes form_fields: med_fields[], med_slots[], notes_fragment
  */
 export async function POST(req: NextRequest) {
   try {
@@ -54,14 +56,14 @@ export async function POST(req: NextRequest) {
       medDb = undefined;
     }
 
-    // Batch multiple attachment URLs (roshetta + invoices)
     if (Array.isArray(body.urls) && body.urls.length) {
       const batch = await runBatchOcr({
         urls: body.urls.map(String),
         medDb,
         docKind,
       });
-      return NextResponse.json({ ok: true, ...batch });
+      const form_fields = ocrResultToFormFields(batch.results);
+      return NextResponse.json({ ok: true, ...batch, form_fields });
     }
 
     if (body.text && !body.imageUrl && !body.imageBase64) {
@@ -71,16 +73,18 @@ export async function POST(req: NextRequest) {
         docKind === 'invoice' || /فاتورة|invoice|إجمالي/i.test(text)
           ? parseInvoiceText(text)
           : undefined;
-      return NextResponse.json({
-        ok: true,
-        provider: 'manual',
+      const result = {
+        ok: true as const,
+        provider: 'manual' as const,
         full_text: text,
         lines,
-        doc_kind: invoice ? 'invoice' : 'prescription',
+        doc_kind: (invoice ? 'invoice' : 'prescription') as const,
         invoice,
         disclaimer:
           'OCR is probabilistic. Verify every line against the original image.',
-      });
+      };
+      const form_fields = ocrResultToFormFields(result);
+      return NextResponse.json({ ...result, form_fields });
     }
 
     const result = await runPrescriptionOcr({
@@ -92,8 +96,9 @@ export async function POST(req: NextRequest) {
       docKind,
     });
 
+    const form_fields = ocrResultToFormFields(result);
     const status = result.ok ? 200 : 422;
-    return NextResponse.json(result, { status });
+    return NextResponse.json({ ...result, form_fields }, { status });
   } catch (e: unknown) {
     const { body, status } = jsonError(e);
     return NextResponse.json(body, { status });
