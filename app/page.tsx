@@ -19,6 +19,7 @@ type Row = {
   priceSource?: string;
   score: number;
   isLowMatch: boolean;
+  confidenceBand?: string;
   roshetta?: string;
   labs?: string;
   notes?: string;
@@ -60,12 +61,16 @@ function PriceSourceBadge({ source }: { source?: string }) {
       ? 'DwaPrices'
       : source === 'egyptian-drug-db'
       ? 'Open DB'
+      : source === 'ocr_invoice'
+      ? 'OCR inv'
       : source;
   const color =
     source === 'meddb3'
       ? 'bg-slate-100 text-slate-600'
       : source === 'dwaprices'
       ? 'bg-indigo-100 text-indigo-700'
+      : source === 'ocr_invoice'
+      ? 'bg-emerald-100 text-emerald-700'
       : 'bg-violet-100 text-violet-700';
   return (
     <span className={`ml-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${color}`}>
@@ -121,7 +126,7 @@ export default function Home() {
               طلب مساعدة علاج شهري — استمارة 9
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              PSP · Pharmacy · Safety triage · Refills
+              OCR · Review queue · PSP · Pharmacy · Safety
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -150,6 +155,24 @@ export default function Home() {
             {loading ? 'Processing…' : 'Process New Responses'}
           </button>
           <SyncProgramsButton />
+          <Link
+            href="/ocr"
+            className="px-5 py-2.5 rounded-lg bg-indigo-700 text-white hover:bg-indigo-800 font-medium transition"
+          >
+            OCR roshetta
+          </Link>
+          <Link
+            href="/review"
+            className="px-5 py-2.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 font-medium transition"
+          >
+            Review queue
+          </Link>
+          <Link
+            href="/submit"
+            className="px-5 py-2.5 rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-medium transition"
+          >
+            Beneficiary guide
+          </Link>
           <Link
             href="/safety"
             className="px-5 py-2.5 rounded-lg bg-red-700 text-white hover:bg-red-800 font-medium transition"
@@ -279,6 +302,20 @@ export default function Home() {
                   {result.enroll.errors?.length
                     ? ` (errors: ${result.enroll.errors.length})`
                     : ''}
+                </p>
+              )}
+              {(result.ocr_filled > 0 || result.ocr_skipped_low_confidence > 0) && (
+                <p className="text-sm text-violet-700 mb-4">
+                  OCR filled: {result.ocr_filled || 0}
+                  {result.ocr_skipped_low_confidence > 0 && (
+                    <>
+                      {' '}
+                      · skipped low confidence:{' '}
+                      <Link href="/review" className="underline font-medium">
+                        {result.ocr_skipped_low_confidence} → review queue
+                      </Link>
+                    </>
+                  )}
                 </p>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
@@ -437,7 +474,7 @@ export default function Home() {
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          Safety queue · DDInter · Pharmacy · Refills · /status
+          OCR · Review · Safety · DDInter · Pharmacy · /status
         </footer>
       </div>
     </main>
