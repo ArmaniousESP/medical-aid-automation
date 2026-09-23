@@ -9,6 +9,7 @@ import {
 import { resolveUnitPriceWithExternal, computePriceTotal } from './pricing';
 import { getSheetValues, appendRows, getSpreadsheetIdFromEnv } from './google';
 import { withRetry } from './errors';
+import { medMatchConfidence } from './confidence';
 
 export interface ProcessResult {
   newRows: number;
@@ -21,6 +22,7 @@ export interface ProcessResult {
   totalEstimatedCost: number | null;
   warnings: string[];
   ocr_filled?: number;
+  ocr_skipped_low_confidence?: number;
   invoice_validation_fail?: number;
   enroll?: {
     groups: number;
@@ -43,6 +45,14 @@ function splitAttachmentUrls(raw: string): string[] {
     .slice(0, 6);
 }
 
+/** Minimum band to accept OCR-filled meds. default: auto (strict). */
+function ocrFillAllowed(band: string | undefined): boolean {
+  const min = (process.env.OCR_FILL_MIN_BAND || 'auto').toLowerCase();
+  if (min === 'manual') return true;
+  if (min === 'review') return band === 'auto' || band === 'review';
+  return band === 'auto';
+}
+
 export async function processNewResponses(dryRun = false): Promise<ProcessResult> {
   const warnings: string[] = [];
   const spreadsheetId = await getSpreadsheetIdFromEnv();
@@ -50,6 +60,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     process.env.OCR_FILL_EMPTY_MEDS === '1' ||
     process.env.OCR_FILL_EMPTY_MEDS === 'true';
   let ocr_filled = 0;
+  let ocr_skipped_low_confidence = 0;
   let invoice_validation_fail = 0;
 
   const medRaw = await withRetry(
@@ -150,7 +161,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
             docKind: 'auto',
           });
 
-          // Formulary estimate for invoice validation
           let formularyEst: number | null = null;
           let sum = 0;
           let any = false;
@@ -169,10 +179,29 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
           const mapping = ocrResultToFormFields(batch.results, {
             formulary_estimate_egp: formularyEst,
           });
+
+          const band = mapping.confidence_detail?.band;
+          if (!ocrFillAllowed(band)) {
+            ocr_skipped_low_confidence += 1;
+            warnings.push(
+              `ocr_low_conf:${resp.empName}:${band || 'unknown'}:${mapping.confidence_detail?.score ?? '?'}`
+            );
+            resp.ocrReview = {
+              band,
+              score: mapping.confidence_detail?.score,
+              med_fields: mapping.med_fields,
+              notes: mapping.notes_fragment,
+              urls,
+            };
+            continue;
+          }
+
           const merged = mergeOcrIntoFormMeds(resp.meds, mapping);
           if (merged.used_ocr && merged.meds.length) {
             resp.meds = merged.meds;
             resp.ocrNotes = mapping.notes_fragment;
+            resp.ocrConfidenceBand = band;
+            resp.ocrConfidenceScore = mapping.confidence_detail?.score;
             const invOk = mapping.invoice_validation?.ok_for_auto_price === true;
             resp.ocrInvoiceTotal = invOk ? mapping.invoice_total_egp : null;
             resp.ocrInvoiceStatus = mapping.invoice_validation?.status || null;
@@ -217,6 +246,11 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
 
       const { qty, cleanName } = parseQuantity(medText);
       const match = bestMedMatch(cleanName, medDb);
+      const conf = medMatchConfidence({
+        matchScore: match.score || 0,
+        exactNorm: match.score === 1,
+        hasEvaHint: !!match.eva,
+      });
 
       let availability = 'NOT IN EVA';
       let newMed = cleanName;
@@ -272,6 +306,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
           `LOW MATCH (${score.toFixed(2)}) - review needed | original: ${medText}`
         );
       }
+      notesParts.push(conf.summary);
       if (priceSource !== 'none' && priceSource !== 'meddb3') {
         notesParts.push(`price source: ${priceSource}`);
       }
@@ -291,7 +326,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notesParts.push(`تعليق: ${String(resp.comments).substring(0, 120)}`);
 
       let priceTotal = computePriceTotal(unitPrice, qty);
-      // Only apply OCR invoice total when validation passed
       if (
         resp.ocrInvoiceTotal != null &&
         resp.meds.length === 1 &&
@@ -336,6 +370,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notes,
         matchScore: score,
         isLowMatch: isLow,
+        confidenceBand: conf.band,
+        confidenceScore: conf.score,
         roshetta: cleanDriveLinks(resp.roshetta),
         labs: cleanDriveLinks(resp.labs),
         cardPhoto: cleanDriveLinks(resp.cardPhoto),
@@ -361,6 +397,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     priceSource: r.priceSource,
     score: r.matchScore,
     isLowMatch: r.isLowMatch,
+    confidenceBand: r.confidenceBand,
+    confidenceScore: r.confidenceScore,
     roshetta: r.roshetta,
     labs: r.labs,
     notes: r.notes,
@@ -429,7 +467,10 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
   const enrollStr = enroll
     ? ` | Chronic enroll: +${enroll.created} / ~${enroll.updated} / skip ${enroll.skipped}`
     : '';
-  const ocrStr = ocr_filled ? ` | OCR-filled forms: ${ocr_filled}` : '';
+  const ocrStr = ocr_filled ? ` | OCR-filled: ${ocr_filled}` : '';
+  const ocrSkipStr = ocr_skipped_low_confidence
+    ? ` | OCR skipped (low conf): ${ocr_skipped_low_confidence}`
+    : '';
   const invStr = invoice_validation_fail
     ? ` | Invoice validation not-pass: ${invoice_validation_fail}`
     : '';
@@ -444,6 +485,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     costStr +
     enrollStr +
     ocrStr +
+    ocrSkipStr +
     invStr;
 
   return {
@@ -459,6 +501,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       : null,
     warnings: warnings.slice(0, 50),
     ocr_filled,
+    ocr_skipped_low_confidence,
     invoice_validation_fail,
     enroll,
   };
