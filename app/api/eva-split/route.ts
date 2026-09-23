@@ -9,6 +9,15 @@ import { jsonError } from '@/lib/errors';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+type Bucket = 'EVA' | 'NOT_EVA' | 'all';
+
+function parseBucket(raw: string | null): Bucket {
+  const u = (raw || 'all').toUpperCase();
+  if (u === 'EVA') return 'EVA';
+  if (u === 'NOT_EVA' || u === 'NOT-EVA' || u === 'NOTEVA') return 'NOT_EVA';
+  return 'all';
+}
+
 /**
  * GET /api/eva-split
  *   ?source=db|sheet  (default db)
@@ -20,10 +29,7 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
     const source = (sp.get('source') || 'db').toLowerCase();
-    const bucket = (sp.get('bucket') || 'all').toUpperCase() as
-      | 'EVA'
-      | 'NOT_EVA'
-      | 'all';
+    const bucket = parseBucket(sp.get('bucket'));
     const format = (sp.get('format') || 'json').toLowerCase();
     const q = sp.get('q') || undefined;
 
@@ -57,7 +63,7 @@ export async function GET(req: NextRequest) {
         );
       }
       const db = await splitFromDatabase({
-        bucket: bucket === 'ALL' ? 'all' : bucket,
+        bucket,
         q,
       });
       eva = db.eva;
