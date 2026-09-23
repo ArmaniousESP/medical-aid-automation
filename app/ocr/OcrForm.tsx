@@ -18,6 +18,17 @@ type InvoiceInfo = {
   date_hint: string | null;
 };
 
+type InvoiceValidation = {
+  status: 'pass' | 'warn' | 'fail' | 'unknown';
+  ocr_total_egp: number | null;
+  lines_sum_egp: number | null;
+  formulary_estimate_egp: number | null;
+  vs_lines_pct: number | null;
+  vs_formulary_pct: number | null;
+  messages: string[];
+  ok_for_auto_price: boolean;
+};
+
 type FormFields = {
   med_fields: string[];
   med_slots: Array<{ slot: number; form_value: string; match_score: number }>;
@@ -25,6 +36,7 @@ type FormFields = {
   invoice_total_egp: number | null;
   confidence: string;
   needs_review: boolean;
+  invoice_validation?: InvoiceValidation;
 };
 
 export function OcrForm() {
@@ -125,6 +137,16 @@ export function OcrForm() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  const v = formFields?.invoice_validation;
+  const vColor =
+    v?.status === 'pass'
+      ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+      : v?.status === 'fail'
+        ? 'border-red-300 bg-red-50 text-red-900'
+        : v?.status === 'warn'
+          ? 'border-amber-300 bg-amber-50 text-amber-900'
+          : 'border-slate-200 bg-slate-50 text-slate-800';
 
   return (
     <div className="space-y-4 text-sm">
@@ -250,6 +272,28 @@ export function OcrForm() {
         </p>
       )}
 
+      {v && (
+        <div className={`rounded-lg border p-3 text-xs space-y-1 ${vColor}`}>
+          <div className="font-semibold uppercase tracking-wide">
+            Invoice validation: {v.status}
+            {v.ok_for_auto_price ? ' · ok for auto price' : ' · do not auto-apply total'}
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <span>OCR total: {v.ocr_total_egp ?? '—'}</span>
+            <span>Lines sum: {v.lines_sum_egp ?? '—'}</span>
+            <span>Formulary est.: {v.formulary_estimate_egp ?? '—'}</span>
+            <span>
+              Δ lines {v.vs_lines_pct ?? '—'}% · Δ formulary {v.vs_formulary_pct ?? '—'}%
+            </span>
+          </div>
+          <ul className="list-disc list-inside text-[11px] opacity-90">
+            {v.messages.map((m, i) => (
+              <li key={i}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {formFields && formFields.med_fields.length > 0 && (
         <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -275,6 +319,9 @@ export function OcrForm() {
             <p className="text-xs">
               Invoice total → price field:{' '}
               <strong>{formFields.invoice_total_egp} EGP</strong>
+              {v && !v.ok_for_auto_price && (
+                <span className="text-amber-800"> (blocked until validation passes)</span>
+              )}
             </p>
           )}
           {formFields.notes_fragment && (
