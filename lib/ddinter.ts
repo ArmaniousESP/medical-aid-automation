@@ -8,6 +8,7 @@
 
 import { query } from '@/lib/db';
 import { expandDrugTokens } from '@/lib/drugSynonyms';
+import { fetchWithRetry, webhookRetryDefaults } from '@/lib/httpRetry';
 
 export const DDINTER_CSV_URLS: Array<{ code: string; url: string }> = [
   {
@@ -192,7 +193,13 @@ async function flushBatch(
 export async function importAllDdinterFiles(opts?: {
   codes?: string[];
 }): Promise<{
-  files: Array<{ code: string; inserted: number; skipped: number; error?: string }>;
+  files: Array<{
+    code: string;
+    inserted: number;
+    skipped: number;
+    error?: string;
+    fetch_attempts?: number;
+  }>;
   total_inserted: number;
 }> {
   const codes = opts?.codes;
@@ -204,33 +211,44 @@ export async function importAllDdinterFiles(opts?: {
     inserted: number;
     skipped: number;
     error?: string;
+    fetch_attempts?: number;
   }> = [];
   let total = 0;
+  const retry = {
+    ...webhookRetryDefaults(),
+    maxAttempts: Math.max(webhookRetryDefaults().maxAttempts ?? 3, 3),
+  };
 
   for (const f of files) {
     try {
-      const res = await fetch(f.url, {
-        headers: { 'User-Agent': 'medical-aid-automation/1.0' },
-      });
-      if (!res.ok) {
+      const { response, attempts, errors } = await fetchWithRetry(
+        f.url,
+        {
+          headers: { 'User-Agent': 'medical-aid-automation/1.0' },
+        },
+        retry
+      );
+      if (!response.ok) {
         results.push({
           code: f.code,
           inserted: 0,
           skipped: 0,
-          error: `HTTP ${res.status}`,
+          error: `HTTP ${response.status}${errors.length ? ' · ' + errors.join('; ') : ''}`,
+          fetch_attempts: attempts,
         });
         continue;
       }
-      const text = await res.text();
+      const text = await response.text();
       const r = await importDdinterFromCsvText(text, f.code);
       total += r.inserted;
-      results.push({ code: f.code, ...r });
+      results.push({ code: f.code, ...r, fetch_attempts: attempts });
     } catch (e: unknown) {
       results.push({
         code: f.code,
         inserted: 0,
         skipped: 0,
         error: e instanceof Error ? e.message : 'fetch failed',
+        fetch_attempts: retry.maxAttempts,
       });
     }
   }

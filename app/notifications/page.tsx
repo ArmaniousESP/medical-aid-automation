@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { NotifyDueButton } from './NotifyDueButton';
 import { SafetyAlertButton } from './SafetyAlertButton';
+import { ReplayFailedButton } from './ReplayFailedButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export default function NotificationsPage() {
           <div>
             <h1 className="text-2xl font-semibold">WhatsApp notifications</h1>
             <p className="text-sm text-slate-600">
-              Refill due · Safety ops alert · send log
+              Refill due · Safety ops · Retry / replay
             </p>
           </div>
           <div className="flex gap-3 text-sm">
@@ -46,6 +47,12 @@ export default function NotificationsPage() {
             <li>
               Safety ops phones: {status.has_safety_to ? '✓' : '—'} SAFETY_WHATSAPP_TO
             </li>
+            {status.retry && (
+              <li>
+                HTTP retry: {status.retry.maxAttempts} attempts · base{' '}
+                {status.retry.baseDelayMs}ms · max {status.retry.maxDelayMs}ms
+              </li>
+            )}
           </ul>
           <p className="text-xs text-slate-500">
             Templates: {status.templates.join(', ')}
@@ -56,18 +63,22 @@ export default function NotificationsPage() {
 
         <NotifyDueButton />
 
+        <ReplayFailedButton />
+
         <div className="rounded-lg border bg-white p-4 text-sm text-slate-700 space-y-2">
           <p className="font-medium">Setup (Vercel env)</p>
           <ol className="list-decimal list-inside text-xs space-y-1 text-slate-600">
             <li>Configure Meta or Twilio WhatsApp credentials</li>
             <li>
-              Set <code>SAFETY_WHATSAPP_TO</code> to ops phones (comma-separated, e.g.
-              2010xxxxxxxx)
+              Set <code>SAFETY_WHATSAPP_TO</code> to ops phones (comma-separated)
+            </li>
+            <li>
+              Retry: <code>WEBHOOK_RETRY_ATTEMPTS</code>,{' '}
+              <code>WEBHOOK_RETRY_BASE_MS</code>, <code>WEBHOOK_RETRY_MAX_MS</code>
             </li>
             <li>Optional: WHATSAPP_DRY_RUN=1 for testing</li>
             <li>
-              Cron: GET /api/cron/safety-whatsapp with PROCESS_SECRET (daily after
-              generating cycles)
+              Replay API: POST /api/notifications/replay · list GET same path
             </li>
           </ol>
         </div>
