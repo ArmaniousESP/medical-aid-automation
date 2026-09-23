@@ -5,14 +5,33 @@ import {
   hasOcrProvider,
   parseOcrTextToMedLines,
 } from '@/lib/prescriptionOcr';
-import { parseInvoiceText } from '@/lib/invoiceOcr';
+import { parseInvoiceText, validateInvoiceTotal } from '@/lib/invoiceOcr';
 import { ocrResultToFormFields } from '@/lib/ocrToFormFields';
 import { loadMedDb } from '@/lib/meddb';
+import { resolveUnitPrice } from '@/lib/pricing';
 import { authorizeRequest } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+async function formularyEstimate(
+  lines: Array<{ matched_name: string | null; clean_name: string; qty: number }>,
+  medDb: any[] | undefined
+): Promise<number | null> {
+  if (!medDb?.length || !lines.length) return null;
+  let sum = 0;
+  let any = false;
+  for (const line of lines) {
+    const name = line.matched_name || line.clean_name;
+    const unit = resolveUnitPrice(name, medDb);
+    if (unit != null) {
+      sum += unit * (line.qty > 0 ? line.qty : 1);
+      any = true;
+    }
+  }
+  return any ? Math.round(sum * 100) / 100 : null;
+}
 
 export async function GET() {
   const providers = hasOcrProvider();
@@ -20,21 +39,14 @@ export async function GET() {
     ok: true,
     providers,
     configured: providers.google || providers.ocr_space,
-    hint: providers.google
-      ? 'Google Vision ready'
-      : providers.ocr_space
-        ? 'OCR.space ready'
-        : 'Set GOOGLE_VISION_API_KEY or OCR_SPACE_API_KEY',
+    invoice_thresholds: {
+      warn_pct: Number(process.env.INVOICE_WARN_PCT || 8),
+      fail_pct: Number(process.env.INVOICE_FAIL_PCT || 25),
+    },
     drive_sa: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY),
   });
 }
 
-/**
- * POST /api/ocr
- * { imageUrl } | { imageBase64, mime? } | { text } | { urls: string[] }
- * { docKind?: 'prescription' | 'invoice' | 'auto' }
- * Response includes form_fields: med_fields[], med_slots[], notes_fragment
- */
 export async function POST(req: NextRequest) {
   try {
     if (!authorizeRequest(req)) {
@@ -56,13 +68,30 @@ export async function POST(req: NextRequest) {
       medDb = undefined;
     }
 
+    // Explicit validate-only endpoint body
+    if (body.action === 'validate_invoice' && body.text) {
+      const inv = parseInvoiceText(String(body.text));
+      const validation = validateInvoiceTotal({
+        invoice: inv,
+        formulary_estimate_egp:
+          body.formulary_estimate_egp != null
+            ? Number(body.formulary_estimate_egp)
+            : null,
+      });
+      return NextResponse.json({ ok: true, invoice: inv, validation });
+    }
+
     if (Array.isArray(body.urls) && body.urls.length) {
       const batch = await runBatchOcr({
         urls: body.urls.map(String),
         medDb,
         docKind,
       });
-      const form_fields = ocrResultToFormFields(batch.results);
+      const allLines = batch.results.flatMap((r) => r.lines || []);
+      const est = await formularyEstimate(allLines, medDb);
+      const form_fields = ocrResultToFormFields(batch.results, {
+        formulary_estimate_egp: est,
+      });
       return NextResponse.json({ ok: true, ...batch, form_fields });
     }
 
@@ -73,6 +102,7 @@ export async function POST(req: NextRequest) {
         docKind === 'invoice' || /فاتورة|invoice|إجمالي/i.test(text)
           ? parseInvoiceText(text)
           : undefined;
+      const est = await formularyEstimate(lines, medDb);
       const result = {
         ok: true as const,
         provider: 'manual' as const,
@@ -83,7 +113,9 @@ export async function POST(req: NextRequest) {
         disclaimer:
           'OCR is probabilistic. Verify every line against the original image.',
       };
-      const form_fields = ocrResultToFormFields(result);
+      const form_fields = ocrResultToFormFields(result, {
+        formulary_estimate_egp: est,
+      });
       return NextResponse.json({ ...result, form_fields });
     }
 
@@ -96,7 +128,10 @@ export async function POST(req: NextRequest) {
       docKind,
     });
 
-    const form_fields = ocrResultToFormFields(result);
+    const est = await formularyEstimate(result.lines || [], medDb);
+    const form_fields = ocrResultToFormFields(result, {
+      formulary_estimate_egp: est,
+    });
     const status = result.ok ? 200 : 422;
     return NextResponse.json({ ...result, form_fields }, { status });
   } catch (e: unknown) {

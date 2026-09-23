@@ -1,18 +1,17 @@
 /**
  * Map OCR output → same conceptual fields as Google Form responses / Approved-Requests.
- *
- * Form med slots: MED_START..MED_END (up to CONFIG.MAX_MEDS)
- * Also produces notes fragments and invoice total for staff review.
  */
 
 import { CONFIG } from '@/lib/config';
 import type { OcrResult, ParsedMedLine } from '@/lib/prescriptionOcr';
-import type { InvoiceParseResult } from '@/lib/invoiceOcr';
+import {
+  type InvoiceParseResult,
+  validateInvoiceTotal,
+  type InvoiceValidation,
+} from '@/lib/invoiceOcr';
 
 export type FormMedSlot = {
-  /** 1-based form column index conceptually (20–26) */
   slot: number;
-  /** Value as beneficiary might type in the form */
   form_value: string;
   raw_ocr: string;
   clean_name: string;
@@ -24,10 +23,8 @@ export type FormMedSlot = {
 };
 
 export type FormFieldMapping = {
-  /** Up to MAX_MEDS strings ready to write as form med answers */
   med_fields: string[];
   med_slots: FormMedSlot[];
-  /** Suggested notes line for Approved-Requests */
   notes_fragment: string;
   invoice_total_egp: number | null;
   pharmacy_hint: string | null;
@@ -35,19 +32,23 @@ export type FormFieldMapping = {
   invoice_urls: string[];
   confidence: 'high' | 'medium' | 'low';
   needs_review: boolean;
+  invoice_validation?: InvoiceValidation;
 };
 
 function lineToFormValue(line: ParsedMedLine): string {
   const name = line.matched_name || line.clean_name || line.raw;
   const qty = line.qty && line.qty > 0 ? line.qty : 1;
-  // Match common form style: "2 Glucophage 500" or "Crestor 20 mg"
   if (qty !== 1) return `${qty} ${name}`.trim();
   return name.trim();
 }
 
 export function ocrResultToFormFields(
   result: OcrResult | OcrResult[],
-  opts?: { maxMeds?: number }
+  opts?: {
+    maxMeds?: number;
+    /** Pre-computed formulary sum (unit × qty) for validation */
+    formulary_estimate_egp?: number | null;
+  }
 ): FormFieldMapping {
   const results = Array.isArray(result) ? result : [result];
   const maxMeds = opts?.maxMeds ?? CONFIG.MAX_MEDS;
@@ -70,7 +71,6 @@ export function ocrResultToFormFields(
     }
   }
 
-  // Prefer higher match scores, de-dupe by normalized clean name
   const seen = new Set<string>();
   const ranked = [...allLines].sort(
     (a, b) => (b.match_score || 0) - (a.match_score || 0)
@@ -88,7 +88,7 @@ export function ocrResultToFormFields(
   }
 
   const med_slots: FormMedSlot[] = unique.map((line, i) => ({
-    slot: 20 + i, // FR.MED_START + i
+    slot: 20 + i,
     form_value: lineToFormValue(line),
     raw_ocr: line.raw,
     clean_name: line.clean_name,
@@ -101,7 +101,9 @@ export function ocrResultToFormFields(
 
   const med_fields = med_slots.map((s) => s.form_value);
 
-  const lowScores = med_slots.filter((s) => s.match_score > 0 && s.match_score < 0.72);
+  const lowScores = med_slots.filter(
+    (s) => s.match_score > 0 && s.match_score < 0.72
+  );
   const avgScore =
     med_slots.length > 0
       ? med_slots.reduce((a, s) => a + (s.match_score || 0), 0) / med_slots.length
@@ -114,12 +116,26 @@ export function ocrResultToFormFields(
     confidence = 'medium';
   }
 
+  let invoice_validation: InvoiceValidation | undefined;
+  if (invoice) {
+    invoice_validation = validateInvoiceTotal({
+      invoice,
+      formulary_estimate_egp: opts?.formulary_estimate_egp ?? null,
+    });
+  }
+
   const notesParts: string[] = [];
   if (med_slots.length) {
     notesParts.push(`OCR meds: ${med_fields.join('; ')}`);
   }
   if (invoice?.total_egp != null) {
     notesParts.push(`OCR invoice total: ${invoice.total_egp} EGP`);
+  }
+  if (invoice_validation) {
+    notesParts.push(`invoice validation: ${invoice_validation.status}`);
+    if (invoice_validation.vs_formulary_pct != null) {
+      notesParts.push(`vs formulary Δ ${invoice_validation.vs_formulary_pct}%`);
+    }
   }
   if (invoice?.pharmacy_hint) {
     notesParts.push(`OCR pharmacy: ${invoice.pharmacy_hint}`);
@@ -131,6 +147,11 @@ export function ocrResultToFormFields(
     notesParts.push(`فاتورة: ${invoice_urls.join(', ')}`);
   }
 
+  const needs_review =
+    confidence !== 'high' ||
+    med_slots.length === 0 ||
+    (invoice_validation != null && invoice_validation.status !== 'pass');
+
   return {
     med_fields,
     med_slots,
@@ -140,14 +161,11 @@ export function ocrResultToFormFields(
     roshetta_urls,
     invoice_urls,
     confidence,
-    needs_review: confidence !== 'high' || med_slots.length === 0,
+    needs_review,
+    invoice_validation,
   };
 }
 
-/**
- * If form med columns are empty but roshetta URL exists, use OCR med_fields.
- * Never overwrites non-empty typed meds unless force=true.
- */
 export function mergeOcrIntoFormMeds(
   existingMeds: string[],
   mapping: FormFieldMapping,
