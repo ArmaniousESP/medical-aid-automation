@@ -21,6 +21,7 @@ export interface ProcessResult {
   totalEstimatedCost: number | null;
   warnings: string[];
   ocr_filled?: number;
+  invoice_validation_fail?: number;
   enroll?: {
     groups: number;
     created: number;
@@ -49,8 +50,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     process.env.OCR_FILL_EMPTY_MEDS === '1' ||
     process.env.OCR_FILL_EMPTY_MEDS === 'true';
   let ocr_filled = 0;
+  let invoice_validation_fail = 0;
 
-  // 1. Load MEDDB3
   const medRaw = await withRetry(
     () => getSheetValues(spreadsheetId, `${CONFIG.MEDDB_SHEET}!A:C`),
     { retries: 2, label: 'meddb3' }
@@ -67,7 +68,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // 2. Existing keys from Approved-Requests
   const approvedRaw = await withRetry(
     () => getSheetValues(spreadsheetId, `${CONFIG.APPROVED_SHEET}!A:H`),
     { retries: 2, label: 'approved-keys' }
@@ -89,7 +89,6 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     }
   }
 
-  // 3. New form responses
   const formRaw = await withRetry(
     () => getSheetValues(spreadsheetId, `${CONFIG.FORM_SHEET}!A:AK`),
     { retries: 2, label: 'form-responses' }
@@ -132,13 +131,14 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     });
   }
 
-  // Optional: OCR fill empty med columns from roshetta attachments
   if (ocrFill) {
     try {
       const { runBatchOcr } = await import('./prescriptionOcr');
       const { ocrResultToFormFields, mergeOcrIntoFormMeds } = await import(
         './ocrToFormFields'
       );
+      const { resolveUnitPrice } = await import('./pricing');
+
       for (const resp of responses) {
         if (resp.meds.length > 0) continue;
         const urls = splitAttachmentUrls(resp.roshetta);
@@ -147,14 +147,41 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
           const batch = await runBatchOcr({
             urls,
             medDb,
-            docKind: 'prescription',
+            docKind: 'auto',
           });
-          const mapping = ocrResultToFormFields(batch.results);
+
+          // Formulary estimate for invoice validation
+          let formularyEst: number | null = null;
+          let sum = 0;
+          let any = false;
+          for (const r of batch.results) {
+            for (const line of r.lines || []) {
+              const name = line.matched_name || line.clean_name;
+              const unit = resolveUnitPrice(name, medDb);
+              if (unit != null) {
+                sum += unit * (line.qty > 0 ? line.qty : 1);
+                any = true;
+              }
+            }
+          }
+          if (any) formularyEst = Math.round(sum * 100) / 100;
+
+          const mapping = ocrResultToFormFields(batch.results, {
+            formulary_estimate_egp: formularyEst,
+          });
           const merged = mergeOcrIntoFormMeds(resp.meds, mapping);
           if (merged.used_ocr && merged.meds.length) {
             resp.meds = merged.meds;
             resp.ocrNotes = mapping.notes_fragment;
-            resp.ocrInvoiceTotal = mapping.invoice_total_egp;
+            const invOk = mapping.invoice_validation?.ok_for_auto_price === true;
+            resp.ocrInvoiceTotal = invOk ? mapping.invoice_total_egp : null;
+            resp.ocrInvoiceStatus = mapping.invoice_validation?.status || null;
+            if (mapping.invoice_validation && !invOk) {
+              invoice_validation_fail += 1;
+              warnings.push(
+                `invoice_val:${resp.empName}:${mapping.invoice_validation.status}`
+              );
+            }
             ocr_filled += 1;
           }
         } catch (e: unknown) {
@@ -170,10 +197,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     }
   }
 
-  // Skip responses still without meds
   const withMeds = responses.filter((r) => r.meds.length > 0);
 
-  // 4. Expand + match + price
   const newRows: any[] = [];
   let skipped = 0;
   let lowMatch = 0;
@@ -251,6 +276,9 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
         notesParts.push(`price source: ${priceSource}`);
       }
       if (resp.ocrNotes) notesParts.push(String(resp.ocrNotes));
+      if (resp.ocrInvoiceStatus) {
+        notesParts.push(`invoice validation: ${resp.ocrInvoiceStatus}`);
+      }
       if (resp.roshetta) notesParts.push(`روشتة: ${cleanDriveLinks(resp.roshetta)}`);
       if (resp.labs) notesParts.push(`فحوصات: ${cleanDriveLinks(resp.labs)}`);
       if (resp.cardPhoto)
@@ -262,17 +290,19 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       if (resp.comments)
         notesParts.push(`تعليق: ${String(resp.comments).substring(0, 120)}`);
 
-      const notes = notesParts.join(' | ');
       let priceTotal = computePriceTotal(unitPrice, qty);
-      // Prefer invoice total only when single med line from OCR (conservative)
+      // Only apply OCR invoice total when validation passed
       if (
         resp.ocrInvoiceTotal != null &&
         resp.meds.length === 1 &&
         (priceTotal === null || priceTotal === '')
       ) {
         priceTotal = resp.ocrInvoiceTotal;
-        notesParts.push('price from OCR invoice total');
+        notesParts.push('price from OCR invoice total (validated)');
+        priceSource = 'ocr_invoice';
       }
+
+      const notes = notesParts.join(' | ');
 
       if (typeof priceTotal === 'number') {
         totalEstimatedCost += priceTotal;
@@ -400,6 +430,9 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     ? ` | Chronic enroll: +${enroll.created} / ~${enroll.updated} / skip ${enroll.skipped}`
     : '';
   const ocrStr = ocr_filled ? ` | OCR-filled forms: ${ocr_filled}` : '';
+  const invStr = invoice_validation_fail
+    ? ` | Invoice validation not-pass: ${invoice_validation_fail}`
+    : '';
 
   const message =
     [
@@ -410,7 +443,8 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
     ].join(' | ') +
     costStr +
     enrollStr +
-    ocrStr;
+    ocrStr +
+    invStr;
 
   return {
     newRows: newRows.length,
@@ -425,6 +459,7 @@ export async function processNewResponses(dryRun = false): Promise<ProcessResult
       : null,
     warnings: warnings.slice(0, 50),
     ocr_filled,
+    invoice_validation_fail,
     enroll,
   };
 }
