@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
         notes: body.notes ? String(body.notes) : undefined,
         actor: body.actor ? String(body.actor) : undefined,
       });
-      return NextResponse.json({ ok: true, ...result });
+      // result may already include ok — spread first so we do not double-specify
+      return NextResponse.json({ ...result, ok: true });
     }
 
     if (!body.program_id) {
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       whatsapp_dry_run: body.whatsapp_dry_run === true,
     });
 
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ...result, ok: true });
   } catch (e: unknown) {
     const { body, status } = jsonError(e);
     return NextResponse.json(body, { status });
