@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { scanRefillSafetyQueue } from '@/lib/refillSafety';
 import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
+import { SafetyWhatsAppButton } from './SafetyWhatsAppButton';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -26,6 +27,9 @@ export default async function RefillSafetyQueuePage() {
             </p>
           </div>
           <div className="flex gap-3 text-sm">
+            <Link href="/notifications" className="text-blue-600 hover:underline">
+              WhatsApp
+            </Link>
             <Link href="/refills" className="text-blue-600 hover:underline">
               All refills
             </Link>
@@ -39,6 +43,8 @@ export default async function RefillSafetyQueuePage() {
         </header>
 
         <ClinicalDisclaimer />
+
+        <SafetyWhatsAppButton />
 
         {error && (
           <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
@@ -107,8 +113,7 @@ export default async function RefillSafetyQueuePage() {
         )}
 
         <p className="text-xs text-slate-400">
-          GET /api/refills/safety-queue · Max 40 recent in_review/approved cycles per
-          scan
+          GET /api/refills/safety-queue · POST /api/notifications/safety-alert
         </p>
       </div>
     </main>
