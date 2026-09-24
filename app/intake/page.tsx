@@ -96,10 +96,9 @@ export default function IntakePage() {
     <main className="min-h-screen bg-slate-50 text-slate-900 p-6">
       <div className="mx-auto max-w-lg space-y-6">
         <header className="space-y-1">
-          <p className="text-xs text-violet-600 font-medium">Step 1 of 5</p>
           <h1 className="text-2xl font-semibold">تقديم طلب علاج شهري</h1>
           <p className="text-sm text-slate-600">
-            Submit a monthly aid request · no Google Form needed
+            Submit a monthly aid request
           </p>
         </header>
 
@@ -108,30 +107,26 @@ export default function IntakePage() {
             <p className="font-medium text-emerald-900">
               تم استلام الطلب · Request received
             </p>
-            <p className="text-xs font-mono text-emerald-800 break-all">{resultId}</p>
-            <p className="text-emerald-800">
-              Ops will match medicines and enroll the program. You can close this page.
+            <p className="text-xs text-emerald-800">
+              Save this Request ID to check status later:
+            </p>
+            <p className="text-xs font-mono text-emerald-900 break-all bg-white/70 rounded p-2 border border-emerald-100">
+              {resultId}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
+              <Link
+                href={`/request-status?id=${encodeURIComponent(resultId)}`}
+                className="rounded-lg bg-emerald-700 text-white px-3 py-1.5 text-xs font-medium"
+              >
+                Check status
+              </Link>
               <button
                 type="button"
                 onClick={() => setResultId(null)}
-                className="rounded-lg bg-emerald-700 text-white px-3 py-1.5 text-xs font-medium"
+                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
               >
                 Submit another
               </button>
-              <Link
-                href="/guide"
-                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
-              >
-                How it works
-              </Link>
-              <Link
-                href="/intake-ops"
-                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
-              >
-                Ops: open queue →
-              </Link>
             </div>
           </div>
         )}
@@ -297,13 +292,12 @@ export default function IntakePage() {
         )}
 
         <p className="text-xs text-slate-500 text-center">
-          <Link href="/guide" className="text-violet-700 underline">
-            How to use
+          <Link href="/request-status" className="text-violet-700 underline">
+            Check status
           </Link>
           {' · '}
-          Step 2 for ops:{' '}
-          <Link href="/intake-ops" className="text-blue-600 underline">
-            intake queue
+          <Link href="/" className="text-blue-600 underline">
+            Home
           </Link>
         </p>
       </div>
