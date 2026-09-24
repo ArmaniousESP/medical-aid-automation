@@ -12,12 +12,29 @@ End dependence on Google Forms / Sheets for the monthly aid cycle.
 |---------|------|
 | `/intake` | Beneficiary form → `POST /api/intake` |
 | `GET /api/intake` | Ops list |
-| `POST /api/process-intake` | Match/triage pending rows |
+| `POST /api/process-intake` | Match + triage + **auto-enroll** |
 | `lib/msh.ts` | Catalog search + cost estimate |
 
 ## Status flow
 
-`submitted` → `triage` → `approved` / `rejected` → `enrolled` → `dispensed`
+`submitted` → `triage` → **`enrolled`** (auto) → `dispensed`  
+Or stay `triage` if enroll is skipped / fails.
+
+### Auto-enroll (default **on**)
+
+After matching each pending request, `process-intake`:
+
+1. Saves match notes  
+2. Creates or extends `chronic_programs` + med lines  
+3. Sets `status = enrolled` and `program_id`
+
+```bash
+AUTO_ENROLL_INTAKE=true   # default; set false to triage only
+
+# optional: only enroll when all lines score ≥ threshold
+AUTO_ENROLL_INTAKE_REQUIRE_MATCH=true
+LOW_MATCH_THRESHOLD=0.72
+```
 
 ## Env
 
@@ -26,6 +43,7 @@ DATABASE_URL=          # required
 PROCESS_SECRET=        # protect ops list/process
 MSH_API_BASE=https://medicinesupport.app
 MSH_API_KEY=           # optional partner key
+AUTO_ENROLL_INTAKE=true
 ```
 
 ## MSH MCP (chat)
@@ -36,9 +54,9 @@ Tools: search medicines, estimate cost, submit support request, list my requests
 ## Migration from Google
 
 1. Share `/intake` with beneficiaries (replace Form link).
-2. Ops uses `/requests` + `process-intake` instead of sheet Process.
-3. Keep sheet sync **read-only** until backlog is empty, then disable `GOOGLE_*` process path.
-4. Chronic programs already live in Neon — enroll continues from approved platform rows.
+2. Ops runs `POST /api/process-intake` instead of sheet Process.
+3. Programs appear under `/programs` (Neon).
+4. Disable sheet path when backlog is empty.
 
 ## Legacy
 
