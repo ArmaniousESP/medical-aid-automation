@@ -1,11 +1,11 @@
 /**
  * Process pending platform intake (aid_requests):
- * match meds → triage → optional auto-enroll → optional claim draft.
+ * match meds → triage → auto-enroll → auto claim draft (default on).
  *
  * Env:
  *   AUTO_ENROLL_INTAKE=true (default)
  *   AUTO_ENROLL_INTAKE_REQUIRE_MATCH=true — skip enroll if any line score < threshold
- *   AUTO_CLAIM_ON_ENROLL=true — create claims draft after enroll
+ *   AUTO_CLAIM_ON_ENROLL=true (default) — create claims draft after enroll
  *   AUTO_CLAIM_SUBMIT=true — also push to CLAIMS_WEBHOOK_URL
  */
 
@@ -70,11 +70,9 @@ function requireGoodMatch(): boolean {
   );
 }
 
+/** Default ON so claims path is complete without extra env */
 function autoClaimEnabled(): boolean {
-  return (
-    process.env.AUTO_CLAIM_ON_ENROLL === 'true' ||
-    process.env.AUTO_CLAIM_ON_ENROLL === '1'
-  );
+  return process.env.AUTO_CLAIM_ON_ENROLL !== 'false';
 }
 
 function autoClaimSubmit(): boolean {

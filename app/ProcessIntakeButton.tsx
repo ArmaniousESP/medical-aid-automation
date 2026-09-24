@@ -1,10 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
-export function ProcessIntakeButton() {
+type Props = {
+  onDone?: () => void;
+};
+
+export function ProcessIntakeButton({ onDone }: Props) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [summary, setSummary] = useState<{
+    enrolled?: number;
+    claims?: number;
+  } | null>(null);
   const [errors, setErrors] = useState<
     Array<{ step: string; message: string; code?: string; request_id?: string }>
   >([]);
@@ -13,6 +23,7 @@ export function ProcessIntakeButton() {
     setLoading(true);
     setMsg(null);
     setErrors([]);
+    setDone(false);
     try {
       const res = await fetch('/api/process-intake', {
         method: 'POST',
@@ -27,6 +38,10 @@ export function ProcessIntakeButton() {
         data.message ||
           `processed ${data.processed} · enrolled ${data.enrolled} · claims ${data.claims_created}`
       );
+      setSummary({
+        enrolled: data.enrolled,
+        claims: data.claims_created,
+      });
       if (Array.isArray(data.errors) && data.errors.length) {
         setErrors(
           data.errors.map((e: any) => ({
@@ -37,6 +52,10 @@ export function ProcessIntakeButton() {
           }))
         );
       }
+      if (!dryRun) {
+        setDone(true);
+        onDone?.();
+      }
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -45,7 +64,7 @@ export function ProcessIntakeButton() {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -64,11 +83,9 @@ export function ProcessIntakeButton() {
           {loading ? 'Processing…' : 'Process platform intake'}
         </button>
       </div>
-      {msg && (
-        <p className="text-xs text-slate-600 max-w-md">{msg}</p>
-      )}
+      {msg && <p className="text-xs text-slate-600 max-w-lg">{msg}</p>}
       {errors.length > 0 && (
-        <ul className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 max-w-md space-y-1">
+        <ul className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 max-w-lg space-y-1">
           {errors.slice(0, 8).map((e, i) => (
             <li key={i}>
               <span className="font-mono">{e.step}</span>
@@ -77,6 +94,32 @@ export function ProcessIntakeButton() {
             </li>
           ))}
         </ul>
+      )}
+      {done && (
+        <div className="flex flex-wrap gap-2 text-xs pt-1">
+          <span className="text-emerald-700 font-medium self-center">
+            Done{summary?.enrolled != null ? ` · enrolled ${summary.enrolled}` : ''}
+            {summary?.claims != null ? ` · claims ${summary.claims}` : ''}
+          </span>
+          <Link
+            href="/claims"
+            className="rounded-lg bg-slate-800 text-white px-3 py-1.5 font-medium"
+          >
+            Open claims →
+          </Link>
+          <Link
+            href="/programs"
+            className="rounded-lg border bg-white px-3 py-1.5 font-medium"
+          >
+            Programs
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="rounded-lg border bg-white px-3 py-1.5 font-medium"
+          >
+            Pharmacy
+          </Link>
+        </div>
       )}
     </div>
   );
