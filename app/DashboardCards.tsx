@@ -12,6 +12,8 @@ type Stats = {
   estimated_this_month_egp: number;
   approved_this_month_egp: number;
   period: string;
+  intake_pending?: number;
+  claims_draft?: number;
 };
 
 export function DashboardCards() {
@@ -39,7 +41,14 @@ export function DashboardCards() {
   if (err) {
     return (
       <p className="text-xs text-slate-400 mb-6">
-        Dashboard unavailable ({err}). Set DATABASE_URL.
+        Dashboard unavailable ({err}). Set DATABASE_URL ·{' '}
+        <Link href="/status" className="underline">
+          status
+        </Link>
+        {' · '}
+        <Link href="/guide" className="underline">
+          guide
+        </Link>
       </p>
     );
   }
@@ -50,16 +59,26 @@ export function DashboardCards() {
     );
   }
 
+  const pending = stats.intake_pending ?? 0;
+  const drafts = stats.claims_draft ?? 0;
+
   return (
-    <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <Card
+        label="Pending intake"
+        value={String(pending)}
+        href="/intake-ops"
+        highlight={pending > 0}
+      />
+      <Card
+        label="Draft claims"
+        value={String(drafts)}
+        href="/claims"
+        highlight={drafts > 0}
+      />
       <Card
         label="Active programs"
         value={`${stats.programs_active}/${stats.programs_total}`}
-        href="/programs"
-      />
-      <Card
-        label="Active med lines"
-        value={String(stats.med_lines_active)}
         href="/programs"
       />
       <Card

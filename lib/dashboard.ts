@@ -9,6 +9,8 @@ export type DashboardStats = {
   estimated_this_month_egp: number;
   approved_this_month_egp: number;
   period: string;
+  intake_pending: number;
+  claims_draft: number;
 };
 
 function currentPeriod() {
@@ -42,6 +44,26 @@ export async function getDashboardStats(
     ),
   ]);
 
+  let intake_pending = 0;
+  let claims_draft = 0;
+  try {
+    const ar = await query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM aid_requests
+       WHERE status IN ('submitted','triage')`
+    );
+    intake_pending = Number(ar.rows[0]?.n) || 0;
+  } catch {
+    /* table may not exist yet */
+  }
+  try {
+    const cl = await query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM claims WHERE status = 'draft'`
+    );
+    claims_draft = Number(cl.rows[0]?.n) || 0;
+  } catch {
+    /* optional */
+  }
+
   return {
     programs_active: Number(prog.rows[0]?.active) || 0,
     programs_total: Number(prog.rows[0]?.total) || 0,
@@ -51,5 +73,7 @@ export async function getDashboardStats(
     estimated_this_month_egp: Number(month.rows[0]?.est) || 0,
     approved_this_month_egp: Number(month.rows[0]?.appr) || 0,
     period,
+    intake_pending,
+    claims_draft,
   };
 }
