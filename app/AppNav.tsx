@@ -3,15 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-/** Visible to everyone */
 const PUBLIC = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية' },
-  { href: '/intake', label: 'Submit request', labelAr: 'تقديم طلب' },
-  { href: '/request-status', label: 'Check status', labelAr: 'حالة الطلب' },
-  { href: '/guide', label: 'How to use', labelAr: 'طريقة الاستخدام' },
+  { href: '/intake', label: '1. Submit', labelAr: 'تقديم طلب' },
+  { href: '/request-status', label: '2. Status', labelAr: 'حالة الطلب' },
+  { href: '/guide', label: 'Guide', labelAr: 'الدليل' },
 ];
 
-/** Only useful after unlock — middleware blocks data */
 const OPS = [
   { href: '/intake-ops', label: 'Intake queue' },
   { href: '/claims', label: 'Claims' },
@@ -24,9 +22,7 @@ const OPS = [
   { href: '/eva-split', label: 'EVA split' },
   { href: '/inventory', label: 'Inventory' },
   { href: '/reports', label: 'Reports' },
-  { href: '/psp', label: 'Patient journey' },
   { href: '/safety', label: 'Safety' },
-  { href: '/notifications', label: 'WhatsApp' },
   { href: '/status', label: 'System status' },
 ];
 
@@ -54,7 +50,7 @@ export function AppNav() {
               href={item.href}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition whitespace-nowrap ${
                 active(item.href)
-                  ? 'bg-violet-700 text-white'
+                  ? 'bg-emerald-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
               title={item.labelAr}
@@ -68,7 +64,7 @@ export function AppNav() {
             </summary>
             <div className="absolute left-0 mt-1 w-52 rounded-lg border bg-white py-1 shadow-lg z-50">
               <p className="px-3 py-1 text-[10px] text-slate-400">
-                Requires unlock (PROCESS_SECRET)
+                Unlock on Home first (PROCESS_SECRET)
               </p>
               {OPS.map((item) => (
                 <Link
