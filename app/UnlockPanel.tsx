@@ -1,20 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export function UnlockPanel() {
+  const search = useSearchParams();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
-  const [open, setOpen] = useState(false);
+  const [needsSecret, setNeedsSecret] = useState(false);
   const [secret, setSecret] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const showPrompt =
+    search?.get('unlock') === '1' || search?.get('need_secret') === '1';
 
   useEffect(() => {
     fetch('/api/auth/unlock')
       .then((r) => r.json())
       .then((d) => {
         setUnlocked(!!d.unlocked);
-        setOpen(!!d.open);
+        setNeedsSecret(d.open === false && !d.unlocked ? false : !d.unlocked);
+        if (d.open) {
+          // open mode removed — treat as locked until secret exists
+          setNeedsSecret(true);
+        }
       })
       .catch(() => setUnlocked(false));
   }, []);
@@ -33,6 +41,10 @@ export function UnlockPanel() {
       if (!res.ok) throw new Error(data.error || 'Failed');
       setUnlocked(true);
       setSecret('');
+      const next = search?.get('next');
+      if (next && next.startsWith('/')) {
+        window.location.href = next;
+      }
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -46,43 +58,48 @@ export function UnlockPanel() {
   }
 
   if (unlocked === null) return null;
-  if (open) {
-    return (
-      <p className="text-xs text-slate-500">
-        وضع مفتوح — لم يُضبط PROCESS_SECRET
-      </p>
-    );
-  }
 
   if (unlocked) {
     return (
-      <button
-        type="button"
-        onClick={lock}
-        className="text-xs text-slate-500 hover:text-slate-800 underline"
-      >
-        قفل الواجهة
-      </button>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-emerald-700 font-medium">Ops unlocked</span>
+        <button
+          type="button"
+          onClick={lock}
+          className="text-xs text-slate-500 hover:text-slate-800 underline"
+        >
+          Lock
+        </button>
+      </div>
     );
   }
 
   return (
-    <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 text-sm">
-      <input
-        type="password"
-        value={secret}
-        onChange={(e) => setSecret(e.target.value)}
-        placeholder="PROCESS_SECRET"
-        className="rounded border px-2 py-1 text-sm"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50"
-      >
-        {loading ? '…' : 'فتح الإدارة'}
-      </button>
-      {err && <span className="text-red-600 text-xs">{err}</span>}
-    </form>
+    <div className="space-y-1">
+      {(showPrompt || needsSecret) && (
+        <p className="text-xs text-amber-700 max-w-xs">
+          Ops pages are private. Enter PROCESS_SECRET to unlock, or set it on
+          Vercel if missing.
+        </p>
+      )}
+      <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 text-sm">
+        <input
+          type="password"
+          value={secret}
+          onChange={(e) => setSecret(e.target.value)}
+          placeholder="Ops password (PROCESS_SECRET)"
+          className="rounded border px-2 py-1 text-sm"
+          autoComplete="current-password"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50"
+        >
+          {loading ? '…' : 'Unlock ops'}
+        </button>
+        {err && <span className="text-red-600 text-xs">{err}</span>}
+      </form>
+    </div>
   );
 }

@@ -4,16 +4,23 @@ import { ADMIN_COOKIE } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 /**
- * POST { "secret": "..." } — sets httpOnly cookie for admin UI actions.
- * DELETE — clears cookie.
+ * POST { secret } — sets httpOnly admin cookie
+ * DELETE — clears cookie
+ * GET — unlocked state
+ *
+ * If PROCESS_SECRET is not set, ops stay locked (open: false).
  */
 export async function POST(req: NextRequest) {
   const expected = process.env.PROCESS_SECRET;
   if (!expected) {
-    return NextResponse.json({
-      ok: true,
-      message: 'No PROCESS_SECRET configured — UI is open',
-    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'PROCESS_SECRET is not set on the server. Add it in Vercel → Environment Variables, redeploy, then unlock.',
+      },
+      { status: 503 }
+    );
   }
 
   const body = await req.json().catch(() => ({}));
@@ -28,7 +35,7 @@ export async function POST(req: NextRequest) {
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 12, // 12h
+    maxAge: 60 * 60 * 12,
   });
   return res;
 }
@@ -46,12 +53,18 @@ export async function DELETE() {
 export async function GET() {
   const expected = process.env.PROCESS_SECRET;
   if (!expected) {
-    return NextResponse.json({ unlocked: true, open: true });
+    return NextResponse.json({
+      unlocked: false,
+      open: false,
+      secret_configured: false,
+      message: 'Set PROCESS_SECRET on Vercel to enable ops unlock',
+    });
   }
   const cookie = reqCookie();
   return NextResponse.json({
     unlocked: cookie === expected,
     open: false,
+    secret_configured: true,
   });
 }
 

@@ -3,26 +3,28 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const PRIMARY = [
+/** Visible to everyone */
+const PUBLIC = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية' },
-  { href: '/guide', label: 'How to use', labelAr: 'طريقة الاستخدام' },
   { href: '/intake', label: 'Submit request', labelAr: 'تقديم طلب' },
-  { href: '/intake-ops', label: 'Intake queue', labelAr: 'طابور الطلبات' },
-  { href: '/claims', label: 'Claims', labelAr: 'المطالبات' },
-  { href: '/programs', label: 'Programs', labelAr: 'البرامج' },
-  { href: '/pharmacy', label: 'Pharmacy', labelAr: 'الصيدلية' },
-  { href: '/refills', label: 'Refills', labelAr: 'الصرف' },
+  { href: '/request-status', label: 'Check status', labelAr: 'حالة الطلب' },
+  { href: '/guide', label: 'How to use', labelAr: 'طريقة الاستخدام' },
 ];
 
-const MORE = [
-  { href: '/requests', label: 'Request status' },
+/** Only useful after unlock — middleware blocks data */
+const OPS = [
+  { href: '/intake-ops', label: 'Intake queue' },
+  { href: '/claims', label: 'Claims' },
+  { href: '/programs', label: 'Programs' },
+  { href: '/pharmacy', label: 'Pharmacy' },
+  { href: '/refills', label: 'Refills' },
+  { href: '/requests', label: 'Ops request list' },
   { href: '/ocr', label: 'OCR' },
-  { href: '/review', label: 'Review queue' },
+  { href: '/review', label: 'Review' },
   { href: '/eva-split', label: 'EVA split' },
   { href: '/inventory', label: 'Inventory' },
   { href: '/reports', label: 'Reports' },
   { href: '/psp', label: 'Patient journey' },
-  { href: '/care-line', label: 'Care line' },
   { href: '/safety', label: 'Safety' },
   { href: '/notifications', label: 'WhatsApp' },
   { href: '/status', label: 'System status' },
@@ -46,7 +48,7 @@ export function AppNav() {
           >
             Medical Aid
           </Link>
-          {PRIMARY.map((item) => (
+          {PUBLIC.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -62,10 +64,13 @@ export function AppNav() {
           ))}
           <details className="relative">
             <summary className="cursor-pointer list-none rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100">
-              More ▾
+              Ops ▾
             </summary>
-            <div className="absolute left-0 mt-1 w-48 rounded-lg border bg-white py-1 shadow-lg z-50">
-              {MORE.map((item) => (
+            <div className="absolute left-0 mt-1 w-52 rounded-lg border bg-white py-1 shadow-lg z-50">
+              <p className="px-3 py-1 text-[10px] text-slate-400">
+                Requires unlock (PROCESS_SECRET)
+              </p>
+              {OPS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
