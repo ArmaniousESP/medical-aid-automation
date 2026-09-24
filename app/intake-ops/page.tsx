@@ -44,7 +44,7 @@ export default function IntakeOpsPage() {
               <p className="text-xs text-violet-600 font-medium">Steps 2–3 · Ops</p>
               <h1 className="text-2xl font-semibold">Intake queue</h1>
               <p className="text-sm text-slate-600">
-                Review new requests, then run Process (match + enroll)
+                Review new requests, then run Process (match + enroll + claim draft)
               </p>
             </div>
             <Link
@@ -58,10 +58,10 @@ export default function IntakeOpsPage() {
 
         <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-3">
           <p className="text-sm text-violet-900">
-            <strong>What to do:</strong> Filter <em>submitted</em> → click{' '}
-            <strong>Process platform intake</strong> → check Programs & Claims.
+            <strong>What to do:</strong> Filter <em>submitted</em> →{' '}
+            <strong>Process platform intake</strong> → open Claims & Programs.
           </p>
-          <ProcessIntakeButton />
+          <ProcessIntakeButton onDone={load} />
           <div className="flex flex-wrap gap-2 text-xs">
             <Link
               href="/claims"
