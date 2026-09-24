@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         html: tpl.html,
         text: tpl.text,
       });
-      return NextResponse.json({ ok: result.ok, ...result, type });
+      return NextResponse.json({ ...result, type });
     }
 
     if (type === 'review_needed') {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         html: tpl.html,
         text: tpl.text,
       });
-      return NextResponse.json({ ok: result.ok, ...result, type });
+      return NextResponse.json({ ...result, type });
     }
 
     // custom
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       text: body.text ? String(body.text) : undefined,
       replyTo: body.replyTo ? String(body.replyTo) : undefined,
     });
-    return NextResponse.json({ ok: result.ok, ...result, type: 'custom' });
+    return NextResponse.json({ ...result, type: 'custom' });
   } catch (e: unknown) {
     const { body, status } = jsonError(e);
     return NextResponse.json(body, { status });
