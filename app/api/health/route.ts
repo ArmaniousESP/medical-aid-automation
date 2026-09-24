@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/health
- * Platform readiness: Neon is required; Google sheet is optional (legacy).
+ * Platform readiness: Neon required; Google optional (legacy).
+ * auto_enroll / auto_claim defaults match processIntake (on unless =false).
  */
 export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
@@ -33,21 +34,20 @@ export async function GET() {
     detail: process.env.PROCESS_SECRET ? 'configured' : 'optional but recommended',
   };
 
+  const enrollOn = process.env.AUTO_ENROLL_INTAKE !== 'false';
   checks.auto_enroll = {
-    ok: process.env.AUTO_ENROLL_INTAKE !== 'false',
-    detail:
-      process.env.AUTO_ENROLL_INTAKE === 'false'
-        ? 'disabled'
-        : 'intake → chronic program on process',
+    ok: enrollOn,
+    detail: enrollOn
+      ? 'intake → chronic program on process (default on)'
+      : 'disabled',
   };
 
+  const claimOn = process.env.AUTO_CLAIM_ON_ENROLL !== 'false';
   checks.auto_claim = {
     ok: true,
-    detail:
-      process.env.AUTO_CLAIM_ON_ENROLL === 'true' ||
-      process.env.AUTO_CLAIM_ON_ENROLL === '1'
-        ? 'draft claim on enroll'
-        : 'off (set AUTO_CLAIM_ON_ENROLL=true)',
+    detail: claimOn
+      ? 'draft claim on enroll (default on)'
+      : 'off (AUTO_CLAIM_ON_ENROLL=false)',
   };
 
   checks.http_retry = {
@@ -104,7 +104,6 @@ export async function GET() {
     checks.neon = { ok: false, detail: 'skipped — no DATABASE_URL' };
   }
 
-  // Platform healthy if Neon works; Google not required
   const ok = checks.env_database.ok && (checks.neon?.ok ?? false);
 
   return NextResponse.json(
