@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { SyncProgramsButton } from './SyncProgramsButton';
 import { UnlockPanel } from './UnlockPanel';
 import { DashboardCards } from './DashboardCards';
+import { ProcessIntakeButton } from './ProcessIntakeButton';
 
 type Row = {
   employee: string;
@@ -123,10 +124,10 @@ export default function Home() {
               Medical Aid Automation
             </h1>
             <p className="mt-1 text-slate-600">
-              طلب مساعدة علاج شهري — استمارة 9
+              Platform intake · claims · chronic programs (Neon)
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              OCR · Review queue · PSP · Pharmacy · Safety
+              Google sheet path optional · primary cycle is /intake → enroll → claims
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -139,20 +140,51 @@ export default function Home() {
 
         <DashboardCards />
 
+        <div className="mb-6 p-4 rounded-xl border border-violet-200 bg-violet-50 space-y-3">
+          <div className="text-sm font-medium text-violet-900">Platform cycle (no Google required)</div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/intake"
+              className="px-4 py-2 rounded-lg bg-violet-700 text-white text-sm font-medium hover:bg-violet-800"
+            >
+              Beneficiary intake
+            </Link>
+            <Link
+              href="/intake-ops"
+              className="px-4 py-2 rounded-lg bg-white border border-violet-300 text-violet-900 text-sm font-medium hover:bg-violet-100"
+            >
+              Intake queue
+            </Link>
+            <Link
+              href="/claims"
+              className="px-4 py-2 rounded-lg bg-white border border-violet-300 text-violet-900 text-sm font-medium hover:bg-violet-100"
+            >
+              Claims
+            </Link>
+            <Link
+              href="/programs"
+              className="px-4 py-2 rounded-lg bg-white border border-violet-300 text-violet-900 text-sm font-medium hover:bg-violet-100"
+            >
+              Programs
+            </Link>
+          </div>
+          <ProcessIntakeButton />
+        </div>
+
         <div className="flex flex-wrap gap-3 mb-8 items-start">
           <button
             onClick={() => run(true)}
             disabled={loading}
             className="px-5 py-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-medium disabled:opacity-50 transition"
           >
-            {loading ? 'Running…' : 'Dry Run'}
+            {loading ? 'Running…' : 'Sheet dry run'}
           </button>
           <button
             onClick={() => run(false)}
             disabled={loading}
             className="px-5 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-medium disabled:opacity-50 transition"
           >
-            {loading ? 'Processing…' : 'Process New Responses'}
+            {loading ? 'Processing…' : 'Process sheet (legacy)'}
           </button>
           <SyncProgramsButton />
           <Link
@@ -287,7 +319,7 @@ export default function Home() {
           <div className="space-y-6">
             <div className="p-5 rounded-xl bg-white border shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-lg">Result</h2>
+                <h2 className="font-semibold text-lg">Sheet result (legacy)</h2>
                 {result.dryRun && (
                   <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-medium">
                     DRY RUN
@@ -467,14 +499,14 @@ export default function Home() {
 
             {rows.length === 0 && (
               <div className="p-8 text-center text-slate-500 rounded-xl bg-white border">
-                No new rows to process.
+                No new sheet rows to process.
               </div>
             )}
           </div>
         )}
 
         <footer className="mt-16 text-center text-xs text-slate-400">
-          OCR · Review · Safety · DDInter · Pharmacy · /status
+          /intake · /intake-ops · /claims · /programs · OCR · Safety
         </footer>
       </div>
     </main>
