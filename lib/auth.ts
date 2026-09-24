@@ -4,49 +4,63 @@ import type { NextRequest } from 'next/server';
 export const ADMIN_COOKIE = 'maa_admin';
 
 /**
- * Ops access requires PROCESS_SECRET.
- * - Cookie maa_admin, header x-process-secret, Bearer, or ?secret=
- * - If PROCESS_SECRET is unset, ops are locked (not open).
+ * Valid ops secrets from PROCESS_SECRET.
+ * Supports a single value or comma-separated list for multiple staff passwords:
+ *   PROCESS_SECRET=alice-secret,bob-secret
+ */
+export function getOpsSecrets(): string[] {
+  const raw = process.env.PROCESS_SECRET || '';
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function isValidOpsSecret(value: string | undefined | null): boolean {
+  if (!value) return false;
+  return getOpsSecrets().includes(value);
+}
+
+/**
+ * Ops access requires at least one PROCESS_SECRET.
+ * Cookie / header / Bearer / ?secret= must match one of the configured secrets.
+ * If PROCESS_SECRET is unset, ops are locked.
  */
 export function isAdminUnlocked(): boolean {
-  const secret = process.env.PROCESS_SECRET;
-  if (!secret) return false;
+  const secrets = getOpsSecrets();
+  if (!secrets.length) return false;
   try {
     const jar = cookies();
-    return jar.get(ADMIN_COOKIE)?.value === secret;
+    const v = jar.get(ADMIN_COOKIE)?.value;
+    return isValidOpsSecret(v);
   } catch {
     return false;
   }
 }
 
 export function authorizeRequest(req: NextRequest): boolean {
-  const secret = process.env.PROCESS_SECRET;
-  if (!secret) return false;
+  const secrets = getOpsSecrets();
+  if (!secrets.length) return false;
 
-  const header = req.headers.get('x-process-secret');
-  if (header === secret) return true;
+  const candidates = [
+    req.headers.get('x-process-secret'),
+    req.nextUrl.searchParams.get('secret'),
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || null,
+    req.cookies.get(ADMIN_COOKIE)?.value || null,
+  ];
 
-  const q = req.nextUrl.searchParams.get('secret');
-  if (q === secret) return true;
-
-  const auth = req.headers.get('authorization');
-  if (auth === `Bearer ${secret}`) return true;
-
-  const cookie = req.cookies.get(ADMIN_COOKIE)?.value;
-  if (cookie === secret) return true;
-
-  return false;
+  return candidates.some((c) => isValidOpsSecret(c));
 }
 
-/** Require auth or return a 401 JSON body helper */
 export function unauthorizedResponse() {
+  const configured = getOpsSecrets().length > 0;
   return {
     body: {
       ok: false as const,
-      error: process.env.PROCESS_SECRET
+      error: configured
         ? 'Unauthorized — unlock on Home with PROCESS_SECRET'
         : 'Ops locked — set PROCESS_SECRET on Vercel',
-      code: process.env.PROCESS_SECRET ? 'unauthorized' : 'secret_required',
+      code: configured ? 'unauthorized' : 'secret_required',
     },
     status: 401,
   };

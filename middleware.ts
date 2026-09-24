@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server';
 
 const ADMIN_COOKIE = 'maa_admin';
 
-/** Paths anyone may open without ops secret */
 const PUBLIC_EXACT = new Set([
   '/',
   '/intake',
@@ -23,18 +22,25 @@ const PUBLIC_PREFIXES = [
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
-  // Public intake API: POST submit + search/estimate handled in route;
-  // GET list is blocked in the route handler. Allow path through middleware.
   if (pathname === '/api/intake') return true;
   return false;
 }
 
-function hasOpsAuth(req: NextRequest, secret: string): boolean {
-  if (req.headers.get('x-process-secret') === secret) return true;
-  if (req.headers.get('authorization') === `Bearer ${secret}`) return true;
-  if (req.nextUrl.searchParams.get('secret') === secret) return true;
-  if (req.cookies.get(ADMIN_COOKIE)?.value === secret) return true;
-  return false;
+function getOpsSecrets(): string[] {
+  return (process.env.PROCESS_SECRET || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function hasOpsAuth(req: NextRequest, secrets: string[]): boolean {
+  const candidates = [
+    req.headers.get('x-process-secret'),
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || null,
+    req.nextUrl.searchParams.get('secret'),
+    req.cookies.get(ADMIN_COOKIE)?.value || null,
+  ];
+  return candidates.some((c) => c != null && secrets.includes(c));
 }
 
 export function middleware(req: NextRequest) {
@@ -44,10 +50,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const secret = process.env.PROCESS_SECRET;
+  const secrets = getOpsSecrets();
 
-  // No secret configured → block all ops (force configuring a secret)
-  if (!secret) {
+  if (!secrets.length) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         {
@@ -65,7 +70,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (hasOpsAuth(req, secret)) {
+  if (hasOpsAuth(req, secrets)) {
     return NextResponse.next();
   }
 
@@ -85,9 +90,6 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all paths except static assets
-     */
     '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

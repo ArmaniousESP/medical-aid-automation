@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ADMIN_COOKIE } from '@/lib/auth';
+import { ADMIN_COOKIE, getOpsSecrets, isValidOpsSecret } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * POST { secret } — sets httpOnly admin cookie
+ * POST { secret } — sets httpOnly admin cookie if secret matches PROCESS_SECRET
+ * (or one of a comma-separated list).
  * DELETE — clears cookie
  * GET — unlocked state
- *
- * If PROCESS_SECRET is not set, ops stay locked (open: false).
  */
 export async function POST(req: NextRequest) {
-  const expected = process.env.PROCESS_SECRET;
-  if (!expected) {
+  const secrets = getOpsSecrets();
+  if (!secrets.length) {
     return NextResponse.json(
       {
         ok: false,
@@ -25,12 +24,12 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const secret = String(body.secret || '');
-  if (secret !== expected) {
+  if (!isValidOpsSecret(secret)) {
     return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, expected, {
+  res.cookies.set(ADMIN_COOKIE, secret, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
@@ -51,8 +50,8 @@ export async function DELETE() {
 }
 
 export async function GET() {
-  const expected = process.env.PROCESS_SECRET;
-  if (!expected) {
+  const secrets = getOpsSecrets();
+  if (!secrets.length) {
     return NextResponse.json({
       unlocked: false,
       open: false,
@@ -62,7 +61,7 @@ export async function GET() {
   }
   const cookie = reqCookie();
   return NextResponse.json({
-    unlocked: cookie === expected,
+    unlocked: isValidOpsSecret(cookie),
     open: false,
     secret_configured: true,
   });
