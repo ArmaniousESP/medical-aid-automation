@@ -6,15 +6,15 @@ import {
   type IntakeMedLine,
 } from '@/lib/intake';
 import { mshSearchMedicines, mshEstimateCost } from '@/lib/msh';
-import { authorizeRequest } from '@/lib/auth';
+import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/intake — list requests (ops; auth if PROCESS_SECRET set)
- * POST /api/intake — public beneficiary submit
- * POST action=search_med | estimate | set_status
+ * GET /api/intake — ops list only (auth required)
+ * POST — public submit | search_med | estimate
+ * POST set_status — ops only
  */
 export async function GET(req: NextRequest) {
   try {
@@ -24,9 +24,9 @@ export async function GET(req: NextRequest) {
         { status: 503 }
       );
     }
-    // List is ops-facing
-    if (process.env.PROCESS_SECRET && !authorizeRequest(req)) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    if (!authorizeRequest(req)) {
+      const u = unauthorizedResponse();
+      return NextResponse.json(u.body, { status: u.status });
     }
     const sp = req.nextUrl.searchParams;
     const rows = await listAidRequests({
@@ -54,7 +54,10 @@ export async function POST(req: NextRequest) {
     const action = String(body.action || 'submit');
 
     if (action === 'search_med') {
-      const result = await mshSearchMedicines(String(body.q || ''), Number(body.limit) || 8);
+      const result = await mshSearchMedicines(
+        String(body.q || ''),
+        Number(body.limit) || 8
+      );
       return NextResponse.json(result);
     }
 
@@ -66,7 +69,8 @@ export async function POST(req: NextRequest) {
 
     if (action === 'set_status') {
       if (!authorizeRequest(req)) {
-        return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+        const u = unauthorizedResponse();
+        return NextResponse.json(u.body, { status: u.status });
       }
       if (!body.id || !body.status) {
         return NextResponse.json(
@@ -95,16 +99,22 @@ export async function POST(req: NextRequest) {
       emp_id: body.emp_id ? String(body.emp_id) : undefined,
       company: body.company ? String(body.company) : undefined,
       phone: body.phone ? String(body.phone) : undefined,
-      patient_name: body.patient_name || body.patient ? String(body.patient_name || body.patient) : undefined,
+      patient_name:
+        body.patient_name || body.patient
+          ? String(body.patient_name || body.patient)
+          : undefined,
       city: body.city ? String(body.city) : undefined,
       meds,
       comments: body.comments ? String(body.comments) : undefined,
-      roshetta_urls: body.roshetta_urls || (body.roshetta ? [String(body.roshetta)] : []),
+      roshetta_urls:
+        body.roshetta_urls || (body.roshetta ? [String(body.roshetta)] : []),
       invoice_urls: body.invoice_urls || [],
       lab_urls: body.lab_urls || [],
       card_urls: body.card_urls || [],
       source: body.source ? String(body.source) : 'platform',
-      msh_request_id: body.msh_request_id ? String(body.msh_request_id) : undefined,
+      msh_request_id: body.msh_request_id
+        ? String(body.msh_request_id)
+        : undefined,
       estimated_monthly_cost:
         body.estimated_monthly_cost != null
           ? Number(body.estimated_monthly_cost)
@@ -116,8 +126,9 @@ export async function POST(req: NextRequest) {
       id: created.id,
       status: created.status,
       created_at: created.created_at,
+      status_url: `/request-status?id=${created.id}`,
       message:
-        'Request received. Ops will triage on the platform — Google Form is not required.',
+        'Request received. Save your Request ID to check status later.',
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'intake failed';

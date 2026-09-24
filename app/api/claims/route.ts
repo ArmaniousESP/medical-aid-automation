@@ -7,23 +7,21 @@ import {
   submitClaimExternal,
   type ClaimStatus,
 } from '@/lib/claims';
-import { authorizeRequest } from '@/lib/auth';
+import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
 import { jsonError, AppError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    if (!authorizeRequest(req)) {
+      const u = unauthorizedResponse();
+      return NextResponse.json(u.body, { status: u.status });
+    }
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(
         { ok: false, error: 'DATABASE_URL not set', code: 'missing_env' },
         { status: 503 }
-      );
-    }
-    if (process.env.PROCESS_SECRET && !authorizeRequest(req)) {
-      return NextResponse.json(
-        { ok: false, error: 'Unauthorized', code: 'unauthorized' },
-        { status: 401 }
       );
     }
 
@@ -49,10 +47,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     if (!authorizeRequest(req)) {
-      return NextResponse.json(
-        { ok: false, error: 'Unauthorized', code: 'unauthorized' },
-        { status: 401 }
-      );
+      const u = unauthorizedResponse();
+      return NextResponse.json(u.body, { status: u.status });
     }
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(

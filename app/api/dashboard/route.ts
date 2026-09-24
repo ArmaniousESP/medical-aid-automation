@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDashboardStats } from '@/lib/dashboard';
+import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    if (!authorizeRequest(req)) {
+      const u = unauthorizedResponse();
+      return NextResponse.json(u.body, { status: u.status });
+    }
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(
         { error: 'DATABASE_URL not set', ok: false },
