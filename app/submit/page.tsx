@@ -3,8 +3,7 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 /**
- * Beneficiary-facing guide (Arabic + English) for monthly aid form +
- * what photos to attach. Actual submission stays on Google Form.
+ * Beneficiary guide — platform intake is primary; Google Form is optional legacy.
  */
 export default function SubmitGuidePage() {
   const formUrl =
@@ -17,58 +16,57 @@ export default function SubmitGuidePage() {
       <div className="mx-auto max-w-xl space-y-6">
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">تقديم طلب علاج شهري</h1>
-          <p className="text-sm text-slate-600">Monthly medical aid — how to submit</p>
+          <p className="text-sm text-slate-600">
+            Platform intake · MSH catalog · full cycle on Neon
+          </p>
         </header>
 
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-3 text-sm">
+          <p className="font-medium text-emerald-900">الطريقة الموصى بها</p>
+          <p className="text-emerald-800">
+            قدّم الطلب مباشرة على المنصة — بدون Google Form. البيانات تُحفظ في قاعدة
+            البيانات وتُعالج من نفس النظام (مطابقة · صيدلية · برامج مزمنة).
+          </p>
+          <Link
+            href="/intake"
+            className="block text-center rounded-lg bg-emerald-600 text-white py-3 font-medium hover:bg-emerald-700"
+          >
+            فتح نموذج المنصة / Open platform form
+          </Link>
+        </div>
+
         <div className="rounded-xl border bg-white p-5 shadow-sm space-y-4 text-sm leading-relaxed" dir="rtl">
-          <p className="font-medium">المطلوب إرفاقه في الاستمارة:</p>
+          <p className="font-medium">المطلوب إرفاقه:</p>
           <ol className="list-decimal list-inside space-y-2 text-slate-700">
             <li>
-              <strong>روشتة حديثة</strong> واضحة (صورة من الموبايل جيدة الإضاءة، بدون قص
-              أسماء الأدوية).
+              <strong>روشتة حديثة</strong> واضحة (رابط Drive أو URL في النموذج).
             </li>
             <li>
-              <strong>فواتير الصيدلية</strong> إن وُجدت (للمبالغ المطلوب دعمها).
+              <strong>فواتير الصيدلية</strong> إن وُجدت.
             </li>
-            <li>أي مرفقات أخرى تطلبها الاستمارة (تحاليل / كارنيه حسب الحالة).</li>
+            <li>أسماء الأدوية والكميات — يمكن البحث عبر كتالوج MSH.</li>
           </ol>
-          <p className="text-xs text-slate-500">
-            نصائح للصورة: قرّب العدسة، أوقف الاهتزاز، تجنّب الظل على أسماء الأدوية.
-          </p>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 shadow-sm space-y-3 text-sm">
-          <p className="font-medium">English checklist</p>
-          <ul className="list-disc list-inside text-slate-700 space-y-1">
-            <li>Clear photo of the current prescription (roshetta)</li>
-            <li>Pharmacy invoice(s) if you are claiming amounts</li>
-            <li>Submit only through the official Google Form</li>
-          </ul>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {formUrl ? (
+        {formUrl && (
+          <div className="rounded-xl border bg-white p-4 text-xs text-slate-600 space-y-2">
+            <p className="font-medium">Legacy Google Form (optional)</p>
             <a
               href={formUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-center rounded-lg bg-emerald-600 text-white py-3 font-medium hover:bg-emerald-700"
+              className="text-blue-600 underline break-all"
             >
-              فتح استمارة التقديم / Open form
+              {formUrl}
             </a>
-          ) : (
-            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-3">
-              Set <code>NEXT_PUBLIC_GOOGLE_FORM_URL</code> on Vercel to show the form
-              button.
-            </p>
-          )}
-          <Link
-            href="/ocr"
-            className="block text-center rounded-lg border bg-white py-2 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Staff: OCR roshetta / invoice
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 text-center text-sm">
+          <Link href="/ocr" className="text-blue-600 hover:underline">
+            Staff: OCR
           </Link>
-          <Link href="/" className="text-center text-xs text-blue-600 hover:underline">
+          <Link href="/" className="text-xs text-slate-500 hover:underline">
             Home
           </Link>
         </div>
