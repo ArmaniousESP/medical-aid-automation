@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { FlowSteps } from '../FlowSteps';
 
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<any[]>([]);
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState('draft');
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +39,7 @@ export default function ClaimsPage() {
     const data = await res.json();
     setMsg(
       data.ok
-        ? `Submitted ${id}${data.external_ref ? ' · ref ' + data.external_ref : ''}${data.skipped ? ' (internal only)' : ''}`
+        ? `Submitted${data.external_ref ? ' · ref ' + data.external_ref : ''}${data.skipped ? ' (internal only — no webhook)' : ''}`
         : `Error: ${data.error || 'submit failed'}`
     );
     load();
@@ -47,17 +48,44 @@ export default function ClaimsPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-4xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
+        <header className="space-y-3">
+          <FlowSteps current={4} />
           <div>
+            <p className="text-xs text-violet-600 font-medium">Step 4 · Finance / ops</p>
             <h1 className="text-2xl font-semibold">Claims</h1>
             <p className="text-sm text-slate-600">
-              Aid claim drafts · optional external webhook
+              Review draft amounts, then Submit. Next: Programs / Pharmacy.
             </p>
           </div>
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
-            Home
-          </Link>
         </header>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 space-y-2">
+          <p>
+            <strong>What to do:</strong> Open <em>draft</em> claims → check totals →{' '}
+            <strong>Submit</strong>. Without a webhook, submit marks the claim as submitted
+            internally.
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Link
+              href="/intake-ops"
+              className="rounded-lg border px-3 py-1.5 font-medium hover:bg-slate-50"
+            >
+              ← Back: intake queue
+            </Link>
+            <Link
+              href="/programs"
+              className="rounded-lg border px-3 py-1.5 font-medium hover:bg-slate-50"
+            >
+              Programs
+            </Link>
+            <Link
+              href="/pharmacy"
+              className="rounded-lg bg-teal-600 text-white px-3 py-1.5 font-medium hover:bg-teal-700"
+            >
+              Next: Pharmacy →
+            </Link>
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-2 items-center">
           {['all', 'draft', 'submitted', 'under_review', 'approved', 'paid', 'rejected'].map(
@@ -137,8 +165,15 @@ export default function ClaimsPage() {
               ))}
               {!claims.length && !loading && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-400">
-                    No claims yet. Enable AUTO_CLAIM_ON_ENROLL or create via API.
+                  <td colSpan={6} className="p-6 text-center text-slate-400 space-y-2">
+                    <p>No claims in “{status}”.</p>
+                    <p className="text-xs">
+                      Run process on{' '}
+                      <Link href="/intake-ops" className="text-blue-600 underline">
+                        intake queue
+                      </Link>{' '}
+                      with AUTO_CLAIM_ON_ENROLL=true, or switch filter to <em>all</em>.
+                    </p>
                   </td>
                 </tr>
               )}

@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ProcessIntakeButton } from '../ProcessIntakeButton';
+import { FlowSteps } from '../FlowSteps';
 
 export default function IntakeOpsPage() {
   const [rows, setRows] = useState<any[]>([]);
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState('submitted');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,32 +30,62 @@ export default function IntakeOpsPage() {
     load();
   }, [load]);
 
+  const pendingCount = rows.filter(
+    (r) => r.status === 'submitted' || r.status === 'triage'
+  ).length;
+
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Platform intake queue</h1>
-            <p className="text-sm text-slate-600">
-              Neon aid_requests · match · enroll · claims
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link href="/intake" className="text-blue-600 hover:underline">
-              Beneficiary form
-            </Link>
-            <Link href="/claims" className="text-blue-600 hover:underline">
-              Claims
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              Home
+        <header className="space-y-3">
+          <FlowSteps current={2} />
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              <p className="text-xs text-violet-600 font-medium">Steps 2–3 · Ops</p>
+              <h1 className="text-2xl font-semibold">Intake queue</h1>
+              <p className="text-sm text-slate-600">
+                Review new requests, then run Process (match + enroll)
+              </p>
+            </div>
+            <Link
+              href="/intake"
+              className="text-sm text-blue-600 hover:underline self-start"
+            >
+              + New request
             </Link>
           </div>
         </header>
 
-        <ProcessIntakeButton />
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-3">
+          <p className="text-sm text-violet-900">
+            <strong>What to do:</strong> Filter <em>submitted</em> → click{' '}
+            <strong>Process platform intake</strong> → check Programs & Claims.
+          </p>
+          <ProcessIntakeButton />
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Link
+              href="/claims"
+              className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
+            >
+              Next: Claims →
+            </Link>
+            <Link
+              href="/programs"
+              className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
+            >
+              Programs
+            </Link>
+            <button
+              type="button"
+              onClick={load}
+              className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
+            >
+              Refresh list
+            </button>
+          </div>
+        </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           {['all', 'submitted', 'triage', 'enrolled', 'rejected', 'dispensed'].map(
             (s) => (
               <button
@@ -71,13 +102,11 @@ export default function IntakeOpsPage() {
               </button>
             )
           )}
-          <button
-            type="button"
-            onClick={load}
-            className="text-xs text-blue-600 underline"
-          >
-            Refresh
-          </button>
+          {status === 'submitted' && rows.length > 0 && (
+            <span className="text-xs text-amber-700 font-medium">
+              {rows.length} waiting
+            </span>
+          )}
         </div>
 
         {error && (
@@ -85,8 +114,11 @@ export default function IntakeOpsPage() {
             <div className="font-medium">Load error</div>
             <div>{error}</div>
             <div className="text-xs mt-1 text-red-600">
-              Check DATABASE_URL and PROCESS_SECRET (ops list requires auth when secret is set).
+              Need DATABASE_URL. If PROCESS_SECRET is set, unlock on Home first.
             </div>
+            <Link href="/status" className="text-xs text-blue-700 underline mt-1 inline-block">
+              System status
+            </Link>
           </div>
         )}
 
@@ -151,17 +183,26 @@ export default function IntakeOpsPage() {
               {!rows.length && !loading && !error && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400">
-                    No platform intake rows. Beneficiaries use{' '}
+                    No rows for “{status}”.{' '}
                     <Link href="/intake" className="text-blue-600 underline">
-                      /intake
-                    </Link>
-                    .
+                      Submit a request
+                    </Link>{' '}
+                    or switch filter to <em>all</em>.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {pendingCount === 0 && status === 'submitted' && !loading && !error && (
+          <p className="text-center text-sm text-slate-500">
+            Queue empty for submitted ·{' '}
+            <Link href="/claims" className="text-violet-700 underline">
+              continue to Claims
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   );
