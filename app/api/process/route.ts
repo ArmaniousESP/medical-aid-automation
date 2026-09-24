@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, ...result, email });
+    return NextResponse.json({ ...result, ok: true, email });
   } catch (e: unknown) {
     const { body, status } = jsonError(e);
     return NextResponse.json(body, { status });
