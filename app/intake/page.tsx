@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { PublicStepsBar } from '../PublicStepsBar';
 
 type MedLine = { name: string; qty: number };
 
@@ -95,11 +96,11 @@ export default function IntakePage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 p-6">
       <div className="mx-auto max-w-lg space-y-6">
+        <PublicStepsBar active="submit" />
+
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">تقديم طلب علاج شهري</h1>
-          <p className="text-sm text-slate-600">
-            Submit a monthly aid request
-          </p>
+          <p className="text-sm text-slate-600">Submit a monthly aid request</p>
         </header>
 
         {resultId && (
@@ -108,7 +109,7 @@ export default function IntakePage() {
               تم استلام الطلب · Request received
             </p>
             <p className="text-xs text-emerald-800">
-              Save this Request ID to check status later:
+              Save this Request ID — you need it for step 2:
             </p>
             <p className="text-xs font-mono text-emerald-900 break-all bg-white/70 rounded p-2 border border-emerald-100">
               {resultId}
@@ -118,7 +119,7 @@ export default function IntakePage() {
                 href={`/request-status?id=${encodeURIComponent(resultId)}`}
                 className="rounded-lg bg-emerald-700 text-white px-3 py-1.5 text-xs font-medium"
               >
-                Check status
+                Step 2: Check status →
               </Link>
               <button
                 type="button"
@@ -127,6 +128,12 @@ export default function IntakePage() {
               >
                 Submit another
               </button>
+              <Link
+                href="/guide#public-1"
+                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
+              >
+                Help
+              </Link>
             </div>
           </div>
         )}
@@ -292,8 +299,8 @@ export default function IntakePage() {
         )}
 
         <p className="text-xs text-slate-500 text-center">
-          <Link href="/request-status" className="text-violet-700 underline">
-            Check status
+          <Link href="/guide#for-you" className="text-violet-700 underline">
+            How to use
           </Link>
           {' · '}
           <Link href="/" className="text-blue-600 underline">

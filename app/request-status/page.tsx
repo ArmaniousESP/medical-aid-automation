@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { PublicStepsBar } from '../PublicStepsBar';
 
 function StatusForm() {
   const search = useSearchParams();
@@ -20,7 +21,6 @@ function StatusForm() {
 
   useEffect(() => {
     if (id && /^[0-9a-f-]{36}$/i.test(id.trim())) {
-      // auto-lookup when linked from submit success
       void lookup();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,11 +131,13 @@ export default function RequestStatusPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-md space-y-6">
+        <PublicStepsBar active="status" />
+
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">حالة الطلب</h1>
           <p className="text-sm text-slate-600">Check request status</p>
           <p className="text-xs text-slate-500">
-            Enter the Request ID from submit. Optional phone or employee ID for
+            Enter the Request ID from step 1. Optional phone or employee ID for
             verification.
           </p>
         </header>
@@ -146,7 +148,11 @@ export default function RequestStatusPage() {
 
         <p className="text-center text-xs text-slate-500">
           <Link href="/intake" className="text-emerald-700 underline">
-            Submit a new request
+            ← Step 1: Submit
+          </Link>
+          {' · '}
+          <Link href="/guide#for-you" className="text-violet-700 underline">
+            Help
           </Link>
           {' · '}
           <Link href="/" className="text-blue-600 underline">
