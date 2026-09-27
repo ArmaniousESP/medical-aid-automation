@@ -19,11 +19,13 @@ type Step = {
   href: string;
   cta: string;
   mock: 'submit' | 'status' | 'unlock' | 'queue' | 'process' | 'claims' | 'pharmacy';
+  id: string;
 };
 
 const PUBLIC_STEPS: Step[] = [
   {
     n: 1,
+    id: 'public-1',
     titleEn: 'Submit your request',
     titleAr: 'قدّم طلبك',
     bodyEn:
@@ -36,6 +38,7 @@ const PUBLIC_STEPS: Step[] = [
   },
   {
     n: 2,
+    id: 'public-2',
     titleEn: 'Check status anytime',
     titleAr: 'تابع حالة الطلب',
     bodyEn:
@@ -51,6 +54,7 @@ const PUBLIC_STEPS: Step[] = [
 const STAFF_STEPS: Step[] = [
   {
     n: 1,
+    id: 'staff-1',
     titleEn: 'Unlock ops',
     titleAr: 'فتح لوحة التشغيل',
     bodyEn:
@@ -63,6 +67,7 @@ const STAFF_STEPS: Step[] = [
   },
   {
     n: 2,
+    id: 'staff-2',
     titleEn: 'Review intake queue',
     titleAr: 'مراجعة طابور الطلبات',
     bodyEn: 'See new submitted requests before processing.',
@@ -73,6 +78,7 @@ const STAFF_STEPS: Step[] = [
   },
   {
     n: 3,
+    id: 'staff-3',
     titleEn: 'Process (match + enroll)',
     titleAr: 'معالجة (مطابقة + تسجيل)',
     bodyEn:
@@ -85,6 +91,7 @@ const STAFF_STEPS: Step[] = [
   },
   {
     n: 4,
+    id: 'staff-4',
     titleEn: 'Claims',
     titleAr: 'المطالبات',
     bodyEn: 'Review draft amounts, then Submit.',
@@ -95,6 +102,7 @@ const STAFF_STEPS: Step[] = [
   },
   {
     n: 5,
+    id: 'staff-5',
     titleEn: 'Programs & pharmacy',
     titleAr: 'البرامج والصيدلية',
     bodyEn: 'Manage chronic programs and dispense from the pick list.',
@@ -139,7 +147,7 @@ function StepCard({
       : 'bg-violet-700 hover:bg-violet-800';
 
   return (
-    <li className="rounded-xl border bg-white p-5 shadow-sm space-y-3">
+    <li id={s.id} className="rounded-xl border bg-white p-5 shadow-sm space-y-3 scroll-mt-24">
       <div className="flex gap-4">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white font-bold ${badge}`}
@@ -180,7 +188,55 @@ export default function GuidePage() {
           </p>
         </header>
 
-        <section className="space-y-4">
+        {/* Jump TOC */}
+        <nav
+          aria-label="Guide sections"
+          className="sticky top-14 z-30 rounded-xl border bg-white/95 backdrop-blur p-3 shadow-sm text-sm"
+        >
+          <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
+            Jump to · انتقل إلى
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="#for-you"
+              className="rounded-full bg-emerald-100 text-emerald-900 px-3 py-1 text-xs font-medium hover:bg-emerald-200"
+            >
+              For you · للمستفيد
+            </a>
+            <a
+              href="#for-staff"
+              className="rounded-full bg-violet-100 text-violet-900 px-3 py-1 text-xs font-medium hover:bg-violet-200"
+            >
+              For staff · للتشغيل
+            </a>
+            <a
+              href="#privacy"
+              className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-200"
+            >
+              Privacy
+            </a>
+            {PUBLIC_STEPS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="rounded-full border px-2.5 py-1 text-xs text-emerald-800 hover:bg-emerald-50"
+              >
+                You · {s.n}. {s.titleEn.split(' ').slice(0, 2).join(' ')}
+              </a>
+            ))}
+            {STAFF_STEPS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="rounded-full border px-2.5 py-1 text-xs text-violet-800 hover:bg-violet-50"
+              >
+                Ops · {s.n}. {s.titleEn.split(' ').slice(0, 2).join(' ')}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <section id="for-you" className="space-y-4 scroll-mt-28">
           <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4">
             <h2 className="font-semibold text-emerald-900 text-lg">
               For employees / beneficiaries
@@ -215,7 +271,7 @@ export default function GuidePage() {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="for-staff" className="space-y-4 scroll-mt-28">
           <div className="rounded-xl border-2 border-violet-200 bg-violet-50 p-4">
             <h2 className="font-semibold text-violet-900 text-lg">For staff (ops)</h2>
             <p className="text-sm text-violet-800 mt-1" dir="rtl">
@@ -233,7 +289,10 @@ export default function GuidePage() {
           </ol>
         </section>
 
-        <section className="rounded-xl border bg-white p-5 shadow-sm space-y-3 text-sm">
+        <section
+          id="privacy"
+          className="rounded-xl border bg-white p-5 shadow-sm space-y-3 text-sm scroll-mt-28"
+        >
           <h2 className="font-semibold text-lg">Privacy</h2>
           <ul className="list-disc list-inside space-y-2 text-slate-600">
             <li>
@@ -252,6 +311,12 @@ export default function GuidePage() {
         </section>
 
         <div className="flex flex-wrap gap-3 justify-center pb-8">
+          <Link
+            href="/intake"
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            Submit request
+          </Link>
           <Link
             href="/"
             className="rounded-lg border bg-white px-5 py-2.5 text-sm font-medium hover:bg-slate-50"
