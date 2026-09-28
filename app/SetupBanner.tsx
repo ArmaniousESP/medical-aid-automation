@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 /**
- * Soft banner: platform needs Neon; point everyone to the guide.
+ * Soft banner: platform needs Neon; short path reminder for everyone.
  */
 export function SetupBanner() {
   const hasDb = !!process.env.DATABASE_URL;
@@ -30,11 +30,12 @@ export function SetupBanner() {
   return (
     <div className="mb-4 rounded-lg border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs text-emerald-900 flex flex-wrap items-center justify-between gap-2">
       <span>
-        <strong>1.</strong> Submit · <strong>2.</strong> Check status · Staff:
-        unlock on Home
+        <span className="font-medium">You:</span> 1 Submit → 2 Status
+        <span className="text-emerald-700/70 mx-1.5">·</span>
+        <span className="font-medium">Staff:</span> Queue → Claims → Pharmacy
       </span>
-      <Link href="/guide" className="text-violet-700 font-medium hover:underline">
-        How to use →
+      <Link href="/guide" className="text-violet-700 font-medium hover:underline shrink-0">
+        Guide →
       </Link>
     </div>
   );
