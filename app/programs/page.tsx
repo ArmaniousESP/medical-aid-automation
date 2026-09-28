@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { query } from '@/lib/db';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,21 +66,36 @@ export default async function ProgramsPage({
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">البرامج المزمنة</h1>
-            <p className="text-sm text-slate-600">Chronic programs · Neon</p>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/documents" className="text-blue-600 hover:underline">
-              التوثيق
-            </Link>
-            <Link href="/refills" className="text-blue-600 hover:underline">
-              الصرف
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current="programs" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-violet-600 font-medium">Ops · Chronic programs</p>
+              <h1 className="text-2xl font-semibold">البرامج المزمنة</h1>
+              <p className="text-sm text-slate-600">
+                Enrolled after Process on intake queue · then Refills / Pharmacy
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/intake-ops"
+                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+              >
+                ← Queue
+              </Link>
+              <Link
+                href="/refills"
+                className="rounded-lg bg-violet-700 text-white px-3 py-1.5 hover:bg-violet-800"
+              >
+                Refills →
+              </Link>
+              <Link
+                href="/pharmacy"
+                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+              >
+                Pharmacy
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -112,68 +128,87 @@ export default async function ProgramsPage({
         {error && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
             <strong>تعذر التحميل:</strong> {error}
+            <p className="mt-1 text-xs text-slate-600">
+              Unlock on Home if PROCESS_SECRET is set. Check{' '}
+              <Link href="/status" className="text-blue-700 underline">
+                system status
+              </Link>
+              .
+            </p>
           </div>
         )}
 
         {!error && rows.length === 0 && (
-          <p className="text-sm text-slate-500">لا نتائج.</p>
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600 space-y-2">
+            <p>No programs yet.</p>
+            <p className="text-xs">
+              Submit on <Link href="/intake" className="text-blue-600 underline">/intake</Link>
+              , then run <strong>Process platform intake</strong> on{' '}
+              <Link href="/intake-ops" className="text-blue-600 underline">
+                intake queue
+              </Link>
+              .
+            </p>
+          </div>
         )}
 
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-100 text-slate-700">
-              <tr>
-                <th className="p-3">Code</th>
-                <th className="p-3">الموظف</th>
-                <th className="p-3">المريض</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">أدوية</th>
-                <th className="p-3">مستندات</th>
-                <th className="p-3">دورات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t hover:bg-slate-50">
-                  <td className="p-3 font-mono text-xs">
-                    <Link
-                      href={`/programs/${r.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {r.program_code}
-                    </Link>
-                  </td>
-                  <td className="p-3">
-                    <div>{r.employee_name}</div>
-                    <div className="text-xs text-slate-500">
-                      {r.external_employee_id}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div>{r.patient_name}</div>
-                    <div className="text-xs text-slate-500">{r.relation}</div>
-                  </td>
-                  <td className="p-3">
-                    <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="p-3">{r.med_count}</td>
-                  <td className="p-3">
-                    {r.doc_count > 0 ? (
-                      <span className="text-emerald-700 font-medium">
-                        {r.doc_count}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">0</span>
-                    )}
-                  </td>
-                  <td className="p-3">{r.refill_count}</td>
+        {rows.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-700">
+                <tr>
+                  <th className="p-3">Code</th>
+                  <th className="p-3">الموظف</th>
+                  <th className="p-3">المريض</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">أدوية</th>
+                  <th className="p-3">مستندات</th>
+                  <th className="p-3">دورات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t hover:bg-slate-50">
+                    <td className="p-3 font-mono text-xs">
+                      <Link
+                        href={`/programs/${r.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {r.program_code}
+                      </Link>
+                    </td>
+                    <td className="p-3">
+                      <div>{r.employee_name}</div>
+                      <div className="text-xs text-slate-500">
+                        {r.external_employee_id}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div>{r.patient_name}</div>
+                      <div className="text-xs text-slate-500">{r.relation}</div>
+                    </td>
+                    <td className="p-3">
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="p-3">{r.med_count}</td>
+                    <td className="p-3">
+                      {r.doc_count > 0 ? (
+                        <span className="text-emerald-700 font-medium">
+                          {r.doc_count}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">0</span>
+                      )}
+                    </td>
+                    <td className="p-3">{r.refill_count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </main>
   );

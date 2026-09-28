@@ -9,12 +9,19 @@ const STEPS = [
 ] as const;
 
 /** Compact progress strip — highlight current step number */
-export function FlowSteps({ current }: { current: 1 | 2 | 3 | 4 | 5 }) {
+export function FlowSteps({
+  current,
+}: {
+  current: 1 | 2 | 3 | 4 | 5 | 'programs' | 'refills';
+}) {
+  const numeric =
+    current === 'programs' || current === 'refills' ? 5 : current;
+
   return (
     <div className="flex flex-wrap items-center gap-1 text-xs">
       {STEPS.map((s, i) => {
-        const active = s.n === current;
-        const done = s.n < current;
+        const active = typeof current === 'number' && s.n === current;
+        const done = s.n < numeric;
         return (
           <span key={s.n} className="inline-flex items-center gap-1">
             {i > 0 && <span className="text-slate-300 mx-0.5">→</span>}
@@ -34,7 +41,31 @@ export function FlowSteps({ current }: { current: 1 | 2 | 3 | 4 | 5 }) {
           </span>
         );
       })}
-      <Link href="/guide" className="ml-2 text-violet-600 hover:underline">
+      <span className="text-slate-300 mx-0.5">·</span>
+      <Link
+        href="/programs"
+        className={`rounded-full px-2 py-0.5 font-medium ${
+          current === 'programs'
+            ? 'bg-violet-700 text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+        }`}
+      >
+        Programs
+      </Link>
+      <Link
+        href="/refills"
+        className={`rounded-full px-2 py-0.5 font-medium ${
+          current === 'refills'
+            ? 'bg-violet-700 text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+        }`}
+      >
+        Refills
+      </Link>
+      <Link
+        href="/guide#for-staff"
+        className="ml-1 text-violet-600 hover:underline"
+      >
         Guide
       </Link>
     </div>
