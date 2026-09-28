@@ -1,27 +1,28 @@
 import Link from 'next/link';
 
+/** Same order as AppNav Staff path and Unlock checklist */
 const STEPS = [
-  { n: 1, label: 'Submit', href: '/intake' },
-  { n: 2, label: 'Queue', href: '/intake-ops' },
-  { n: 3, label: 'Process', href: '/intake-ops' },
-  { n: 4, label: 'Claims', href: '/claims' },
-  { n: 5, label: 'Pharmacy', href: '/pharmacy' },
+  { n: 1, label: 'Queue', href: '/intake-ops' },
+  { n: 2, label: 'Claims', href: '/claims' },
+  { n: 3, label: 'Pharmacy', href: '/pharmacy' },
+  { n: 4, label: 'Programs', href: '/programs' },
+  { n: 5, label: 'Refills', href: '/refills' },
 ] as const;
 
-/** Compact progress strip — highlight current step number */
+/** Compact progress strip — highlight current step number 1–5 */
 export function FlowSteps({
   current,
 }: {
-  current: 1 | 2 | 3 | 4 | 5 | 'programs' | 'refills';
+  current: 1 | 2 | 3 | 4 | 5;
 }) {
-  const numeric =
-    current === 'programs' || current === 'refills' ? 5 : current;
-
   return (
     <div className="flex flex-wrap items-center gap-1 text-xs">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 mr-1">
+        Staff
+      </span>
       {STEPS.map((s, i) => {
-        const active = typeof current === 'number' && s.n === current;
-        const done = s.n < numeric;
+        const active = s.n === current;
+        const done = s.n < current;
         return (
           <span key={s.n} className="inline-flex items-center gap-1">
             {i > 0 && <span className="text-slate-300 mx-0.5">→</span>}
@@ -41,27 +42,6 @@ export function FlowSteps({
           </span>
         );
       })}
-      <span className="text-slate-300 mx-0.5">·</span>
-      <Link
-        href="/programs"
-        className={`rounded-full px-2 py-0.5 font-medium ${
-          current === 'programs'
-            ? 'bg-violet-700 text-white'
-            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-        }`}
-      >
-        Programs
-      </Link>
-      <Link
-        href="/refills"
-        className={`rounded-full px-2 py-0.5 font-medium ${
-          current === 'refills'
-            ? 'bg-violet-700 text-white'
-            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-        }`}
-      >
-        Refills
-      </Link>
       <Link
         href="/guide#for-staff"
         className="ml-1 text-violet-600 hover:underline"
