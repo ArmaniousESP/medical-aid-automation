@@ -54,6 +54,31 @@ export default function Home() {
               </div>
             </Link>
           </div>
+
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 p-4 text-xs text-emerald-900 space-y-2">
+            <p className="font-semibold text-center">What happens next · ماذا بعد الإرسال؟</p>
+            <ol className="space-y-1.5 list-decimal list-inside text-emerald-800">
+              <li>
+                Save your <strong>Request ID</strong> after submit
+                <span className="block pr-5" dir="rtl">
+                  احفظ رقم الطلب بعد الإرسال
+                </span>
+              </li>
+              <li>
+                Staff process matching and approval
+                <span className="block pr-5" dir="rtl">
+                  الفريق يطابق الأدوية ويراجع الطلب
+                </span>
+              </li>
+              <li>
+                Check status anytime with that ID
+                <span className="block pr-5" dir="rtl">
+                  تابع الحالة بنفس الرقم في أي وقت
+                </span>
+              </li>
+            </ol>
+          </div>
+
           <p className="text-center text-xs text-slate-500">
             <Link href="/guide" className="text-violet-700 underline font-medium">
               Full guide / الدليل الكامل
@@ -65,8 +90,14 @@ export default function Home() {
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 text-center">
             Staff only · للتشغيل
           </h2>
-          <p className="text-xs text-slate-500 text-center">
-            Unlock once → follow the numbered checklist (queue → pharmacy)
+          <p className="text-xs text-slate-500 text-center leading-relaxed">
+            Unlock once → follow the top bar:{' '}
+            <span className="font-mono text-[11px] text-violet-800">
+              Queue → Claims → Pharmacy → Programs → Refills
+            </span>
+          </p>
+          <p className="text-[10px] text-center text-slate-400" dir="rtl">
+            افتح التشغيل مرة · ثم اتبع الشريط العلوي المرقّم
           </p>
           <Suspense fallback={null}>
             <UnlockPanel />
