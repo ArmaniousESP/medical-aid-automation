@@ -68,34 +68,51 @@ export default async function PharmacyPage({
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current={5} />
+          <FlowSteps current={3} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">Step 5 · Pharmacy</p>
+              <p className="text-xs text-violet-600 font-medium">Step 3 · Pharmacy</p>
               <h1 className="text-2xl font-semibold">Pharmacy pick list</h1>
               <p className="text-sm text-slate-600">
-                EVA / NOT EVA · batch dispense · {period}
+                Available at Eva · Not Eva · {period}
               </p>
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
-              <Link
-                href="/refills/safety"
-                className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
-              >
-                Safety queue{safetyFlagged > 0 ? ` (${safetyFlagged})` : ''}
+              <Link href="/claims" className="text-blue-600 hover:underline">
+                ← Claims
+              </Link>
+              <Link href="/programs" className="text-blue-600 hover:underline">
+                Programs →
               </Link>
               <Link href="/eva-split" className="text-blue-600 hover:underline">
                 EVA split
               </Link>
-              <Link href="/refills" className="text-blue-600 hover:underline">
-                Refills
-              </Link>
-              <Link href="/claims" className="text-blue-600 hover:underline">
-                ← Claims
+              <Link
+                href="/refills/safety"
+                className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
+              >
+                Safety{safetyFlagged > 0 ? ` (${safetyFlagged})` : ''}
               </Link>
             </div>
           </div>
         </header>
+
+        <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950 space-y-2">
+          <p className="font-medium">How to use this page</p>
+          <ol className="list-decimal list-inside space-y-1 text-teal-900 text-xs sm:text-sm">
+            <li>
+              Filter <strong>Available in EVA</strong> or <strong>NOT IN EVA</strong>
+            </li>
+            <li>
+              Download <strong>CSV · EVA</strong> and <strong>CSV · NOT EVA</strong> for
+              the two pharmacy routes
+            </li>
+            <li>Check safety queue if flags appear, then batch dispense when ready</li>
+          </ol>
+          <p className="text-xs text-teal-800" dir="rtl">
+            صفّ إيفا / غير إيفا ← صدّر CSV لكل مسار ← راجع السلامة ثم الصرف
+          </p>
+        </div>
 
         {safetyFlagged > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
@@ -104,8 +121,7 @@ export default async function PharmacyPage({
             <Link href="/refills/safety" className="underline font-medium">
               safety queue
             </Link>{' '}
-            before bulk approve/dispense. Soft gate requires acknowledge_safety on the
-            cycle page.
+            before bulk dispense.
           </div>
         )}
 
@@ -203,11 +219,14 @@ export default async function PharmacyPage({
 
         {!error && groups.size === 0 && (
           <p className="text-slate-500 text-sm">
-            No lines for this period/filter. Generate refill cycles first. Or go back to{' '}
+            No lines for this period/filter. Process intake and generate refills first.{' '}
             <Link href="/intake-ops" className="text-blue-600 underline">
-              intake queue
+              Intake queue
             </Link>
-            .
+            {' · '}
+            <Link href="/refills" className="text-blue-600 underline">
+              Refills
+            </Link>
           </p>
         )}
 
