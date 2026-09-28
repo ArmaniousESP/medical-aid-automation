@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+/** Same order as AppNav Staff path */
 const OPS_CHECKLIST = [
   {
     n: 1,
     title: 'Intake queue',
     titleAr: 'طابور الطلبات',
     href: '/intake-ops',
-    hint: 'Review submitted · Process platform intake',
+    hint: 'Process submitted requests',
   },
   {
     n: 2,
@@ -21,24 +22,24 @@ const OPS_CHECKLIST = [
   },
   {
     n: 3,
-    title: 'Programs',
-    titleAr: 'البرامج',
-    href: '/programs',
-    hint: 'Chronic enrollments after process',
-  },
-  {
-    n: 4,
-    title: 'Refills',
-    titleAr: 'الصرف الشهري',
-    href: '/refills',
-    hint: 'Generate month · approve cycles',
-  },
-  {
-    n: 5,
     title: 'Pharmacy',
     titleAr: 'الصيدلية',
     href: '/pharmacy',
-    hint: 'EVA / NOT EVA pick list · dispense',
+    hint: 'Available at Eva · Not Eva · CSV',
+  },
+  {
+    n: 4,
+    title: 'Programs',
+    titleAr: 'البرامج',
+    href: '/programs',
+    hint: 'Chronic enrollments',
+  },
+  {
+    n: 5,
+    title: 'Refills',
+    titleAr: 'الصرف الشهري',
+    href: '/refills',
+    hint: 'Monthly cycle · approve',
   },
 ];
 
@@ -110,6 +111,10 @@ export function UnlockPanel() {
           </button>
         </div>
 
+        <p className="text-[10px] text-center text-slate-500 font-mono">
+          Queue → Claims → Pharmacy → Programs → Refills
+        </p>
+
         <ol className="space-y-1.5">
           {OPS_CHECKLIST.map((s) => (
             <li key={s.n}>
@@ -140,12 +145,12 @@ export function UnlockPanel() {
             Staff guide
           </Link>
           <span className="text-slate-300">·</span>
-          <Link href="/status" className="text-slate-600 hover:underline">
-            System status
-          </Link>
-          <span className="text-slate-300">·</span>
           <Link href="/eva-split" className="text-slate-600 hover:underline">
             EVA split
+          </Link>
+          <span className="text-slate-300">·</span>
+          <Link href="/status" className="text-slate-600 hover:underline">
+            System status
           </Link>
         </div>
       </div>
