@@ -27,22 +27,16 @@ export default async function RefillsPage({
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current="refills" />
+          <FlowSteps current={5} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">Ops · Monthly refills</p>
+              <p className="text-xs text-violet-600 font-medium">Step 5 · Refills</p>
               <h1 className="text-2xl font-semibold">Monthly refill review</h1>
               <p className="text-sm text-slate-600">
-                Generate cycles → review → Pharmacy pick list
+                Generate cycles → review → back to Pharmacy if needed
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
-              <Link
-                href="/refills/safety"
-                className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
-              >
-                Safety queue
-              </Link>
               <Link
                 href="/programs"
                 className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
@@ -53,7 +47,13 @@ export default async function RefillsPage({
                 href="/pharmacy"
                 className="rounded-lg bg-teal-600 text-white px-3 py-1.5 hover:bg-teal-700"
               >
-                Pharmacy →
+                Pharmacy
+              </Link>
+              <Link
+                href="/refills/safety"
+                className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
+              >
+                Safety queue
               </Link>
             </div>
           </div>
@@ -62,7 +62,7 @@ export default async function RefillsPage({
         <div className="rounded-xl border border-violet-100 bg-violet-50/80 p-4 text-sm text-violet-900 space-y-2">
           <p>
             <strong>What to do:</strong> Generate month cycle → open each cycle →
-            approve (safety gate if flagged) → use Pharmacy for dispense.
+            approve (safety gate if flagged) → use Pharmacy for Eva / Not Eva CSV.
           </p>
           <GenerateMonthButton />
         </div>
