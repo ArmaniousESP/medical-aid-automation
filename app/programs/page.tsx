@@ -67,33 +67,27 @@ export default async function ProgramsPage({
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current="programs" />
+          <FlowSteps current={4} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">Ops · Chronic programs</p>
+              <p className="text-xs text-violet-600 font-medium">Step 4 · Programs</p>
               <h1 className="text-2xl font-semibold">البرامج المزمنة</h1>
               <p className="text-sm text-slate-600">
-                Enrolled after Process on intake queue · then Refills / Pharmacy
+                Enrolled after Process · then Refills
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
               <Link
-                href="/intake-ops"
+                href="/pharmacy"
                 className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
               >
-                ← Queue
+                ← Pharmacy
               </Link>
               <Link
                 href="/refills"
                 className="rounded-lg bg-violet-700 text-white px-3 py-1.5 hover:bg-violet-800"
               >
-                Refills →
-              </Link>
-              <Link
-                href="/pharmacy"
-                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
-              >
-                Pharmacy
+                Next: Refills →
               </Link>
             </div>
           </div>
