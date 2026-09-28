@@ -49,12 +49,12 @@ export default function ClaimsPage() {
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-4xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current={4} />
+          <FlowSteps current={2} />
           <div>
-            <p className="text-xs text-violet-600 font-medium">Step 4 · Finance / ops</p>
+            <p className="text-xs text-violet-600 font-medium">Step 2 · Claims</p>
             <h1 className="text-2xl font-semibold">Claims</h1>
             <p className="text-sm text-slate-600">
-              Review draft amounts, then Submit. Next: Programs / Pharmacy.
+              Review draft amounts, then Submit → Pharmacy
             </p>
           </div>
         </header>
@@ -70,19 +70,19 @@ export default function ClaimsPage() {
               href="/intake-ops"
               className="rounded-lg border px-3 py-1.5 font-medium hover:bg-slate-50"
             >
-              ← Back: intake queue
-            </Link>
-            <Link
-              href="/programs"
-              className="rounded-lg border px-3 py-1.5 font-medium hover:bg-slate-50"
-            >
-              Programs
+              ← Queue
             </Link>
             <Link
               href="/pharmacy"
               className="rounded-lg bg-teal-600 text-white px-3 py-1.5 font-medium hover:bg-teal-700"
             >
               Next: Pharmacy →
+            </Link>
+            <Link
+              href="/programs"
+              className="rounded-lg border px-3 py-1.5 font-medium hover:bg-slate-50"
+            >
+              Programs
             </Link>
           </div>
         </div>
