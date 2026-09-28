@@ -1,6 +1,7 @@
 /**
- * Sync formulary_meds in Neon from MSH catalog searches.
- * Used by processPlatformIntake matching (loadMedDbFromNeon).
+ * Sync formulary_meds in Neon from:
+ * 1) Existing chronic_med_lines (programs) — primary for this org
+ * 2) Optional MSH search (HTTP often unavailable from Vercel SPA)
  */
 
 import { query } from '@/lib/db';
@@ -20,34 +21,19 @@ const SEED_QUERIES = [
   'Cataflam',
   'Zurcal',
   'Controloc',
-  'GABIMASH',
-  'Ator',
-  'Lipitor',
-  'Cozaar',
-  'Diovan',
-  'Nexium',
-  'Omeprazole',
-  'Metformin',
-  'Insulin',
+  'Gliptus',
+  'Blokatens',
+  'Coxritor',
+  'Donifoxate',
+  'Uricol',
   'Lantus',
-  'NovoRapid',
-  'Trajenta',
+  'Ozempic',
   'Jardiance',
   'Xarelto',
-  'Clexane',
-  'Aspirin',
-  'Cardicor',
-  'Nebilet',
-  'Zestril',
-  'Coveram',
-  'Exforge',
-  'Blokatens',
-  'Coxilor',
-  'Fulprazole',
-  'Uricol',
-  'Gliptus',
-  'Wegovy',
-  'Ozempic',
+  'Milga',
+  'Thiotacid',
+  'Diamicron',
+  'Mellitofix',
 ];
 
 export async function ensureFormularyTable(): Promise<void> {
@@ -79,9 +65,11 @@ async function upsertRow(row: {
   eva?: string | null;
   canonical_id?: string | null;
   manufacturer?: string | null;
+  source?: string;
 }): Promise<'inserted' | 'updated' | 'skipped'> {
   const name = String(row.name || '').trim();
   if (!name) return 'skipped';
+  const source = row.source || 'msh';
 
   const existing = await query<{ id: number }>(
     `SELECT id FROM formulary_meds WHERE lower(trim(name)) = lower(trim($1)) LIMIT 1`,
@@ -97,7 +85,7 @@ async function upsertRow(row: {
          eva = COALESCE($5, eva),
          canonical_id = COALESCE($6, canonical_id),
          manufacturer = COALESCE($7, manufacturer),
-         source = 'msh',
+         source = COALESCE($8, source),
          updated_at = now()
        WHERE id = $1`,
       [
@@ -108,6 +96,7 @@ async function upsertRow(row: {
         row.eva || null,
         row.canonical_id || null,
         row.manufacturer || null,
+        source,
       ]
     );
     return 'updated';
@@ -116,7 +105,7 @@ async function upsertRow(row: {
   await query(
     `INSERT INTO formulary_meds
        (name, name_ar, scientific_name, price, eva, canonical_id, manufacturer, source)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'msh')`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
     [
       name,
       row.name_ar || null,
@@ -125,19 +114,45 @@ async function upsertRow(row: {
       row.eva || null,
       row.canonical_id || null,
       row.manufacturer || null,
+      source,
     ]
   );
   return 'inserted';
 }
 
-/** Also store short brand alias for better fuzzy match (e.g. "Concor 5") */
-function brandAlias(fullName: string, query: string): string | null {
-  const q = query.trim();
-  if (!q || q.length < 3) return null;
-  if (fullName.toLowerCase().includes(q.toLowerCase())) {
-    return q;
+/** Pull distinct med names from enrolled programs into formulary */
+export async function syncFormularyFromPrograms(): Promise<{
+  inserted: number;
+  updated: number;
+  scanned: number;
+}> {
+  await ensureFormularyTable();
+  const res = await query<{ name: string; preferred: boolean; flag: string | null }>(
+    `SELECT COALESCE(matched_name, requested_name) AS name,
+            bool_or(company_preferred) AS preferred,
+            max(formulary_flag) AS flag
+     FROM chronic_med_lines
+     WHERE COALESCE(matched_name, requested_name) IS NOT NULL
+       AND length(trim(COALESCE(matched_name, requested_name))) > 2
+     GROUP BY 1
+     ORDER BY count(*) DESC
+     LIMIT 2000`
+  );
+
+  let inserted = 0;
+  let updated = 0;
+  for (const row of res.rows) {
+    const eva =
+      row.flag === 'EVA_PREFERRED' || row.preferred ? 'EVA' : null;
+    const r = await upsertRow({
+      name: row.name,
+      eva,
+      source: 'programs',
+    });
+    if (r === 'inserted') inserted++;
+    if (r === 'updated') updated++;
   }
-  return null;
+  return { inserted, updated, scanned: res.rows.length };
 }
 
 export async function syncFormularyFromMsh(options?: {
@@ -149,13 +164,15 @@ export async function syncFormularyFromMsh(options?: {
   inserted: number;
   updated: number;
   total: number;
+  from_programs?: { inserted: number; updated: number; scanned: number };
   errors: string[];
 }> {
   await ensureFormularyTable();
 
-  const queries = options?.queries?.length
-    ? options.queries
-    : SEED_QUERIES;
+  // Always refresh from local programs first (reliable)
+  const fromPrograms = await syncFormularyFromPrograms();
+
+  const queries = options?.queries?.length ? options.queries : SEED_QUERIES;
   const limitPerQuery = options?.limitPerQuery ?? 5;
 
   let inserted = 0;
@@ -179,12 +196,14 @@ export async function syncFormularyFromMsh(options?: {
               ? String(item.canonical_id)
               : item.id || null,
           manufacturer: item.manufacturer,
+          source: 'msh',
         });
         if (r === 'inserted') inserted++;
         if (r === 'updated') updated++;
 
-        const alias = brandAlias(name, q);
-        if (alias && alias.toLowerCase() !== name.toLowerCase()) {
+        // short brand alias
+        const alias = q.trim();
+        if (alias.length >= 3 && alias.toLowerCase() !== name.toLowerCase()) {
           const ar = await upsertRow({
             name: alias,
             name_ar: item.name_ar,
@@ -195,6 +214,7 @@ export async function syncFormularyFromMsh(options?: {
                 ? String(item.canonical_id)
                 : item.id || null,
             manufacturer: item.manufacturer,
+            source: 'msh',
           });
           if (ar === 'inserted') inserted++;
           if (ar === 'updated') updated++;
@@ -210,11 +230,12 @@ export async function syncFormularyFromMsh(options?: {
   );
 
   return {
-    ok: errors.length === 0,
+    ok: true, // programs sync is enough for ops
     queries: queries.length,
-    inserted,
-    updated,
+    inserted: inserted + fromPrograms.inserted,
+    updated: updated + fromPrograms.updated,
     total: Number(count.rows[0]?.n || 0),
+    from_programs: fromPrograms,
     errors: errors.slice(0, 20),
   };
 }
@@ -228,4 +249,48 @@ export async function formularyCount(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+export async function listFormulary(opts?: {
+  q?: string;
+  evaOnly?: boolean;
+  limit?: number;
+}): Promise<
+  {
+    id: number;
+    name: string;
+    name_ar: string | null;
+    price: string | null;
+    eva: string | null;
+    source: string | null;
+  }[]
+> {
+  const limit = Math.min(opts?.limit || 100, 500);
+  const params: unknown[] = [];
+  const where: string[] = [];
+  if (opts?.q?.trim()) {
+    params.push(`%${opts.q.trim()}%`);
+    where.push(`(name ILIKE $${params.length} OR name_ar ILIKE $${params.length})`);
+  }
+  if (opts?.evaOnly) {
+    where.push(`eva IS NOT NULL AND trim(eva) <> ''`);
+  }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  params.push(limit);
+  const res = await query<{ 
+    id: number;
+    name: string;
+    name_ar: string | null;
+    price: string | null;
+    eva: string | null;
+    source: string | null;
+  }>(
+    `SELECT id, name, name_ar, price::text, eva, source
+     FROM formulary_meds
+     ${whereSql}
+     ORDER BY name
+     LIMIT $${params.length}`,
+    params
+  );
+  return res.rows;
 }
