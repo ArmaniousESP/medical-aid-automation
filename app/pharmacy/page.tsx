@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { buildPharmacyPickList } from '@/lib/pharmacy';
 import { scanRefillSafetyQueue } from '@/lib/refillSafety';
 import { PharmacyBatchButton } from './PharmacyBatchButton';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -66,29 +67,33 @@ export default async function PharmacyPage({
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Pharmacy pick list</h1>
-            <p className="text-sm text-slate-600">
-              EVA / NOT EVA · batch dispense · {period}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link
-              href="/refills/safety"
-              className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
-            >
-              Safety queue{safetyFlagged > 0 ? ` (${safetyFlagged})` : ''}
-            </Link>
-            <Link href="/eva-split" className="text-blue-600 hover:underline">
-              EVA split
-            </Link>
-            <Link href="/refills" className="text-blue-600 hover:underline">
-              Refills
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              Home
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={5} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-violet-600 font-medium">Step 5 · Pharmacy</p>
+              <h1 className="text-2xl font-semibold">Pharmacy pick list</h1>
+              <p className="text-sm text-slate-600">
+                EVA / NOT EVA · batch dispense · {period}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/refills/safety"
+                className="rounded bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
+              >
+                Safety queue{safetyFlagged > 0 ? ` (${safetyFlagged})` : ''}
+              </Link>
+              <Link href="/eva-split" className="text-blue-600 hover:underline">
+                EVA split
+              </Link>
+              <Link href="/refills" className="text-blue-600 hover:underline">
+                Refills
+              </Link>
+              <Link href="/claims" className="text-blue-600 hover:underline">
+                ← Claims
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -198,7 +203,11 @@ export default async function PharmacyPage({
 
         {!error && groups.size === 0 && (
           <p className="text-slate-500 text-sm">
-            No lines for this period/filter. Generate refill cycles first.
+            No lines for this period/filter. Generate refill cycles first. Or go back to{' '}
+            <Link href="/intake-ops" className="text-blue-600 underline">
+              intake queue
+            </Link>
+            .
           </p>
         )}
 
