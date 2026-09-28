@@ -21,9 +21,21 @@ export default function IntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchHits, setSearchHits] = useState<any[]>([]);
   const [estimate, setEstimate] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   function updateMed(i: number, patch: Partial<MedLine>) {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
+  }
+
+  async function copyId() {
+    if (!resultId) return;
+    try {
+      await navigator.clipboard.writeText(resultId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
   }
 
   async function searchMed(q: string) {
@@ -60,6 +72,7 @@ export default function IntakePage() {
     setLoading(true);
     setError(null);
     setResultId(null);
+    setCopied(false);
     try {
       const res = await fetch('/api/intake', {
         method: 'POST',
@@ -108,12 +121,24 @@ export default function IntakePage() {
             <p className="font-medium text-emerald-900">
               تم استلام الطلب · Request received
             </p>
+            <p className="text-xs text-emerald-800" dir="rtl">
+              احفظ رقم الطلب — ستحتاجه في الخطوة 2
+            </p>
             <p className="text-xs text-emerald-800">
               Save this Request ID — you need it for step 2:
             </p>
-            <p className="text-xs font-mono text-emerald-900 break-all bg-white/70 rounded p-2 border border-emerald-100">
-              {resultId}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="flex-1 min-w-0 text-xs font-mono text-emerald-900 break-all bg-white/70 rounded p-2 border border-emerald-100">
+                {resultId}
+              </p>
+              <button
+                type="button"
+                onClick={copyId}
+                className="shrink-0 rounded-lg border border-emerald-400 bg-white px-3 py-2 text-xs font-medium text-emerald-900 hover:bg-emerald-100"
+              >
+                {copied ? 'Copied ✓' : 'Copy ID'}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2 pt-1">
               <Link
                 href={`/request-status?id=${encodeURIComponent(resultId)}`}
