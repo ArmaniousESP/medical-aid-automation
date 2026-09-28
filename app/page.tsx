@@ -16,7 +16,6 @@ export default function Home() {
           </p>
         </header>
 
-        {/* Public steps */}
         <section className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-emerald-700 text-center">
             For you · للمستفيد
@@ -62,23 +61,16 @@ export default function Home() {
           </p>
         </section>
 
-        {/* Staff */}
         <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 text-center">
             Staff only · للتشغيل
           </h2>
           <p className="text-xs text-slate-500 text-center">
-            Unlock with PROCESS_SECRET, then use Ops menu: queue → process →
-            claims → pharmacy
+            Unlock once → follow the numbered checklist (queue → pharmacy)
           </p>
           <Suspense fallback={null}>
             <UnlockPanel />
           </Suspense>
-          <p className="text-center text-xs">
-            <Link href="/guide" className="text-violet-700 underline">
-              Staff steps in the guide
-            </Link>
-          </p>
         </section>
 
         <footer className="text-center text-xs text-slate-400 pb-6 space-y-1">

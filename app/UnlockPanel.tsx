@@ -4,6 +4,44 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+const OPS_CHECKLIST = [
+  {
+    n: 1,
+    title: 'Intake queue',
+    titleAr: 'طابور الطلبات',
+    href: '/intake-ops',
+    hint: 'Review submitted · Process platform intake',
+  },
+  {
+    n: 2,
+    title: 'Claims',
+    titleAr: 'المطالبات',
+    href: '/claims',
+    hint: 'Review drafts · Submit',
+  },
+  {
+    n: 3,
+    title: 'Programs',
+    titleAr: 'البرامج',
+    href: '/programs',
+    hint: 'Chronic enrollments after process',
+  },
+  {
+    n: 4,
+    title: 'Refills',
+    titleAr: 'الصرف الشهري',
+    href: '/refills',
+    hint: 'Generate month · approve cycles',
+  },
+  {
+    n: 5,
+    title: 'Pharmacy',
+    titleAr: 'الصيدلية',
+    href: '/pharmacy',
+    hint: 'EVA / NOT EVA pick list · dispense',
+  },
+];
+
 export function UnlockPanel() {
   const search = useSearchParams();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
@@ -58,9 +96,11 @@ export function UnlockPanel() {
 
   if (unlocked) {
     return (
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-emerald-700 font-medium">Ops unlocked</span>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-emerald-700 font-medium">
+            Ops unlocked · التشغيل مفتوح
+          </span>
           <button
             type="button"
             onClick={lock}
@@ -69,30 +109,43 @@ export function UnlockPanel() {
             Lock
           </button>
         </div>
-        <div className="flex flex-wrap gap-1.5 text-[11px]">
-          <Link
-            href="/intake-ops"
-            className="rounded-full bg-violet-100 text-violet-900 px-2.5 py-0.5 hover:bg-violet-200"
-          >
-            1. Queue
-          </Link>
-          <Link
-            href="/claims"
-            className="rounded-full bg-violet-100 text-violet-900 px-2.5 py-0.5 hover:bg-violet-200"
-          >
-            2. Claims
-          </Link>
-          <Link
-            href="/pharmacy"
-            className="rounded-full bg-violet-100 text-violet-900 px-2.5 py-0.5 hover:bg-violet-200"
-          >
-            3. Pharmacy
-          </Link>
-          <Link
-            href="/guide#for-staff"
-            className="rounded-full border px-2.5 py-0.5 text-violet-700 hover:bg-violet-50"
-          >
+
+        <ol className="space-y-1.5">
+          {OPS_CHECKLIST.map((s) => (
+            <li key={s.n}>
+              <Link
+                href={s.href}
+                className="flex items-start gap-2 rounded-lg border border-violet-100 bg-white px-3 py-2 hover:border-violet-300 hover:bg-violet-50 transition"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-700 text-[11px] font-bold text-white">
+                  {s.n}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-800">
+                    {s.title}
+                    <span className="text-slate-400 font-normal" dir="rtl">
+                      {' '}
+                      · {s.titleAr}
+                    </span>
+                  </span>
+                  <span className="block text-[11px] text-slate-500">{s.hint}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex flex-wrap gap-2 text-[11px] justify-center pt-1">
+          <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
             Staff guide
+          </Link>
+          <span className="text-slate-300">·</span>
+          <Link href="/status" className="text-slate-600 hover:underline">
+            System status
+          </Link>
+          <span className="text-slate-300">·</span>
+          <Link href="/eva-split" className="text-slate-600 hover:underline">
+            EVA split
           </Link>
         </div>
       </div>
