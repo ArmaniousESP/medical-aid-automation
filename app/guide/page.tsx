@@ -18,7 +18,7 @@ type Step = {
   bodyAr: string;
   href: string;
   cta: string;
-  mock: 'submit' | 'status' | 'unlock' | 'queue' | 'process' | 'claims' | 'pharmacy';
+  mock: 'submit' | 'status' | 'unlock' | 'queue' | 'process' | 'claims' | 'pharmacy' | 'none';
   id: string;
 };
 
@@ -51,64 +51,76 @@ const PUBLIC_STEPS: Step[] = [
   },
 ];
 
+/** Matches Home unlock checklist after PROCESS_SECRET */
 const STAFF_STEPS: Step[] = [
   {
-    n: 1,
-    id: 'staff-1',
+    n: 0,
+    id: 'staff-0',
     titleEn: 'Unlock ops',
     titleAr: 'فتح لوحة التشغيل',
     bodyEn:
-      'On Home, enter PROCESS_SECRET (set on Vercel). Cookie lasts 12 hours.',
+      'On Home, enter PROCESS_SECRET (set on Vercel). Cookie lasts 12 hours. Then use the numbered checklist.',
     bodyAr:
-      'من الصفحة الرئيسية أدخل كلمة سر التشغيل (PROCESS_SECRET على Vercel). الجلسة 12 ساعة.',
+      'من الصفحة الرئيسية أدخل كلمة سر التشغيل. الجلسة 12 ساعة. ثم اتبع القائمة المرقّمة.',
     href: '/',
     cta: 'Go to Home unlock',
     mock: 'unlock',
   },
   {
+    n: 1,
+    id: 'staff-1',
+    titleEn: 'Intake queue',
+    titleAr: 'طابور الطلبات',
+    bodyEn:
+      'Filter submitted → click Process platform intake (match + enroll + claim draft).',
+    bodyAr:
+      'صفّة submitted ثم Process platform intake (مطابقة + تسجيل + مسودة مطالبة).',
+    href: '/intake-ops',
+    cta: 'Open queue',
+    mock: 'queue',
+  },
+  {
     n: 2,
     id: 'staff-2',
-    titleEn: 'Review intake queue',
-    titleAr: 'مراجعة طابور الطلبات',
-    bodyEn: 'See new submitted requests before processing.',
-    bodyAr: 'اطّلع على الطلبات الجديدة قبل المعالجة.',
-    href: '/intake-ops',
-    cta: 'Intake queue',
-    mock: 'queue',
+    titleEn: 'Claims',
+    titleAr: 'المطالبات',
+    bodyEn: 'Review draft amounts, then Submit each claim.',
+    bodyAr: 'راجع المبالغ في المسودات ثم Submit.',
+    href: '/claims',
+    cta: 'Open claims',
+    mock: 'claims',
   },
   {
     n: 3,
     id: 'staff-3',
-    titleEn: 'Process (match + enroll)',
-    titleAr: 'معالجة (مطابقة + تسجيل)',
-    bodyEn:
-      'Click Process platform intake. Medicines are matched; programs and claim drafts are created when enabled.',
-    bodyAr:
-      'اضغط Process platform intake. تتم مطابقة الأدوية وتسجيل البرنامج ومسودة المطالبة تلقائياً.',
-    href: '/intake-ops',
-    cta: 'Process',
-    mock: 'queue',
+    titleEn: 'Programs',
+    titleAr: 'البرامج المزمنة',
+    bodyEn: 'Confirm chronic programs created after process. Search by name or code.',
+    bodyAr: 'تأكد من البرامج بعد المعالجة. ابحث بالاسم أو الكود.',
+    href: '/programs',
+    cta: 'Open programs',
+    mock: 'none',
   },
   {
     n: 4,
     id: 'staff-4',
-    titleEn: 'Claims',
-    titleAr: 'المطالبات',
-    bodyEn: 'Review draft amounts, then Submit.',
-    bodyAr: 'راجع المبالغ ثم Submit.',
-    href: '/claims',
-    cta: 'Claims',
-    mock: 'claims',
+    titleEn: 'Refills',
+    titleAr: 'الصرف الشهري',
+    bodyEn: 'Generate month cycle, open each cycle, approve (safety gate if flagged).',
+    bodyAr: 'أنشئ دورة الشهر، افتح كل دورة، ووافق (مع بوابة السلامة إن لزم).',
+    href: '/refills',
+    cta: 'Open refills',
+    mock: 'none',
   },
   {
     n: 5,
     id: 'staff-5',
-    titleEn: 'Programs & pharmacy',
-    titleAr: 'البرامج والصيدلية',
-    bodyEn: 'Manage chronic programs and dispense from the pick list.',
-    bodyAr: 'إدارة البرامج المزمنة والصرف من قائمة الصيدلية.',
+    titleEn: 'Pharmacy',
+    titleAr: 'الصيدلية',
+    bodyEn: 'Pick list by EVA / NOT EVA · CSV · batch dispense.',
+    bodyAr: 'قائمة الصرف حسب EVA / NOT EVA · CSV · صرف جماعي.',
     href: '/pharmacy',
-    cta: 'Pharmacy',
+    cta: 'Open pharmacy',
     mock: 'pharmacy',
   },
 ];
@@ -145,6 +157,7 @@ function StepCard({
     accent === 'emerald'
       ? 'bg-emerald-600 hover:bg-emerald-700'
       : 'bg-violet-700 hover:bg-violet-800';
+  const label = s.n === 0 ? '○' : String(s.n);
 
   return (
     <li id={s.id} className="rounded-xl border bg-white p-5 shadow-sm space-y-3 scroll-mt-24">
@@ -152,7 +165,7 @@ function StepCard({
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white font-bold ${badge}`}
         >
-          {s.n}
+          {label}
         </div>
         <div className="space-y-2 min-w-0 flex-1">
           <h3 className="font-semibold text-lg">{s.titleEn}</h3>
@@ -188,7 +201,6 @@ export default function GuidePage() {
           </p>
         </header>
 
-        {/* Jump TOC */}
         <nav
           aria-label="Guide sections"
           className="sticky top-14 z-30 rounded-xl border bg-white/95 backdrop-blur p-3 shadow-sm text-sm"
@@ -230,7 +242,7 @@ export default function GuidePage() {
                 href={`#${s.id}`}
                 className="rounded-full border px-2.5 py-1 text-xs text-violet-800 hover:bg-violet-50"
               >
-                Ops · {s.n}. {s.titleEn.split(' ').slice(0, 2).join(' ')}
+                Ops · {s.n === 0 ? 'Unlock' : `${s.n}. ${s.titleEn.split(' ')[0]}`}
               </a>
             ))}
           </div>
@@ -251,7 +263,7 @@ export default function GuidePage() {
 
           <ol className="space-y-4">
             {PUBLIC_STEPS.map((s) => (
-              <StepCard key={s.n} s={s} accent="emerald" />
+              <StepCard key={s.id} s={s} accent="emerald" />
             ))}
           </ol>
 
@@ -275,16 +287,16 @@ export default function GuidePage() {
           <div className="rounded-xl border-2 border-violet-200 bg-violet-50 p-4">
             <h2 className="font-semibold text-violet-900 text-lg">For staff (ops)</h2>
             <p className="text-sm text-violet-800 mt-1" dir="rtl">
-              لفريق التشغيل — بعد فتح القفل
+              لفريق التشغيل — نفس قائمة الصفحة الرئيسية بعد الفتح
             </p>
             <p className="text-sm text-violet-800 mt-2 font-mono text-xs sm:text-sm">
-              Unlock → Queue → Process → Claims → Pharmacy
+              Unlock → Queue → Claims → Programs → Refills → Pharmacy
             </p>
           </div>
 
           <ol className="space-y-4">
             {STAFF_STEPS.map((s) => (
-              <StepCard key={s.n} s={s} accent="violet" />
+              <StepCard key={s.id} s={s} accent="violet" />
             ))}
           </ol>
         </section>
