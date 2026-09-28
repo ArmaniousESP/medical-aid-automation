@@ -53,7 +53,9 @@ function StatusForm() {
         className="rounded-xl border bg-white p-5 shadow-sm space-y-3 text-sm"
       >
         <label className="block space-y-1">
-          <span className="text-xs text-slate-500">Request ID *</span>
+          <span className="text-xs text-slate-500">
+            Request ID * · رقم الطلب
+          </span>
           <input
             required
             value={id}
@@ -62,34 +64,47 @@ function StatusForm() {
             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           />
         </label>
-        <label className="block space-y-1">
-          <span className="text-xs text-slate-500">Phone (optional)</span>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-xs text-slate-500">Employee ID (optional)</span>
-          <input
-            value={empId}
-            onChange={(e) => setEmpId(e.target.value)}
-            className="w-full rounded border px-3 py-2"
-          />
-        </label>
+        <details className="text-xs text-slate-500">
+          <summary className="cursor-pointer hover:text-slate-700">
+            Optional verification · تحقق اختياري
+          </summary>
+          <div className="mt-2 space-y-2">
+            <label className="block space-y-1">
+              <span>Phone · الموبايل</span>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full rounded border px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span>Employee ID · الرقم الوظيفي</span>
+              <input
+                value={empId}
+                onChange={(e) => setEmpId(e.target.value)}
+                className="w-full rounded border px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+        </details>
         <button
           type="submit"
           disabled={loading}
           className="w-full rounded-lg bg-slate-800 text-white py-2.5 font-medium disabled:opacity-50"
         >
-          {loading ? '…' : 'Check status'}
+          {loading ? '…' : 'Check status · عرض الحالة'}
         </button>
       </form>
 
       {error && (
         <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
           {error}
+          <span className="block text-xs mt-1 text-red-600">
+            Check the ID from the submit confirmation. Need help?{' '}
+            <Link href="/intake" className="underline">
+              Submit again
+            </Link>
+          </span>
         </p>
       )}
 
@@ -121,6 +136,12 @@ function StatusForm() {
               </dd>
             </div>
           </dl>
+          <p className="text-[11px] text-emerald-800 pt-2 border-t border-emerald-100">
+            You can return here anytime with the same Request ID.
+            <span className="block" dir="rtl">
+              يمكنك العودة بنفس رقم الطلب في أي وقت.
+            </span>
+          </p>
         </div>
       )}
     </>
@@ -136,9 +157,8 @@ export default function RequestStatusPage() {
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold">حالة الطلب</h1>
           <p className="text-sm text-slate-600">Check request status</p>
-          <p className="text-xs text-slate-500">
-            Enter the Request ID from step 1. Optional phone or employee ID for
-            verification.
+          <p className="text-xs text-slate-500" dir="rtl">
+            أدخل رقم الطلب من الخطوة 1
           </p>
         </header>
 
