@@ -94,6 +94,26 @@ export async function GET() {
       } catch {
         checks.claims = { ok: true, detail: 'table on first use' };
       }
+      try {
+        const fm = await query<{ n: string; eva: string }>(
+          `SELECT count(*)::text AS n,
+                  count(*) FILTER (WHERE eva IS NOT NULL AND trim(eva) <> '')::text AS eva
+           FROM formulary_meds`
+        ).catch(() => ({ rows: [{ n: '0', eva: '0' }] }));
+        const n = Number(fm.rows[0]?.n || 0);
+        checks.formulary = {
+          ok: n > 0,
+          detail:
+            n > 0
+              ? `formulary_meds=${n} · with_eva=${fm.rows[0]?.eva ?? 0}`
+              : 'empty — seed via MSH or POST /api/formulary/sync',
+        };
+      } catch {
+        checks.formulary = {
+          ok: false,
+          detail: 'formulary_meds missing',
+        };
+      }
     } catch (e: unknown) {
       checks.neon = {
         ok: false,
