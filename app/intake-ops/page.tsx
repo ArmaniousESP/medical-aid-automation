@@ -38,13 +38,13 @@ export default function IntakeOpsPage() {
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current={2} />
+          <FlowSteps current={1} />
           <div className="flex flex-wrap justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">Steps 2–3 · Ops</p>
+              <p className="text-xs text-violet-600 font-medium">Step 1 · Queue</p>
               <h1 className="text-2xl font-semibold">Intake queue</h1>
               <p className="text-sm text-slate-600">
-                Review new requests, then run Process (match + enroll + claim draft)
+                Process new requests → then Claims
               </p>
             </div>
             <Link
@@ -58,29 +58,33 @@ export default function IntakeOpsPage() {
 
         <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-3">
           <p className="text-sm text-violet-900">
-            <strong>What to do:</strong> Filter <em>submitted</em> →{' '}
-            <strong>Process platform intake</strong> → open Claims & Programs.
+            <strong>How:</strong> keep filter on <em>submitted</em> → click{' '}
+            <strong>Process platform intake</strong> (match + enroll + claim draft) →{' '}
+            go to Claims.
+          </p>
+          <p className="text-xs text-violet-800" dir="rtl">
+            صفّة submitted ← نفّذ المعالجة ← انتقل للمطالبات
           </p>
           <ProcessIntakeButton onDone={load} />
           <div className="flex flex-wrap gap-2 text-xs">
             <Link
               href="/claims"
-              className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
+              className="rounded-lg bg-violet-700 px-3 py-1.5 font-medium text-white"
             >
               Next: Claims →
             </Link>
             <Link
-              href="/programs"
+              href="/pharmacy"
               className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
             >
-              Programs
+              Pharmacy
             </Link>
             <button
               type="button"
               onClick={load}
               className="rounded-lg bg-white border border-violet-300 px-3 py-1.5 font-medium text-violet-900"
             >
-              Refresh list
+              Refresh
             </button>
           </div>
         </div>
