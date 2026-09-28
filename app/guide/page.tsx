@@ -51,7 +51,7 @@ const PUBLIC_STEPS: Step[] = [
   },
 ];
 
-/** Matches Home unlock checklist after PROCESS_SECRET */
+/** Matches top nav Staff path after PROCESS_SECRET */
 const STAFF_STEPS: Step[] = [
   {
     n: 0,
@@ -59,9 +59,9 @@ const STAFF_STEPS: Step[] = [
     titleEn: 'Unlock ops',
     titleAr: 'فتح لوحة التشغيل',
     bodyEn:
-      'On Home, enter PROCESS_SECRET (set on Vercel). Cookie lasts 12 hours. Then use the numbered checklist.',
+      'On Home, enter PROCESS_SECRET (set on Vercel). Cookie lasts 12 hours. Then use the numbered Staff path in the top bar.',
     bodyAr:
-      'من الصفحة الرئيسية أدخل كلمة سر التشغيل. الجلسة 12 ساعة. ثم اتبع القائمة المرقّمة.',
+      'من الصفحة الرئيسية أدخل كلمة سر التشغيل. الجلسة 12 ساعة. ثم اتبع شريط Staff path المرقّم.',
     href: '/',
     cta: 'Go to Home unlock',
     mock: 'unlock',
@@ -72,7 +72,7 @@ const STAFF_STEPS: Step[] = [
     titleEn: 'Intake queue',
     titleAr: 'طابور الطلبات',
     bodyEn:
-      'Filter submitted → click Process platform intake (match + enroll + claim draft).',
+      'Filter submitted → Process platform intake (match + enroll + claim draft).',
     bodyAr:
       'صفّة submitted ثم Process platform intake (مطابقة + تسجيل + مسودة مطالبة).',
     href: '/intake-ops',
@@ -93,6 +93,19 @@ const STAFF_STEPS: Step[] = [
   {
     n: 3,
     id: 'staff-3',
+    titleEn: 'Pharmacy',
+    titleAr: 'الصيدلية',
+    bodyEn:
+      'Route orders by Available at Eva vs Not Eva. Export CSV for the pharmacy. Optional: EVA split screen for the same cut.',
+    bodyAr:
+      'قسّم الطلبات: متوفر عند إيفا / غير إيفا. صدّر CSV للصيدلية. يمكن استخدام شاشة EVA split.',
+    href: '/pharmacy',
+    cta: 'Open pharmacy',
+    mock: 'pharmacy',
+  },
+  {
+    n: 4,
+    id: 'staff-4',
     titleEn: 'Programs',
     titleAr: 'البرامج المزمنة',
     bodyEn: 'Confirm chronic programs created after process. Search by name or code.',
@@ -102,8 +115,8 @@ const STAFF_STEPS: Step[] = [
     mock: 'none',
   },
   {
-    n: 4,
-    id: 'staff-4',
+    n: 5,
+    id: 'staff-5',
     titleEn: 'Refills',
     titleAr: 'الصرف الشهري',
     bodyEn: 'Generate month cycle, open each cycle, approve (safety gate if flagged).',
@@ -111,17 +124,6 @@ const STAFF_STEPS: Step[] = [
     href: '/refills',
     cta: 'Open refills',
     mock: 'none',
-  },
-  {
-    n: 5,
-    id: 'staff-5',
-    titleEn: 'Pharmacy',
-    titleAr: 'الصيدلية',
-    bodyEn: 'Pick list by EVA / NOT EVA · CSV · batch dispense.',
-    bodyAr: 'قائمة الصرف حسب EVA / NOT EVA · CSV · صرف جماعي.',
-    href: '/pharmacy',
-    cta: 'Open pharmacy',
-    mock: 'pharmacy',
   },
 ];
 
@@ -287,10 +289,10 @@ export default function GuidePage() {
           <div className="rounded-xl border-2 border-violet-200 bg-violet-50 p-4">
             <h2 className="font-semibold text-violet-900 text-lg">For staff (ops)</h2>
             <p className="text-sm text-violet-800 mt-1" dir="rtl">
-              لفريق التشغيل — نفس قائمة الصفحة الرئيسية بعد الفتح
+              لفريق التشغيل — نفس شريط Staff path في الأعلى بعد الفتح
             </p>
             <p className="text-sm text-violet-800 mt-2 font-mono text-xs sm:text-sm">
-              Unlock → Queue → Claims → Programs → Refills → Pharmacy
+              Unlock → Queue → Claims → Pharmacy → Programs → Refills
             </p>
           </div>
 
