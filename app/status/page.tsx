@@ -3,7 +3,10 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 async function loadHealth() {
-  const checks: Record<string, { ok: boolean; detail?: string; required?: boolean }> = {
+  const checks: Record<
+    string,
+    { ok: boolean; detail?: string; required?: boolean; recommended?: boolean }
+  > = {
     env_database: {
       ok: !!process.env.DATABASE_URL,
       detail: 'DATABASE_URL (Neon pooler) — required for platform',
@@ -12,9 +15,10 @@ async function loadHealth() {
     process_secret: {
       ok: !!process.env.PROCESS_SECRET,
       detail: process.env.PROCESS_SECRET
-        ? 'Protects process / claims / ops APIs'
-        : 'Optional — set any strong secret (openssl rand -hex 32)',
+        ? 'Set — unlock on Home for ops pages'
+        : 'Not set — add to lock ops; unlock from Home',
       required: false,
+      recommended: true,
     },
     env_google: {
       ok: !!(
@@ -96,7 +100,8 @@ async function loadHealth() {
   }
 
   const ok = !!checks.env_database?.ok && !!checks.neon?.ok;
-  return { ok, checks };
+  const secretOk = !!checks.process_secret?.ok;
+  return { ok, secretOk, checks };
 }
 
 export default async function StatusPage() {
@@ -121,25 +126,85 @@ export default async function StatusPage() {
         >
           <div className="font-semibold">
             {health.ok
-              ? 'Ready — platform cycle can run'
+              ? 'Database ready — platform cycle can run'
               : 'Setup needed — add DATABASE_URL on Vercel'}
           </div>
           <p className="text-xs text-slate-600 mt-1">
             {health.ok
-              ? 'Neon is connected. Follow the guide to process requests.'
+              ? health.secretOk
+                ? 'PROCESS_SECRET is set. Unlock on Home, then follow the ops checklist.'
+                : 'Neon is connected. Set PROCESS_SECRET next so ops pages stay private.'
               : 'Google sheet credentials are optional and not required to start.'}
           </p>
         </div>
+
+        {health.ok && !health.secretOk && (
+          <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3 text-sm">
+            <h2 className="font-semibold text-amber-950">
+              Recommended: set PROCESS_SECRET
+            </h2>
+            <p className="text-amber-900 text-xs" dir="rtl">
+              بدون كلمة السر، صفحات التشغيل تبقى مقفولة. أضفها على Vercel ثم أعد
+              النشر.
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-amber-950 text-xs">
+              <li>
+                Open{' '}
+                <a
+                  href="https://vercel.com/armanious-foundation/medical-aid-automation/settings/environment-variables"
+                  className="underline font-medium"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Vercel → Environment Variables
+                </a>
+              </li>
+              <li>
+                Add key{' '}
+                <code className="bg-white/80 px-1 rounded">PROCESS_SECRET</code>{' '}
+                with a long random value (example:{' '}
+                <code className="bg-white/80 px-1 rounded text-[10px]">
+                  openssl rand -hex 24
+                </code>
+                )
+              </li>
+              <li>
+                Scope: <strong>Production</strong> (and Preview if you use it)
+              </li>
+              <li>
+                <strong>Redeploy</strong> the latest Production deployment
+              </li>
+              <li>
+                Open{' '}
+                <Link href="/" className="underline font-medium">
+                  Home
+                </Link>{' '}
+                → enter the same value → <strong>Unlock ops</strong>
+              </li>
+              <li>
+                Follow checklist: Queue → Claims → Programs → Refills → Pharmacy
+              </li>
+            </ol>
+            <p className="text-[11px] text-amber-800">
+              Multiple staff passwords: comma-separated in the same variable, e.g.{' '}
+              <code className="bg-white/80 px-1 rounded">alice-secret,bob-secret</code>
+            </p>
+          </div>
+        )}
 
         {health.ok && (
           <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
             <h2 className="font-medium text-sm">Next steps</h2>
             <ol className="list-decimal list-inside text-sm text-slate-700 space-y-2">
+              {!health.secretOk && (
+                <li className="text-amber-800 font-medium">
+                  Set PROCESS_SECRET (box above) and unlock on Home
+                </li>
+              )}
               <li>
                 <Link href="/guide" className="text-violet-700 font-medium hover:underline">
                   Read the guide
-                </Link>{' '}
-                (how the cycle works)
+                </Link>
               </li>
               <li>
                 <Link href="/intake" className="text-violet-700 hover:underline">
@@ -148,18 +213,21 @@ export default async function StatusPage() {
               </li>
               <li>
                 <Link href="/intake-ops" className="text-violet-700 hover:underline">
-                  Open intake queue
+                  Intake queue
                 </Link>{' '}
                 → Process platform intake
               </li>
               <li>
-                Check{' '}
                 <Link href="/programs" className="text-violet-700 hover:underline">
                   Programs
-                </Link>{' '}
-                and{' '}
+                </Link>
+                {' · '}
                 <Link href="/claims" className="text-violet-700 hover:underline">
                   Claims
+                </Link>
+                {' · '}
+                <Link href="/pharmacy" className="text-violet-700 hover:underline">
+                  Pharmacy
                 </Link>
               </li>
             </ol>
@@ -173,6 +241,9 @@ export default async function StatusPage() {
                 <span className="font-mono text-xs">{key}</span>
                 {val.required && (
                   <span className="ml-1 text-[10px] text-slate-400">required</span>
+                )}
+                {val.recommended && !val.required && (
+                  <span className="ml-1 text-[10px] text-amber-600">recommended</span>
                 )}
               </div>
               <span
@@ -196,8 +267,9 @@ export default async function StatusPage() {
                 Neon (pooler, sslmode=require)
               </li>
               <li>
-                Optional:{' '}
-                <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>
+                Add{' '}
+                <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>{' '}
+                (strong random string)
               </li>
               <li>
                 <strong>Redeploy</strong> from Deployments
