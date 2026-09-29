@@ -27,19 +27,21 @@ export default async function FormularyPage({
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
-          <FlowSteps current="programs" />
+          <FlowSteps current={1} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">Ops · Formulary</p>
+              <p className="text-xs text-violet-600 font-medium">
+                More tools · Formulary
+              </p>
               <h1 className="text-2xl font-semibold">Medicine formulary</h1>
               <p className="text-sm text-slate-600">
-                Matching catalog · {total} rows · used on Process intake
+                Matching catalog · {total} rows · used when you Process intake
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
               <Link
                 href="/intake-ops"
-                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+                className="rounded-lg bg-violet-700 text-white px-3 py-1.5 hover:bg-violet-800"
               >
                 ← Queue
               </Link>
@@ -49,15 +51,30 @@ export default async function FormularyPage({
               >
                 Pharmacy
               </Link>
+              <Link
+                href="/eva-split"
+                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+              >
+                EVA split
+              </Link>
             </div>
           </div>
         </header>
 
         <div className="rounded-xl border border-violet-100 bg-violet-50/80 p-4 text-sm space-y-3">
-          <p>
-            <strong>Sync from programs</strong> copies medicine names already
-            used in chronic enrollments (reliable). MSH HTTP is optional and may
-            be unreachable from the server.
+          <p className="font-medium text-violet-900">How to use</p>
+          <ol className="list-decimal list-inside text-xs sm:text-sm text-violet-900 space-y-1">
+            <li>
+              Click <strong>Sync from programs</strong> so names match what is
+              already enrolled
+            </li>
+            <li>Search or filter <strong>EVA only</strong> when checking preferred products</li>
+            <li>
+              Return to <strong>Queue</strong> and run Process platform intake
+            </li>
+          </ol>
+          <p className="text-xs text-violet-800" dir="rtl">
+            مزامنة من البرامج ← بحث / إيفا ← عودة للطابور والمعالجة
           </p>
           <FormularySyncButton />
         </div>
@@ -84,11 +101,20 @@ export default async function FormularyPage({
         {error && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
+            <p className="text-xs mt-1">
+              Unlock on Home if needed ·{' '}
+              <Link href="/status" className="underline">
+                status
+              </Link>
+            </p>
           </div>
         )}
 
         {!error && rows.length === 0 && (
-          <p className="text-sm text-slate-500">No rows. Run Sync from programs.</p>
+          <p className="text-sm text-slate-500">
+            No rows. Run <strong>Sync from programs</strong> above, or process
+            intake first so programs exist.
+          </p>
         )}
 
         {rows.length > 0 && (
