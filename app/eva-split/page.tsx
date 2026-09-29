@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { splitFromDatabase } from '@/lib/evaSplit';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,25 +38,45 @@ export default async function EvaSplitPage({
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">تقسيم الاعتماد — EVA</h1>
-            <p className="text-sm text-slate-600">
-              Approved-Requests مقسّمة: Available in EVA · NOT IN EVA
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link href="/pharmacy" className="text-blue-600 hover:underline">
-              الصيدلية
-            </Link>
-            <Link href="/requests" className="text-blue-600 hover:underline">
-              الطلبات
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={3} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-violet-600 font-medium">
+                Related to Step 3 · Pharmacy
+              </p>
+              <h1 className="text-2xl font-semibold">تقسيم الاعتماد — EVA</h1>
+              <p className="text-sm text-slate-600">
+                Available in EVA · NOT IN EVA (same cut as pharmacy CSV)
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link
+                href="/pharmacy"
+                className="rounded-lg bg-teal-600 px-3 py-1.5 text-white hover:bg-teal-700"
+              >
+                Pharmacy pick list →
+              </Link>
+              <Link href="/claims" className="text-blue-600 hover:underline">
+                ← Claims
+              </Link>
+              <Link href="/" className="text-blue-600 hover:underline">
+                Home
+              </Link>
+            </div>
           </div>
         </header>
+
+        <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950 space-y-1">
+          <p className="font-medium">How to use</p>
+          <p className="text-xs sm:text-sm">
+            Filter EVA or NOT EVA below → compare counts → for pharmacy routing
+            prefer <strong>Pharmacy</strong> page CSV · EVA / CSV · NOT EVA.
+          </p>
+          <p className="text-xs text-teal-800" dir="rtl">
+            صفّ إيفا / غير إيفا ← للتصدير استخدم شاشة الصيدلية
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="rounded-lg border bg-white p-3 shadow-sm">
@@ -79,75 +100,60 @@ export default async function EvaSplitPage({
         </div>
 
         <div className="flex flex-wrap gap-2 items-center text-sm">
-          <form className="flex gap-2 items-center">
+          <form className="flex flex-wrap gap-2 items-center" method="get">
             <input
               name="q"
               defaultValue={q || ''}
-              placeholder="بحث موظف / مريض / دواء"
-              className="rounded border px-2 py-1.5 min-w-[200px]"
+              placeholder="بحث اسم / دواء / برنامج"
+              className="rounded border px-3 py-1.5 text-sm min-w-[180px]"
             />
-            {bucket !== 'all' && (
-              <input type="hidden" name="bucket" value={bucket} />
-            )}
+            <select
+              name="bucket"
+              defaultValue={bucket === 'ALL' ? 'all' : bucket}
+              className="rounded border px-2 py-1.5"
+            >
+              <option value="all">الكل</option>
+              <option value="EVA">Available in EVA</option>
+              <option value="NOT_EVA">NOT IN EVA</option>
+            </select>
             <button
               type="submit"
               className="rounded bg-slate-800 px-3 py-1.5 text-white"
             >
-              بحث
+              تطبيق
             </button>
           </form>
-
-          {(
-            [
-              ['all', 'الكل'],
-              ['EVA', 'Available in EVA'],
-              ['NOT_EVA', 'NOT IN EVA'],
-            ] as const
-          ).map(([b, label]) => (
-            <Link
-              key={b}
-              href={b === 'all' ? '/eva-split' : `/eva-split?bucket=${b}`}
-              className={`rounded-full px-3 py-1 border ${
-                bucket === b || (b === 'all' && bucket === 'ALL')
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white border-slate-200'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-
-          <a
-            href="/api/eva-split?bucket=EVA&format=csv"
-            className="rounded bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700"
+          <Link
+            href="/pharmacy?formulary=EVA"
+            className="rounded bg-teal-600 px-3 py-1.5 text-white text-xs"
           >
-            CSV · EVA
-          </a>
-          <a
-            href="/api/eva-split?bucket=NOT_EVA&format=csv"
-            className="rounded bg-slate-700 px-3 py-1.5 text-white hover:bg-slate-800"
+            Pharmacy · EVA
+          </Link>
+          <Link
+            href="/pharmacy?formulary=NOT_EVA"
+            className="rounded bg-slate-600 px-3 py-1.5 text-white text-xs"
           >
-            CSV · NOT EVA
-          </a>
-          <a
-            href="/api/eva-split?format=csv"
-            className="rounded border bg-white px-3 py-1.5 hover:bg-slate-50"
-          >
-            CSV · الكل
-          </a>
+            Pharmacy · NOT EVA
+          </Link>
         </div>
 
         {error && (
           <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
+            <p className="text-xs mt-1">
+              Unlock on Home if needed ·{' '}
+              <Link href="/status" className="underline">
+                status
+              </Link>
+            </p>
           </div>
         )}
 
-        <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-100 text-left">
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-100 text-slate-600">
               <tr>
-                <th className="p-2">القائمة</th>
+                <th className="p-2">Bucket</th>
                 <th className="p-2">الموظف</th>
                 <th className="p-2">المريض</th>
                 <th className="p-2">الدواء</th>
@@ -199,7 +205,10 @@ export default async function EvaSplitPage({
               {rows.length === 0 && !error && (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-slate-500">
-                    لا صفوف — تأكد من استيراد Approved-Requests إلى Neon
+                    لا صفوف — تأكد من البرامج النشطة في Neon ·{' '}
+                    <Link href="/intake-ops" className="text-blue-600 underline">
+                      Queue
+                    </Link>
                   </td>
                 </tr>
               )}
@@ -208,8 +217,11 @@ export default async function EvaSplitPage({
         </div>
 
         <p className="text-xs text-slate-400">
-          المصدر: قاعدة البيانات (بعد الاستيراد). مع Google:{' '}
-          <code>/api/eva-split?source=sheet</code>
+          المصدر: قاعدة البيانات. للتصدير للصيدلية استخدم{' '}
+          <Link href="/pharmacy" className="text-blue-600 underline">
+            /pharmacy
+          </Link>
+          .
         </p>
       </div>
     </main>
