@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { LiveDryRunButton } from './LiveDryRunButton';
 
 /** Same order as AppNav Staff path */
 const OPS_CHECKLIST = [
@@ -111,6 +112,8 @@ export function UnlockPanel() {
           </button>
         </div>
 
+        <LiveDryRunButton />
+
         <p className="text-[10px] text-center text-slate-500 font-mono">
           Queue → Claims → Pharmacy → Programs → Refills
         </p>
@@ -153,12 +156,12 @@ export function UnlockPanel() {
         </Link>
 
         <div className="flex flex-wrap gap-2 text-[11px] justify-center pt-1">
-          <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
-            Staff guide
+          <Link href="/dry-run" className="text-amber-800 font-medium hover:underline">
+            Full dry-run script
           </Link>
           <span className="text-slate-300">·</span>
-          <Link href="/eva-split" className="text-slate-600 hover:underline">
-            EVA split
+          <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
+            Staff guide
           </Link>
           <span className="text-slate-300">·</span>
           <Link href="/status" className="text-slate-600 hover:underline">
