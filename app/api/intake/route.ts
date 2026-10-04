@@ -94,15 +94,19 @@ export async function POST(req: NextRequest) {
           .filter(Boolean)
           .map((name: string) => ({ name, qty: 1 }));
 
+    const phone = body.phone ? String(body.phone) : undefined;
+    const empName = String(body.emp_name || body.employee_name || '');
+    const patientName =
+      body.patient_name || body.patient
+        ? String(body.patient_name || body.patient)
+        : undefined;
+
     const created = await createAidRequest({
-      emp_name: String(body.emp_name || body.employee_name || ''),
+      emp_name: empName,
       emp_id: body.emp_id ? String(body.emp_id) : undefined,
       company: body.company ? String(body.company) : undefined,
-      phone: body.phone ? String(body.phone) : undefined,
-      patient_name:
-        body.patient_name || body.patient
-          ? String(body.patient_name || body.patient)
-          : undefined,
+      phone,
+      patient_name: patientName,
       city: body.city ? String(body.city) : undefined,
       meds,
       comments: body.comments ? String(body.comments) : undefined,
@@ -121,6 +125,39 @@ export async function POST(req: NextRequest) {
           : null,
     });
 
+    let whatsapp: { attempted: boolean; ok?: boolean; error?: string } = {
+      attempted: false,
+    };
+    if (
+      process.env.WHATSAPP_NOTIFY_ON_INTAKE === '1' &&
+      phone &&
+      String(phone).trim()
+    ) {
+      try {
+        const { sendWhatsApp } = await import('@/lib/whatsapp');
+        const r = await sendWhatsApp({
+          to: phone,
+          template: 'request_received',
+          vars: {
+            name: empName,
+            patient: patientName || '',
+            request_id: created.id,
+          },
+        });
+        whatsapp = {
+          attempted: true,
+          ok: r.ok,
+          error: r.error,
+        };
+      } catch (e: unknown) {
+        whatsapp = {
+          attempted: true,
+          ok: false,
+          error: e instanceof Error ? e.message : 'whatsapp failed',
+        };
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       id: created.id,
@@ -129,6 +166,7 @@ export async function POST(req: NextRequest) {
       status_url: `/request-status?id=${created.id}`,
       message:
         'Request received. Save your Request ID to check status later.',
+      whatsapp,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'intake failed';
