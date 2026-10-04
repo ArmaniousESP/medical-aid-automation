@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { buildMedicationsReport, buildMonthlyReport } from '@/lib/reports';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,25 +36,43 @@ export default async function ReportsPage({
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">تقارير الأدوية</h1>
-            <p className="text-sm text-slate-600">
-              صرف شهري · قائمة المستحضرات المزمنة · CSV تلقائي
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm items-center">
-            <Link href="/refills" className="text-blue-600 hover:underline">
-              الصرف
-            </Link>
-            <Link href="/programs" className="text-blue-600 hover:underline">
-              البرامج
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={5} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-violet-600 font-medium">
+                More tools · Reports
+              </p>
+              <h1 className="text-2xl font-semibold">تقارير الأدوية</h1>
+              <p className="text-sm text-slate-600">
+                Monthly dispense · chronic catalog · CSV · {period}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm items-center">
+              <Link href="/refills" className="text-blue-600 hover:underline">
+                ← Refills
+              </Link>
+              <Link href="/pharmacy" className="text-blue-600 hover:underline">
+                Pharmacy
+              </Link>
+              <Link href="/programs" className="text-blue-600 hover:underline">
+                Programs
+              </Link>
+            </div>
           </div>
         </header>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm space-y-1">
+          <p className="font-medium">How to use</p>
+          <p className="text-xs sm:text-sm text-slate-600">
+            <strong>Monthly</strong> = this period's refill cycles and costs ·{' '}
+            <strong>Chronic meds</strong> = active program catalog (EVA vs not).
+            Download CSV for finance or pharmacy planning.
+          </p>
+          <p className="text-xs text-slate-500" dir="rtl">
+            الصرف الشهري للفترة · المستحضرات المزمنة النشطة · تنزيل CSV
+          </p>
+        </div>
 
         <div className="flex flex-wrap gap-2 text-sm">
           <Link
@@ -64,7 +83,7 @@ export default async function ReportsPage({
                 : 'bg-white border-slate-200'
             }`}
           >
-            الصرف الشهري
+            Monthly · الصرف الشهري
           </Link>
           <Link
             href="/reports?tab=meds"
@@ -74,13 +93,19 @@ export default async function ReportsPage({
                 : 'bg-white border-slate-200'
             }`}
           >
-            مستحضرات مزمنة
+            Chronic meds · مستحضرات مزمنة
           </Link>
         </div>
 
         {error && (
           <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
+            <p className="text-xs mt-1">
+              Unlock on Home if needed ·{' '}
+              <Link href="/status" className="underline">
+                status
+              </Link>
+            </p>
           </div>
         )}
 
@@ -98,31 +123,31 @@ export default async function ReportsPage({
                   type="submit"
                   className="rounded bg-slate-800 px-3 py-1 text-white text-sm"
                 >
-                  عرض
+                  Go
                 </button>
               </form>
               <a
                 href={`/api/reports/monthly?period=${period}&format=csv`}
                 className="rounded bg-emerald-600 px-3 py-1 text-white text-sm hover:bg-emerald-700"
               >
-                تنزيل CSV صرف
+                CSV · monthly
               </a>
             </div>
 
             {s && (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Card label="دورات" value={String(s.cycles)} />
-                  <Card label="تقديري EGP" value={String(s.estimated_total_egp)} />
-                  <Card label="معتمد EGP" value={String(s.approved_total_egp)} />
+                  <Card label="Cycles" value={String(s.cycles)} />
+                  <Card label="Estimated EGP" value={String(s.estimated_total_egp)} />
+                  <Card label="Approved EGP" value={String(s.approved_total_egp)} />
                   <Card
-                    label="مصروف / معتمد / معلق"
+                    label="Dispensed / approved / pending"
                     value={`${s.items_dispensed} / ${s.items_approved} / ${s.items_pending}`}
                   />
                 </div>
 
                 <div className="rounded-lg border bg-white p-4 shadow-sm">
-                  <h2 className="font-medium mb-2">حالات الدورات</h2>
+                  <h2 className="font-medium mb-2">Cycle statuses</h2>
                   <div className="flex flex-wrap gap-2 text-sm">
                     {Object.entries(s.by_status).map(([k, v]) => (
                       <span key={k} className="rounded bg-slate-100 px-2 py-1">
@@ -130,7 +155,9 @@ export default async function ReportsPage({
                       </span>
                     ))}
                     {Object.keys(s.by_status).length === 0 && (
-                      <span className="text-slate-500">لا بيانات لهذا الشهر</span>
+                      <span className="text-slate-500">
+                        No data for this month · generate refills first
+                      </span>
                     )}
                   </div>
                 </div>
@@ -140,9 +167,9 @@ export default async function ReportsPage({
                     <table className="w-full text-sm">
                       <thead className="bg-slate-100">
                         <tr>
-                          <th className="p-2 text-left">أكثر الأدوية هذا الشهر</th>
-                          <th className="p-2 text-left">سطور</th>
-                          <th className="p-2 text-left">كمية</th>
+                          <th className="p-2 text-left">Top drugs this month</th>
+                          <th className="p-2 text-left">Lines</th>
+                          <th className="p-2 text-left">Qty</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -203,7 +230,7 @@ export default async function ReportsPage({
                 href="/api/reports/medications?format=csv"
                 className="rounded bg-emerald-600 px-3 py-1 text-white text-sm hover:bg-emerald-700"
               >
-                تنزيل CSV مستحضرات
+                CSV · chronic meds
               </a>
               <span className="text-xs text-slate-500 self-center">
                 generated {meds.generated_at.slice(0, 19).replace('T', ' ')} UTC
@@ -211,20 +238,20 @@ export default async function ReportsPage({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <Card label="برامج نشطة" value={String(meds.summary.active_programs)} />
-              <Card label="بنود أدوية" value={String(meds.summary.active_med_lines)} />
-              <Card label="مستحضرات فريدة" value={String(meds.summary.unique_drugs)} />
+              <Card label="Active programs" value={String(meds.summary.active_programs)} />
+              <Card label="Med lines" value={String(meds.summary.active_med_lines)} />
+              <Card label="Unique drugs" value={String(meds.summary.unique_drugs)} />
               <Card label="EVA" value={String(meds.summary.eva_preferred)} />
-              <Card label="خارج EVA" value={String(meds.summary.not_in_eva)} />
+              <Card label="Not EVA" value={String(meds.summary.not_in_eva)} />
             </div>
 
             {meds.by_formulary.length > 0 && (
               <div className="rounded-lg border bg-white p-4 shadow-sm text-sm">
-                <h2 className="font-medium mb-2">حسب الـ formulary</h2>
+                <h2 className="font-medium mb-2">By formulary flag</h2>
                 <div className="flex flex-wrap gap-2">
                   {meds.by_formulary.map((f) => (
                     <span key={f.formulary_flag} className="rounded bg-slate-100 px-2 py-1">
-                      {f.formulary_flag}: {f.lines} بند · {f.programs} برنامج
+                      {f.formulary_flag}: {f.lines} lines · {f.programs} programs
                     </span>
                   ))}
                 </div>
@@ -235,9 +262,9 @@ export default async function ReportsPage({
               <table className="w-full text-sm">
                 <thead className="bg-slate-100">
                   <tr>
-                    <th className="p-2 text-left">المستحضر</th>
-                    <th className="p-2 text-left">برامج</th>
-                    <th className="p-2 text-left">كمية/دورة</th>
+                    <th className="p-2 text-left">Drug</th>
+                    <th className="p-2 text-left">Programs</th>
+                    <th className="p-2 text-left">Qty/cycle</th>
                     <th className="p-2 text-left">Formulary</th>
                     <th className="p-2 text-left">EVA</th>
                   </tr>
@@ -249,7 +276,7 @@ export default async function ReportsPage({
                       <td className="p-2">{m.programs}</td>
                       <td className="p-2">{m.total_qty_per_cycle}</td>
                       <td className="p-2 text-xs">{m.formulary_flag}</td>
-                      <td className="p-2">{m.company_preferred ? 'نعم' : '—'}</td>
+                      <td className="p-2">{m.company_preferred ? 'Yes' : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -258,7 +285,7 @@ export default async function ReportsPage({
 
             <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
               <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                تفصيل حسب البرنامج
+                By program
               </h2>
               <table className="w-full text-sm">
                 <thead className="bg-slate-100">
@@ -292,9 +319,9 @@ export default async function ReportsPage({
         )}
 
         <p className="text-xs text-slate-400">
-          أتمتة: Vercel Cron يوم 2 من كل شهر 06:00 UTC · GitHub Action «Monthly Medication
-          Report» · APIs{' '}
-          <code>/api/reports/monthly</code> · <code>/api/reports/medications</code>
+          Automation: Vercel Cron day 2 · 06:00 UTC · GitHub Action Monthly Medication
+          Report · APIs <code>/api/reports/monthly</code> ·{' '}
+          <code>/api/reports/medications</code>
         </p>
       </div>
     </main>
