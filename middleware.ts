@@ -16,6 +16,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/',
   '/api/request-status',
   '/api/webhooks/whatsapp',
+  '/api/webhooks/twilio',
   '/_next/',
   '/favicon',
 ];
