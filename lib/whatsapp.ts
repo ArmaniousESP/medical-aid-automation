@@ -104,63 +104,6 @@ function providerMode(): 'meta' | 'twilio' | 'webhook' | 'none' {
   return 'none';
 }
 
-async function sendMeta(to: string, body: string): Promise<SendResult> {
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
-  const token = process.env.WHATSAPP_TOKEN!;
-  const retry = webhookRetryDefaults();
-
-  try {
-    const { response, attempts, errors } = await fetchWithRetry(
-      `https://graph.facebook.com/v19.0/${phoneId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to,
-          type: 'text',
-          text: { body },
-        }),
-      },
-      retry
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      return {
-        ok: false,
-        provider: 'meta',
-        error:
-          data?.error?.message ||
-          JSON.stringify(data) ||
-          errors.join('; '),
-        to,
-        body,
-        attempts,
-      };
-    }
-    return {
-      ok: true,
-      provider: 'meta',
-      message_id: data?.messages?.[0]?.id,
-      to,
-      body,
-      attempts,
-    };
-  } catch (e: unknown) {
-    return {
-      ok: false,
-      provider: 'meta',
-      error: e instanceof Error ? e.message : 'meta fetch failed',
-      to,
-      body,
-      attempts: retry.maxAttempts,
-    };
-  }
-}
-
 async function sendTwilio(to: string, body: string): Promise<SendResult> {
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
@@ -313,7 +256,13 @@ export async function sendWhatsApp(input: {
       attempts: 1,
     };
   } else if (mode === 'meta') {
-    result = await sendMeta(to, body);
+    const { sendViaMetaCloud } = await import('@/lib/whatsappMeta');
+    result = await sendViaMetaCloud({
+      to,
+      template: input.template,
+      vars: input.vars || {},
+      body,
+    });
   } else if (mode === 'twilio') {
     result = await sendTwilio(to, body);
   } else {
@@ -524,6 +473,17 @@ export function whatsappConfigStatus() {
     has_twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     has_webhook: !!process.env.WHATSAPP_WEBHOOK_URL,
     has_safety_to: !!(process.env.SAFETY_WHATSAPP_TO || process.env.WHATSAPP_OPS_PHONE),
+    meta_cloud: {
+      graph_version: process.env.WHATSAPP_GRAPH_VERSION || 'v21.0',
+      template_mode:
+        process.env.WHATSAPP_META_TEMPLATE_MODE === '1' ||
+        process.env.WA_USE_APPROVED_TEMPLATES === '1',
+      template_lang:
+        process.env.WA_TEMPLATE_LANG ||
+        process.env.WHATSAPP_TEMPLATE_LANG ||
+        'ar',
+      webhook_verify_token_set: !!process.env.WHATSAPP_VERIFY_TOKEN,
+    },
     retry: {
       maxAttempts: retry.maxAttempts,
       baseDelayMs: retry.baseDelayMs,
