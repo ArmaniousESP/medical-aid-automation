@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { bitrixConfigStatus } from '@/lib/bitrix';
 import { FlowSteps } from '../FlowSteps';
+import { LiveDryRunButton } from '../LiveDryRunButton';
 import { DryRunActions } from './DryRunActions';
 
 export const dynamic = 'force-dynamic';
@@ -141,8 +142,8 @@ const STEPS: {
     title: 'WhatsApp dry-run',
     titleAr: 'واتساب تجريبي',
     href: '/notifications',
-    do: 'Use buttons on this page (or Notifications) with dry_run only',
-    expect: 'ok_count / attempted logged; no real WhatsApp if dry-run',
+    do: 'Press “Run live dry-run” on this page or Home',
+    expect: 'ok_count / attempted logged; no real WhatsApp',
   },
 ];
 
@@ -172,6 +173,8 @@ export default async function DryRunPage() {
             </Link>
           </div>
         </header>
+
+        <LiveDryRunButton showScriptLink={false} />
 
         <div className="rounded-xl border bg-white p-4 shadow-sm grid gap-2 sm:grid-cols-2 text-sm">
           <p>
@@ -264,12 +267,6 @@ export default async function DryRunPage() {
             <li>Pharmacy: export EVA / Not Eva CSVs, then live batch when pharmacy confirms</li>
             <li>Remove WHATSAPP_DRY_RUN (or set 0), redeploy, Notify due for real</li>
           </ol>
-          <p className="text-xs text-slate-500">
-            Full walkthrough also on{' '}
-            <Link href="/guide" className="text-violet-700 hover:underline">
-              /guide
-            </Link>
-          </p>
         </div>
       </div>
     </main>
