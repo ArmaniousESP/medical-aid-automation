@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { DryRunModeToggle } from './DryRunModeToggle';
 
 function currentPeriod() {
   const d = new Date();
@@ -15,9 +16,11 @@ function currentPeriod() {
 export function LiveDryRunButton({
   variant = 'primary',
   showScriptLink = true,
+  showToggle = true,
 }: {
   variant?: 'primary' | 'compact';
   showScriptLink?: boolean;
+  showToggle?: boolean;
 }) {
   const period = currentPeriod();
   const [loading, setLoading] = useState(false);
@@ -58,7 +61,8 @@ export function LiveDryRunButton({
 
   if (variant === 'compact') {
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
+        {showToggle && <DryRunModeToggle compact />}
         <button
           type="button"
           onClick={run}
@@ -75,44 +79,47 @@ export function LiveDryRunButton({
   }
 
   return (
-    <div className="rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-            Safe practice
-          </p>
-          <h2 className="text-lg font-semibold text-slate-900">Live dry-run</h2>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Simulates refill-due WhatsApp for <strong>{period}</strong> — logs only,
-            no live send.
-          </p>
+    <div className="space-y-3">
+      {showToggle && <DryRunModeToggle />}
+      <div className="rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+              Safe practice
+            </p>
+            <h2 className="text-lg font-semibold text-slate-900">Live dry-run</h2>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Simulates refill-due WhatsApp for <strong>{period}</strong> — this
+              button always forces dry-run.
+            </p>
+          </div>
         </div>
-      </div>
-      <button
-        type="button"
-        onClick={run}
-        disabled={loading}
-        className="w-full sm:w-auto rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
-      >
-        {loading ? 'Running dry-run…' : '▶ Run live dry-run'}
-      </button>
-      {result && (
-        <p
-          className={`text-xs font-mono break-all ${
-            result.startsWith('Dry-run OK') ? 'text-emerald-800' : 'text-red-700'
-          }`}
+        <button
+          type="button"
+          onClick={run}
+          disabled={loading}
+          className="w-full sm:w-auto rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
         >
-          {result}
-        </p>
-      )}
-      {showScriptLink && (
-        <p className="text-[11px] text-slate-500">
-          Full script:{' '}
-          <Link href="/dry-run" className="text-amber-900 font-medium hover:underline">
-            /dry-run
-          </Link>
-        </p>
-      )}
+          {loading ? 'Running dry-run…' : '▶ Run live dry-run'}
+        </button>
+        {result && (
+          <p
+            className={`text-xs font-mono break-all ${
+              result.startsWith('Dry-run OK') ? 'text-emerald-800' : 'text-red-700'
+            }`}
+          >
+            {result}
+          </p>
+        )}
+        {showScriptLink && (
+          <p className="text-[11px] text-slate-500">
+            Full script:{' '}
+            <Link href="/dry-run" className="text-amber-900 font-medium hover:underline">
+              /dry-run
+            </Link>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
