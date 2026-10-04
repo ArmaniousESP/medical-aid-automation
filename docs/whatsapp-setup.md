@@ -1,92 +1,95 @@
-# WhatsApp Business API (Meta Cloud API)
+# WhatsApp setup (Meta Cloud API + Twilio)
 
-Primary integration uses the **WhatsApp Business Platform Cloud API** via Meta Graph.
+Providers (pick one, or set `WHATSAPP_PROVIDER=meta|twilio|webhook`):
 
-## 1. Meta Business setup
+1. **Meta Cloud API** (default if both configured)
+2. **Twilio WhatsApp**
+3. Generic `WHATSAPP_WEBHOOK_URL`
 
-1. Open [Meta for Developers](https://developers.facebook.com/) → create / select an app → add **WhatsApp** product.
-2. In **WhatsApp → API Setup**, copy:
-   - **Access token** → `WHATSAPP_TOKEN`
-   - **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`
-3. Add a test recipient, or go live with a verified business number.
-4. (Production) Create **message templates** in WhatsApp Manager (Arabic), e.g.:
-   - `refill_due` — body params: `{{1}}` name, `{{2}}` patient, `{{3}}` period
-   - `refill_ready`, `request_received`, `status_update`, `safety_alert`, …
-5. Wait until template status is **Approved**.
+---
 
-## 2. Vercel environment variables
+## A. Twilio WhatsApp
+
+### 1. Twilio Console
+
+1. [twilio.com/console](https://www.twilio.com/console) → copy **Account SID** + **Auth Token**
+2. Enable **WhatsApp** (Sandbox for test, or approved sender for production)
+3. Sandbox: join with the code Twilio shows, then use `whatsapp:+14155238886` as From
+4. Production: register a WhatsApp Business sender; optional **Messaging Service** (MG…)
+
+### 2. Vercel env
 
 ```
-WHATSAPP_TOKEN=EAAG...
-WHATSAPP_PHONE_NUMBER_ID=123456789012345
-WHATSAPP_GRAPH_VERSION=v21.0
+TWILIO_ACCOUNT_SID=ACxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxx
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+# or Messaging Service instead of From:
+# TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxx
 
-# Session text only works inside 24h customer-care window.
-# Outside that window set template mode:
-WHATSAPP_META_TEMPLATE_MODE=1
-WA_TEMPLATE_LANG=ar
+# Force Twilio even if Meta vars also exist:
+WHATSAPP_PROVIDER=twilio
 
-# Optional overrides if Meta template names differ:
-# WA_TEMPLATE_REFILL_DUE=refill_due_ar
-# WA_TEMPLATE_REFILL_READY=refill_ready_ar
+# Optional status callbacks:
+TWILIO_STATUS_CALLBACK_URL=https://medical-aid-automation.vercel.app/api/webhooks/twilio/whatsapp
 
-# Webhook (delivery + inbound)
-WHATSAPP_VERIFY_TOKEN=choose-a-long-random-string
+# Content API templates (outside 24h window):
+TWILIO_CONTENT_TEMPLATE_MODE=1
+TWILIO_CONTENT_REFILL_DUE=HXxxxxxxxx
+TWILIO_CONTENT_REFILL_READY=HXxxxxxxxx
+TWILIO_CONTENT_REQUEST_RECEIVED=HXxxxxxxxx
+TWILIO_CONTENT_STATUS_UPDATE=HXxxxxxxxx
+TWILIO_CONTENT_SAFETY_ALERT=HXxxxxxxxx
 
-# Ops safety alerts (comma-separated Egypt mobiles)
-SAFETY_WHATSAPP_TO=2010xxxxxxx,2011xxxxxxx
-
-# Test without sending:
+SAFETY_WHATSAPP_TO=2010xxxxxxx
 WHATSAPP_DRY_RUN=1
 ```
 
-Redeploy after saving env vars.
+Redeploy after saving.
 
-## 3. Webhook callback
+### 3. Content templates
 
-In Meta → WhatsApp → Configuration → Webhook:
+In Twilio **Content Template Builder**, create WhatsApp templates with body variables `{{1}}`, `{{2}}`, … matching:
 
-| Field | Value |
-|-------|--------|
-| Callback URL | `https://medical-aid-automation.vercel.app/api/webhooks/whatsapp` |
-| Verify token | same as `WHATSAPP_VERIFY_TOKEN` |
-| Subscribe | `messages` |
+| Key | Variables |
+|-----|-----------|
+| refill_due | name, patient, period |
+| refill_ready | name, patient, claim |
+| request_received | name, patient, request_id |
+| status_update | name, request_id, status, note |
+| safety_alert | flagged, scanned, summary, link |
 
-The route is public (no ops cookie) so Meta can verify and POST statuses.
+Map each approved template SID → `TWILIO_CONTENT_<KEY>`.
 
-## 4. Send modes
+### 4. Status webhook
 
-| Mode | When |
-|------|------|
-| **Text** (`type: text`) | Default; OK inside 24h session after user messaged you |
-| **Template** (`type: template`) | `WHATSAPP_META_TEMPLATE_MODE=1`; required for business-initiated outreach |
+Public URL (no ops cookie):
 
-Graph endpoint:
+`https://medical-aid-automation.vercel.app/api/webhooks/twilio/whatsapp`
 
-`POST https://graph.facebook.com/{version}/{PHONE_NUMBER_ID}/messages`
+Set as `TWILIO_STATUS_CALLBACK_URL` (also applied automatically on each send when set).
 
-## 5. Ops UI
+### 5. Test
 
-1. Unlock on Home (`PROCESS_SECRET`)
-2. **More → Notifications · WhatsApp**
-3. Provider mode should show `meta`
-4. **Notify due** or **Safety alert** (start with dry-run)
+1. Unlock → **More → Notifications**
+2. Mode should show `twilio`
+3. **Notify due** with dry-run first, then live
 
-## 6. API
+---
 
-```http
-GET  /api/notifications/whatsapp
-POST /api/notifications/whatsapp
-{ "action": "notify_due", "dry_run": true }
+## B. Meta Cloud API
 
-POST /api/notifications/whatsapp
-{ "to": "01012345678", "template": "refill_due",
-  "vars": { "name": "…", "patient": "…", "period": "2026-10" } }
-```
+1. [Meta for Developers](https://developers.facebook.com/) → WhatsApp product
+2. Env: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
+3. Optional: `WHATSAPP_META_TEMPLATE_MODE=1`, `WA_TEMPLATE_LANG=ar`
+4. Webhook: `/api/webhooks/whatsapp` + `WHATSAPP_VERIFY_TOKEN`
 
-## 7. Alternatives
+---
 
-- **Twilio WhatsApp**: `TWILIO_*` (if Meta vars absent)
-- **Generic gateway**: `WHATSAPP_WEBHOOK_URL`
+## Ops UI & API
 
-Meta credentials take priority when both are set.
+- UI: Unlock → **Notifications · WhatsApp**
+- `GET /api/notifications/whatsapp` — provider status
+- `POST /api/notifications/whatsapp` `{ "action": "notify_due", "dry_run": true }`
+- `POST /api/notifications/whatsapp` `{ "to": "010…", "template": "refill_due", "vars": { … } }`
+
+Without credentials, all sends are **dry-run** (logged only).
