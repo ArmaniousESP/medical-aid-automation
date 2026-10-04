@@ -140,6 +140,18 @@ export function UnlockPanel() {
           ))}
         </ol>
 
+        <Link
+          href="/notifications"
+          className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50/80 px-3 py-2 hover:border-red-300 hover:bg-red-50 transition"
+        >
+          <span className="text-sm font-medium text-red-900">
+            Twilio WhatsApp
+          </span>
+          <span className="text-[11px] text-red-700/80">
+            Notifications · test send · due reminders
+          </span>
+        </Link>
+
         <div className="flex flex-wrap gap-2 text-[11px] justify-center pt-1">
           <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
             Staff guide
