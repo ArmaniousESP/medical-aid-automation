@@ -92,73 +92,22 @@ export type SendResult = {
 };
 
 function providerMode(): 'meta' | 'twilio' | 'webhook' | 'none' {
-  if (process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
-    return 'meta';
-  if (
+  const forced = (process.env.WHATSAPP_PROVIDER || '').toLowerCase().trim();
+  const hasMeta = !!(
+    process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID
+  );
+  const hasTwilio = !!(
     process.env.TWILIO_ACCOUNT_SID &&
     process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_WHATSAPP_FROM
-  )
-    return 'twilio';
+    (process.env.TWILIO_WHATSAPP_FROM || process.env.TWILIO_MESSAGING_SERVICE_SID)
+  );
+  if (forced === 'meta' && hasMeta) return 'meta';
+  if (forced === 'twilio' && hasTwilio) return 'twilio';
+  if (forced === 'webhook' && process.env.WHATSAPP_WEBHOOK_URL) return 'webhook';
+  if (hasMeta) return 'meta';
+  if (hasTwilio) return 'twilio';
   if (process.env.WHATSAPP_WEBHOOK_URL) return 'webhook';
   return 'none';
-}
-
-async function sendTwilio(to: string, body: string): Promise<SendResult> {
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const token = process.env.TWILIO_AUTH_TOKEN!;
-  const from = process.env.TWILIO_WHATSAPP_FROM!;
-  const toWa = to.startsWith('whatsapp:') ? to : `whatsapp:+${to}`;
-  const auth = Buffer.from(`${sid}:${token}`).toString('base64');
-  const params = new URLSearchParams({
-    From: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-    To: toWa,
-    Body: body,
-  });
-  const retry = webhookRetryDefaults();
-
-  try {
-    const { response, attempts, errors } = await fetchWithRetry(
-      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${auth}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: params.toString(),
-      },
-      retry
-    );
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      return {
-        ok: false,
-        provider: 'twilio',
-        error: data?.message || JSON.stringify(data) || errors.join('; '),
-        to,
-        body,
-        attempts,
-      };
-    }
-    return {
-      ok: true,
-      provider: 'twilio',
-      message_id: data?.sid,
-      to,
-      body,
-      attempts,
-    };
-  } catch (e: unknown) {
-    return {
-      ok: false,
-      provider: 'twilio',
-      error: e instanceof Error ? e.message : 'twilio fetch failed',
-      to,
-      body,
-      attempts: retry.maxAttempts,
-    };
-  }
 }
 
 async function sendWebhook(
@@ -264,7 +213,13 @@ export async function sendWhatsApp(input: {
       body,
     });
   } else if (mode === 'twilio') {
-    result = await sendTwilio(to, body);
+    const { sendViaTwilio } = await import('@/lib/whatsappTwilio');
+    result = await sendViaTwilio({
+      to,
+      template: input.template,
+      vars: input.vars || {},
+      body,
+    });
   } else {
     result = await sendWebhook(to, body, {
       template: input.template,
@@ -470,7 +425,19 @@ export function whatsappConfigStatus() {
     mode,
     dry_run_default: process.env.WHATSAPP_DRY_RUN === '1' || mode === 'none',
     has_meta: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
-    has_twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    has_twilio: !!(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      (process.env.TWILIO_WHATSAPP_FROM || process.env.TWILIO_MESSAGING_SERVICE_SID)
+    ),
+    twilio: {
+      content_template_mode:
+        process.env.TWILIO_CONTENT_TEMPLATE_MODE === '1' ||
+        process.env.WA_USE_TWILIO_CONTENT === '1',
+      has_messaging_service: !!process.env.TWILIO_MESSAGING_SERVICE_SID,
+      has_status_callback: !!process.env.TWILIO_STATUS_CALLBACK_URL,
+    },
+    provider_forced: process.env.WHATSAPP_PROVIDER || null,
     has_webhook: !!process.env.WHATSAPP_WEBHOOK_URL,
     has_safety_to: !!(process.env.SAFETY_WHATSAPP_TO || process.env.WHATSAPP_OPS_PHONE),
     meta_cloud: {
