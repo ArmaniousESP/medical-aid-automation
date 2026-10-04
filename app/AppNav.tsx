@@ -20,6 +20,7 @@ const OPS_PRIMARY = [
 ];
 
 const OPS_MORE = [
+  { href: '/notifications', label: 'Notifications · WhatsApp' },
   { href: '/eva-split', label: 'EVA split' },
   { href: '/formulary', label: 'Formulary' },
   { href: '/reports', label: 'Reports' },
@@ -87,7 +88,7 @@ export function AppNav() {
             <summary className="cursor-pointer list-none rounded-full px-2 py-0.5 text-[11px] font-medium text-slate-500 hover:bg-slate-100">
               More ▾
             </summary>
-            <div className="absolute left-0 mt-1 w-48 rounded-lg border bg-white py-1 shadow-lg z-50">
+            <div className="absolute left-0 mt-1 w-52 rounded-lg border bg-white py-1 shadow-lg z-50">
               <p className="px-3 py-1 text-[10px] text-slate-400">
                 Unlock on Home first
               </p>
