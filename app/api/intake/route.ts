@@ -100,14 +100,20 @@ export async function POST(req: NextRequest) {
       body.patient_name || body.patient
         ? String(body.patient_name || body.patient)
         : undefined;
+    const company = body.company ? String(body.company) : undefined;
+    const city = body.city ? String(body.city) : undefined;
+    const medsSummary = meds
+      .map((m) => `${m.name}${m.qty ? ` ×${m.qty}` : ''}`)
+      .join('; ')
+      .slice(0, 500);
 
     const created = await createAidRequest({
       emp_name: empName,
       emp_id: body.emp_id ? String(body.emp_id) : undefined,
-      company: body.company ? String(body.company) : undefined,
+      company,
       phone,
       patient_name: patientName,
-      city: body.city ? String(body.city) : undefined,
+      city,
       meds,
       comments: body.comments ? String(body.comments) : undefined,
       roshetta_urls:
@@ -158,6 +164,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let bitrix: {
+      attempted: boolean;
+      task?: { ok: boolean; task_id?: number; error?: string };
+      deal?: { ok: boolean; deal_id?: number; error?: string };
+    } = { attempted: false };
+    try {
+      const { syncAidRequestToBitrix } = await import('@/lib/bitrix');
+      bitrix = await syncAidRequestToBitrix({
+        id: created.id,
+        emp_name: empName,
+        patient_name: patientName,
+        phone,
+        company,
+        city,
+        meds_summary: medsSummary,
+      });
+    } catch (e: unknown) {
+      bitrix = {
+        attempted: true,
+        task: {
+          ok: false,
+          error: e instanceof Error ? e.message : 'bitrix failed',
+        },
+      };
+    }
+
     return NextResponse.json({
       ok: true,
       id: created.id,
@@ -167,6 +199,7 @@ export async function POST(req: NextRequest) {
       message:
         'Request received. Save your Request ID to check status later.',
       whatsapp,
+      bitrix,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'intake failed';
