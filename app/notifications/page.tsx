@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { FlowSteps } from '../FlowSteps';
+import { DryRunModeToggle } from '../DryRunModeToggle';
 import { LiveDryRunButton } from '../LiveDryRunButton';
 import { NotifyDueButton } from './NotifyDueButton';
 import { SafetyAlertButton } from './SafetyAlertButton';
@@ -15,6 +16,7 @@ export default function NotificationsPage() {
   const status = whatsappConfigStatus();
   const twilioActive = status.mode === 'twilio';
   const metaActive = status.mode === 'meta';
+  const dry = status.dry_run_mode;
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -28,18 +30,12 @@ export default function NotificationsPage() {
               </p>
               <h1 className="text-2xl font-semibold">WhatsApp Business & alerts</h1>
               <p className="text-sm text-slate-600">
-                Meta Cloud API · Twilio · refill due · safety
+                Meta · Twilio · dry-run toggle · refill due
               </p>
             </div>
             <div className="flex gap-3 text-sm">
               <Link href="/refills" className="text-blue-600 hover:underline">
                 ← Refills
-              </Link>
-              <Link
-                href="/refills/safety"
-                className="text-blue-600 hover:underline"
-              >
-                Safety queue
               </Link>
               <Link href="/dry-run" className="text-amber-800 hover:underline">
                 Dry-run script
@@ -65,19 +61,23 @@ export default function NotificationsPage() {
           >
             {status.mode}
           </span>
-          {status.provider_forced && (
-            <span className="text-xs text-slate-500">
-              WHATSAPP_PROVIDER={status.provider_forced}
-            </span>
-          )}
-          {status.dry_run_default && (
-            <span className="text-xs text-amber-700 font-medium">
-              Dry-run default
-            </span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              status.dry_run_default
+                ? 'bg-amber-100 text-amber-900'
+                : 'bg-emerald-100 text-emerald-900'
+            }`}
+          >
+            {status.dry_run_default ? 'dry-run ON' : 'live allowed'}
+          </span>
+          {dry?.env_forces && (
+            <span className="text-xs text-amber-700">env WHATSAPP_DRY_RUN</span>
           )}
         </div>
 
-        <LiveDryRunButton />
+        <DryRunModeToggle />
+
+        <LiveDryRunButton showToggle={false} />
 
         <MetaPanel
           active={metaActive}
@@ -92,22 +92,6 @@ export default function NotificationsPage() {
           twilio={status.twilio}
           dryRunDefault={!!status.dry_run_default}
         />
-
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm space-y-2">
-          <p className="font-medium text-emerald-900">How Business API alerts work</p>
-          <ol className="list-decimal list-inside text-xs sm:text-sm text-emerald-900 space-y-1">
-            <li>
-              Configure <strong>Meta</strong> and/or <strong>Twilio</strong>
-            </li>
-            <li>
-              Use <strong>Live dry-run</strong> above before any live Notify due
-            </li>
-            <li>
-              Optional:{' '}
-              <code className="bg-white/80 px-1 rounded">WHATSAPP_NOTIFY_ON_INTAKE=1</code>
-            </li>
-          </ol>
-        </div>
 
         <EmailPanel />
 
