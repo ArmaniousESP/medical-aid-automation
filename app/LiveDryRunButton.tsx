@@ -32,6 +32,7 @@ export function LiveDryRunButton({
     try {
       const res = await fetch('/api/notifications/whatsapp', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'notify_due',
