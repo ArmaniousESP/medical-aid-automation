@@ -129,6 +129,12 @@ const STAFF_STEPS: Step[] = [
 
 const MORE_TOOLS = [
   {
+    href: '/notifications',
+    title: 'Notifications · WhatsApp',
+    titleAr: 'التنبيهات',
+    body: 'Refill due reminders · safety ops alerts · email. Configure Meta or Twilio on Vercel.',
+  },
+  {
     href: '/formulary',
     title: 'Formulary',
     titleAr: 'القائمة الدوائية',
