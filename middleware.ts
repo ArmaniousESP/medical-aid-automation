@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   '/api/health',
   '/api/auth/',
   '/api/request-status',
+  '/api/webhooks/whatsapp',
   '/_next/',
   '/favicon',
 ];
