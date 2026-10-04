@@ -1,5 +1,3 @@
-import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
-
 /** Prefer Secure on HTTPS (Vercel production / preview). */
 export function cookieSecure(): boolean {
   if (process.env.COOKIE_SECURE === '0') return false;
@@ -8,9 +6,15 @@ export function cookieSecure(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-export function sessionCookieOptions(
-  maxAgeSeconds: number
-): Partial<ResponseCookie> {
+export type SessionCookieOpts = {
+  httpOnly: boolean;
+  sameSite: 'lax';
+  secure: boolean;
+  path: string;
+  maxAge: number;
+};
+
+export function sessionCookieOptions(maxAgeSeconds: number): SessionCookieOpts {
   return {
     httpOnly: true,
     sameSite: 'lax',
@@ -20,7 +24,7 @@ export function sessionCookieOptions(
   };
 }
 
-export function clearCookieOptions(): Partial<ResponseCookie> {
+export function clearCookieOptions(): SessionCookieOpts {
   return {
     httpOnly: true,
     sameSite: 'lax',
