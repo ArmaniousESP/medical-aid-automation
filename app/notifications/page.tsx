@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { FlowSteps } from '../FlowSteps';
+import { LiveDryRunButton } from '../LiveDryRunButton';
 import { NotifyDueButton } from './NotifyDueButton';
 import { SafetyAlertButton } from './SafetyAlertButton';
 import { ReplayFailedButton } from './ReplayFailedButton';
@@ -40,11 +41,8 @@ export default function NotificationsPage() {
               >
                 Safety queue
               </Link>
-              <Link
-                href="/guide#more-tools"
-                className="text-violet-700 hover:underline"
-              >
-                Guide
+              <Link href="/dry-run" className="text-amber-800 hover:underline">
+                Dry-run script
               </Link>
             </div>
           </div>
@@ -79,6 +77,8 @@ export default function NotificationsPage() {
           )}
         </div>
 
+        <LiveDryRunButton />
+
         <MetaPanel
           active={metaActive}
           configured={!!status.has_meta}
@@ -97,21 +97,14 @@ export default function NotificationsPage() {
           <p className="font-medium text-emerald-900">How Business API alerts work</p>
           <ol className="list-decimal list-inside text-xs sm:text-sm text-emerald-900 space-y-1">
             <li>
-              Configure <strong>Meta</strong> (official WhatsApp Business Cloud API)
-              and/or <strong>Twilio</strong>
+              Configure <strong>Meta</strong> and/or <strong>Twilio</strong>
             </li>
             <li>
-              Force one with{' '}
-              <code className="bg-white/80 px-1 rounded">WHATSAPP_PROVIDER=meta|twilio</code>
-            </li>
-            <li>
-              Outside the 24h window use approved templates
-              (Meta or Twilio Content)
+              Use <strong>Live dry-run</strong> above before any live Notify due
             </li>
             <li>
               Optional:{' '}
-              <code className="bg-white/80 px-1 rounded">WHATSAPP_NOTIFY_ON_INTAKE=1</code>{' '}
-              sends request_received after form submit
+              <code className="bg-white/80 px-1 rounded">WHATSAPP_NOTIFY_ON_INTAKE=1</code>
             </li>
           </ol>
         </div>
@@ -123,15 +116,6 @@ export default function NotificationsPage() {
         <NotifyDueButton />
 
         <ReplayFailedButton />
-
-        <div className="rounded-lg border bg-white p-4 text-sm text-slate-700 space-y-2">
-          <p className="font-medium">Quick setup</p>
-          <p className="text-xs text-slate-600">
-            Full steps: <code>docs/whatsapp-setup.md</code> · Webhooks:{' '}
-            <code>/api/webhooks/whatsapp</code> (Meta) ·{' '}
-            <code>/api/webhooks/twilio/whatsapp</code> (Twilio)
-          </p>
-        </div>
       </div>
     </main>
   );
