@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { fetchWithRetry, webhookRetryDefaults } from '@/lib/httpRetry';
+import { isEffectiveDryRun, dryRunModeStatus } from '@/lib/dryRunMode';
 
 export type WaTemplateKey =
   | 'refill_due'
@@ -190,7 +191,7 @@ export async function sendWhatsApp(input: {
 
   const mode = providerMode();
   const forceDry =
-    input.dry_run || process.env.WHATSAPP_DRY_RUN === '1' || mode === 'none';
+    isEffectiveDryRun(input.dry_run) || mode === 'none';
 
   let result: SendResult;
 
@@ -421,9 +422,11 @@ export async function notifySafetyQueue(opts?: {
 export function whatsappConfigStatus() {
   const mode = providerMode();
   const retry = webhookRetryDefaults();
+  const dry = dryRunModeStatus();
   return {
     mode,
-    dry_run_default: process.env.WHATSAPP_DRY_RUN === '1' || mode === 'none',
+    dry_run_default: dry.effective || mode === 'none',
+    dry_run_mode: dry,
     has_meta: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
     has_twilio: !!(
       process.env.TWILIO_ACCOUNT_SID &&
