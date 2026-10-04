@@ -6,6 +6,7 @@ import { SafetyAlertButton } from './SafetyAlertButton';
 import { ReplayFailedButton } from './ReplayFailedButton';
 import { EmailPanel } from './EmailPanel';
 import { TwilioPanel } from './TwilioPanel';
+import { MetaPanel } from './MetaPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,9 +25,9 @@ export default function NotificationsPage() {
               <p className="text-xs text-violet-600 font-medium">
                 More tools · Notifications
               </p>
-              <h1 className="text-2xl font-semibold">WhatsApp & email alerts</h1>
+              <h1 className="text-2xl font-semibold">WhatsApp Business & alerts</h1>
               <p className="text-sm text-slate-600">
-                Twilio · Meta · refill due · safety ops
+                Meta Cloud API · Twilio · refill due · safety
               </p>
             </div>
             <div className="flex gap-3 text-sm">
@@ -49,7 +50,6 @@ export default function NotificationsPage() {
           </div>
         </header>
 
-        {/* Active provider strip */}
         <div className="rounded-xl border bg-white p-4 shadow-sm flex flex-wrap items-center gap-3 text-sm">
           <span className="text-xs uppercase tracking-wide text-slate-400">
             Active channel
@@ -69,17 +69,23 @@ export default function NotificationsPage() {
           </span>
           {status.provider_forced && (
             <span className="text-xs text-slate-500">
-              forced via WHATSAPP_PROVIDER={status.provider_forced}
+              WHATSAPP_PROVIDER={status.provider_forced}
             </span>
           )}
           {status.dry_run_default && (
             <span className="text-xs text-amber-700 font-medium">
-              Dry-run default (no live traffic)
+              Dry-run default
             </span>
           )}
         </div>
 
-        {/* Twilio dashboard card */}
+        <MetaPanel
+          active={metaActive}
+          configured={!!status.has_meta}
+          meta={status.meta_cloud}
+          dryRunDefault={!!status.dry_run_default}
+        />
+
         <TwilioPanel
           active={twilioActive}
           configured={!!status.has_twilio}
@@ -87,53 +93,25 @@ export default function NotificationsPage() {
           dryRunDefault={!!status.dry_run_default}
         />
 
-        {/* Meta compact status */}
-        <div
-          className={`rounded-xl border p-4 text-sm space-y-2 ${
-            metaActive
-              ? 'border-blue-200 bg-blue-50/50'
-              : 'border-slate-200 bg-white'
-          }`}
-        >
-          <div className="flex flex-wrap justify-between gap-2">
-            <p className="font-medium">Meta Cloud API</p>
-            <span className="text-xs text-slate-500">
-              {status.has_meta ? 'credentials set' : 'not set'}
-              {metaActive ? ' · active' : ''}
-            </span>
-          </div>
-          <ul className="text-xs text-slate-600 space-y-1">
-            <li>
-              Token + Phone number ID: {status.has_meta ? '✓' : '—'}
-            </li>
-            <li>
-              Template mode:{' '}
-              {status.meta_cloud?.template_mode ? 'on' : 'off (session text)'}
-            </li>
-            <li>
-              Graph: {status.meta_cloud?.graph_version || 'v21.0'}
-            </li>
-          </ul>
-        </div>
-
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm space-y-2">
-          <p className="font-medium text-emerald-900">How alerts work</p>
+          <p className="font-medium text-emerald-900">How Business API alerts work</p>
           <ol className="list-decimal list-inside text-xs sm:text-sm text-emerald-900 space-y-1">
             <li>
-              Prefer <strong>Twilio</strong> with{' '}
-              <code className="bg-white/80 px-1 rounded">WHATSAPP_PROVIDER=twilio</code>{' '}
-              or leave Meta as default if only Meta is set
+              Configure <strong>Meta</strong> (official WhatsApp Business Cloud API)
+              and/or <strong>Twilio</strong>
             </li>
             <li>
-              <strong>Notify due</strong> → beneficiaries with phone on active
-              programs
+              Force one with{' '}
+              <code className="bg-white/80 px-1 rounded">WHATSAPP_PROVIDER=meta|twilio</code>
             </li>
             <li>
-              <strong>Safety alert</strong> → ops phones only
-              (SAFETY_WHATSAPP_TO)
+              Outside the 24h window use approved templates
+              (Meta or Twilio Content)
             </li>
             <li>
-              Test with dry-run before live
+              Optional:{' '}
+              <code className="bg-white/80 px-1 rounded">WHATSAPP_NOTIFY_ON_INTAKE=1</code>{' '}
+              sends request_received after form submit
             </li>
           </ol>
         </div>
@@ -147,35 +125,11 @@ export default function NotificationsPage() {
         <ReplayFailedButton />
 
         <div className="rounded-lg border bg-white p-4 text-sm text-slate-700 space-y-2">
-          <p className="font-medium">Twilio setup checklist</p>
-          <ol className="list-decimal list-inside text-xs space-y-1 text-slate-600">
-            <li>
-              Twilio Console → Account SID, Auth Token, WhatsApp From
-              (sandbox or approved sender)
-            </li>
-            <li>
-              Vercel:{' '}
-              <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>,{' '}
-              <code>TWILIO_WHATSAPP_FROM</code>, optional{' '}
-              <code>WHATSAPP_PROVIDER=twilio</code>
-            </li>
-            <li>
-              Optional status URL:{' '}
-              <code className="break-all">
-                …/api/webhooks/twilio/whatsapp
-              </code>
-            </li>
-            <li>
-              Content templates outside 24h:{' '}
-              <code>TWILIO_CONTENT_TEMPLATE_MODE=1</code> +{' '}
-              <code>TWILIO_CONTENT_REFILL_DUE=HX…</code>
-            </li>
-            <li>
-              Use the <strong>Twilio</strong> card above to dry-run a test phone
-            </li>
-          </ol>
-          <p className="text-xs text-slate-500">
-            Full notes: docs/whatsapp-setup.md
+          <p className="font-medium">Quick setup</p>
+          <p className="text-xs text-slate-600">
+            Full steps: <code>docs/whatsapp-setup.md</code> · Webhooks:{' '}
+            <code>/api/webhooks/whatsapp</code> (Meta) ·{' '}
+            <code>/api/webhooks/twilio/whatsapp</code> (Twilio)
           </p>
         </div>
       </div>
