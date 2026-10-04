@@ -5,6 +5,7 @@ import {
   dryRunModeStatus,
   envForcesDryRun,
 } from '@/lib/dryRunMode';
+import { sessionCookieOptions } from '@/lib/cookies';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     const u = unauthorizedResponse();
     return NextResponse.json(u.body, { status: u.status });
   }
-  return NextResponse.json({ ok: true, ...dryRunModeStatus() });
+  return NextResponse.json({ ok: true, ...dryRunModeStatus(req) });
 }
 
 /**
@@ -28,7 +29,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const enabled = body.enabled === true || body.enabled === '1' || body.enabled === 1;
+  const enabled =
+    body.enabled === true || body.enabled === '1' || body.enabled === 1;
 
   if (!enabled && envForcesDryRun()) {
     return NextResponse.json(
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
         ok: false,
         error:
           'WHATSAPP_DRY_RUN=1 is set on Vercel — remove it and redeploy to allow live sends',
-        ...dryRunModeStatus(),
+        ...dryRunModeStatus(req),
       },
       { status: 409 }
     );
@@ -47,17 +49,17 @@ export async function POST(req: NextRequest) {
     enabled,
     env_forces: envForcesDryRun(),
     cookie_on: enabled,
+    cookie_name: DRY_RUN_COOKIE,
+    cookie_present: true,
     effective: enabled || envForcesDryRun(),
     can_toggle_off: !envForcesDryRun(),
   });
 
-  res.cookies.set(DRY_RUN_COOKIE, enabled ? '1' : '0', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  res.cookies.set(
+    DRY_RUN_COOKIE,
+    enabled ? '1' : '0',
+    sessionCookieOptions(60 * 60 * 24 * 30)
+  );
 
   return res;
 }
