@@ -5,9 +5,13 @@ import { useCallback, useEffect, useState } from 'react';
 type Status = {
   env_forces?: boolean;
   cookie_on?: boolean;
+  cookie_present?: boolean;
+  cookie_name?: string;
   effective?: boolean;
   can_toggle_off?: boolean;
 };
+
+const fetchOpts: RequestInit = { credentials: 'include' };
 
 export function DryRunModeToggle({
   compact = false,
@@ -20,7 +24,7 @@ export function DryRunModeToggle({
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/ops/dry-run-mode');
+      const res = await fetch('/api/ops/dry-run-mode', fetchOpts);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setStatus(data);
@@ -39,6 +43,7 @@ export function DryRunModeToggle({
     setErr(null);
     try {
       const res = await fetch('/api/ops/dry-run-mode', {
+        ...fetchOpts,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
@@ -91,8 +96,8 @@ export function DryRunModeToggle({
         <div>
           <p className="text-sm font-semibold text-amber-950">Dry-run mode</p>
           <p className="text-xs text-amber-900 mt-0.5">
-            When ON, WhatsApp is logged only (no live send). Session toggle — does not
-            change Vercel env.
+            When ON, WhatsApp is logged only (no live send). Session cookie{' '}
+            <code className="text-[10px]">maa_wa_dry_run</code>.
           </p>
         </div>
         <button
@@ -120,6 +125,9 @@ export function DryRunModeToggle({
               ? 'ON (forced by WHATSAPP_DRY_RUN=1 on Vercel)'
               : 'ON (session cookie)'
             : 'OFF — live sends allowed if provider is configured'}
+        {status?.cookie_present === false && status?.env_forces !== true
+          ? ' · cookie not set yet'
+          : ''}
       </p>
       {lockedOn && (
         <p className="text-[11px] text-amber-800">
