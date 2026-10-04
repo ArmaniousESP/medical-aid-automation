@@ -44,6 +44,8 @@ const OPS_CHECKLIST = [
   },
 ];
 
+const cred: RequestInit = { credentials: 'include' };
+
 export function UnlockPanel() {
   const search = useSearchParams();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
@@ -56,7 +58,7 @@ export function UnlockPanel() {
   const nextPath = search?.get('next');
 
   useEffect(() => {
-    fetch('/api/auth/unlock')
+    fetch('/api/auth/unlock', cred)
       .then((r) => r.json())
       .then((d) => {
         setUnlocked(!!d.unlocked);
@@ -71,6 +73,7 @@ export function UnlockPanel() {
     setErr(null);
     try {
       const res = await fetch('/api/auth/unlock', {
+        ...cred,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secret }),
@@ -90,7 +93,7 @@ export function UnlockPanel() {
   }
 
   async function lock() {
-    await fetch('/api/auth/unlock', { method: 'DELETE' });
+    await fetch('/api/auth/unlock', { ...cred, method: 'DELETE' });
     setUnlocked(false);
   }
 
