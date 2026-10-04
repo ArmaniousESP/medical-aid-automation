@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function PharmacyBatchButton({ period }: { period: string }) {
+export function PharmacyBatchButton({
+  period,
+  label,
+}: {
+  period: string;
+  /** Optional count hint shown on the button */
+  label?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
@@ -11,7 +18,7 @@ export function PharmacyBatchButton({ period }: { period: string }) {
   async function run() {
     if (
       !confirm(
-        `اعتماد وصرف كل الدورات غير المصروفة لفترة ${period}؟\nسيتم تحويلها إلى «مصروف» للصيدلية.`
+        `Approve + dispense all open cycles for ${period}?\n\nاعتماد وصرف كل الدورات المفتوحة لفترة ${period}؟\n\nThis marks cycles as dispensed for pharmacy fulfillment.`
       )
     ) {
       return;
@@ -25,31 +32,39 @@ export function PharmacyBatchButton({ period }: { period: string }) {
         body: JSON.stringify({
           period,
           actor: 'pharmacy-ui',
-          notes: `صرف صيدلية — دفعة ${period}`,
+          notes: `Pharmacy batch dispense — ${period}`,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'فشل');
-      setMsg(`تم: ${data.ok_count}/${data.processed} دورة`);
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setMsg(
+        `Done: ${data.ok_count ?? 0}/${data.processed ?? 0} cycles · تم`
+      );
       router.refresh();
     } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : 'خطأ');
+      setMsg(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={run}
         disabled={loading}
-        className="rounded bg-indigo-600 px-3 py-1 text-white text-sm hover:bg-indigo-700 disabled:opacity-50"
+        className="rounded bg-indigo-600 px-3 py-1.5 text-white text-sm hover:bg-indigo-700 disabled:opacity-50 font-medium"
       >
-        {loading ? 'جاري…' : 'اعتماد + صرف الدفعة'}
+        {loading
+          ? '…'
+          : label || `Approve + dispense · ${period}`}
       </button>
-      {msg && <span className="text-xs text-slate-600">{msg}</span>}
+      {msg && (
+        <span className="text-xs text-slate-600" dir="auto">
+          {msg}
+        </span>
+      )}
     </div>
   );
 }
