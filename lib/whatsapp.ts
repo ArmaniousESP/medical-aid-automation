@@ -4,6 +4,8 @@ import { fetchWithRetry, webhookRetryDefaults } from '@/lib/httpRetry';
 export type WaTemplateKey =
   | 'refill_due'
   | 'refill_ready'
+  | 'request_received'
+  | 'status_update'
   | 'pnat_high_risk'
   | 'care_line_followup'
   | 'safety_alert'
@@ -24,6 +26,18 @@ export const WA_TEMPLATES: Record<
     label_ar: 'جاهز للاستلام',
     body: (p) =>
       `مرحباً ${p.name || ''}،\nطلب العلاج لـ ${p.patient || ''} أصبح جاهزاً للاستلام (${p.claim || ''}).\n— دعم العلاج الشهري`,
+  },
+  request_received: {
+    key: 'request_received',
+    label_ar: 'تم استلام الطلب',
+    body: (p) =>
+      `مرحباً ${p.name || ''}،\nتم استلام طلب دعم العلاج الشهري${p.patient ? ' لـ ' + p.patient : ''}.\nرقم الطلب: ${p.request_id || ''}\nيمكنك متابعة الحالة من المنصة.\n— دعم العلاج الشهري`,
+  },
+  status_update: {
+    key: 'status_update',
+    label_ar: 'تحديث حالة الطلب',
+    body: (p) =>
+      `مرحباً ${p.name || ''}،\nتحديث طلبك${p.request_id ? ' (' + p.request_id + ')' : ''}: ${p.status || ''}${p.note ? '\n' + p.note : ''}\n— دعم العلاج الشهري`,
   },
   pnat_high_risk: {
     key: 'pnat_high_risk',
