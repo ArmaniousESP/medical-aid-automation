@@ -127,6 +127,33 @@ const STAFF_STEPS: Step[] = [
   },
 ];
 
+const MORE_TOOLS = [
+  {
+    href: '/formulary',
+    title: 'Formulary',
+    titleAr: 'القائمة الدوائية',
+    body: 'Sync names used in programs · search · EVA filter. Supports Process matching.',
+  },
+  {
+    href: '/eva-split',
+    title: 'EVA split',
+    titleAr: 'تقسيم إيفا',
+    body: 'Count Available at Eva vs Not Eva. For CSV export prefer Pharmacy.',
+  },
+  {
+    href: '/reports',
+    title: 'Reports',
+    titleAr: 'التقارير',
+    body: 'Spend and enrollment summaries for the period.',
+  },
+  {
+    href: '/status',
+    title: 'System status',
+    titleAr: 'حالة النظام',
+    body: 'Database / env checks when something fails to load.',
+  },
+];
+
 function StepMock({ kind }: { kind: Step['mock'] }) {
   switch (kind) {
     case 'submit':
@@ -224,6 +251,12 @@ export default function GuidePage() {
               For staff · للتشغيل
             </a>
             <a
+              href="#more-tools"
+              className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-200"
+            >
+              More tools
+            </a>
+            <a
               href="#privacy"
               className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-200"
             >
@@ -301,6 +334,41 @@ export default function GuidePage() {
               <StepCard key={s.id} s={s} accent="violet" />
             ))}
           </ol>
+        </section>
+
+        <section id="more-tools" className="space-y-4 scroll-mt-28">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h2 className="font-semibold text-lg text-slate-900">More tools</h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Under <strong>More ▾</strong> in the top bar — not part of the daily numbered path.
+            </p>
+            <p className="text-sm text-slate-600 mt-1" dir="rtl">
+              أدوات إضافية من قائمة More — ليست خطوات يومية مرقّمة
+            </p>
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {MORE_TOOLS.map((t) => (
+              <li
+                key={t.href}
+                className="rounded-xl border bg-white p-4 shadow-sm space-y-2"
+              >
+                <h3 className="font-medium">
+                  {t.title}
+                  <span className="text-slate-400 font-normal text-sm" dir="rtl">
+                    {' '}
+                    · {t.titleAr}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-600">{t.body}</p>
+                <Link
+                  href={t.href}
+                  className="inline-flex text-xs font-medium text-violet-700 hover:underline"
+                >
+                  Open →
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section
