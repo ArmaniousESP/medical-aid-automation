@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { whatsappConfigStatus } from '@/lib/whatsapp';
+import { bitrixConfigStatus } from '@/lib/bitrix';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +39,39 @@ async function loadHealth() {
           : 'On — process enrolls chronic programs',
       required: false,
     },
+  };
+
+  const wa = whatsappConfigStatus();
+  checks.whatsapp = {
+    ok: wa.mode !== 'none',
+    detail:
+      wa.mode === 'none'
+        ? 'No provider — set Meta or Twilio env (see /notifications)'
+        : `mode=${wa.mode}${wa.dry_run_default ? ' · dry-run' : ' · live-ready'}${wa.provider_forced ? ` · forced=${wa.provider_forced}` : ''}`,
+    required: false,
+    recommended: true,
+  };
+
+  const bx = bitrixConfigStatus();
+  checks.bitrix = {
+    ok: !bx.sync_on_intake || bx.configured,
+    detail: bx.sync_on_intake
+      ? bx.configured
+        ? 'Sync on intake ON · webhook set'
+        : 'BITRIX_SYNC_ON_INTAKE=1 but webhook missing'
+      : bx.configured
+        ? 'Webhook set · sync off (optional)'
+        : 'Optional office bridge — off',
+    required: false,
+  };
+
+  checks.email = {
+    ok: !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
+    detail:
+      process.env.RESEND_API_KEY && process.env.EMAIL_FROM
+        ? 'Resend configured'
+        : 'Optional — RESEND_API_KEY + EMAIL_FROM',
+    required: false,
   };
 
   if (process.env.DATABASE_URL) {
@@ -84,6 +119,27 @@ async function loadHealth() {
           required: false,
         };
       }
+      try {
+        const d = new Date();
+        const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const rc = await query<{ n: string; open: string }>(
+          `SELECT count(*)::text AS n,
+                  count(*) FILTER (WHERE status IS DISTINCT FROM 'dispensed' AND status IS DISTINCT FROM 'cancelled')::text AS open
+           FROM refill_cycles WHERE period = $1`,
+          [period]
+        );
+        checks.refills_month = {
+          ok: true,
+          detail: `${period}: cycles=${rc.rows[0]?.n ?? 0} · open=${rc.rows[0]?.open ?? 0}`,
+          required: false,
+        };
+      } catch {
+        checks.refills_month = {
+          ok: true,
+          detail: 'refill_cycles when programs generate cycles',
+          required: false,
+        };
+      }
     } catch (e: unknown) {
       checks.neon = {
         ok: false,
@@ -101,11 +157,13 @@ async function loadHealth() {
 
   const ok = !!checks.env_database?.ok && !!checks.neon?.ok;
   const secretOk = !!checks.process_secret?.ok;
-  return { ok, secretOk, checks };
+  return { ok, secretOk, checks, wa, bx };
 }
 
 export default async function StatusPage() {
   const health = await loadHealth();
+  const d = new Date();
+  const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -132,21 +190,93 @@ export default async function StatusPage() {
           <p className="text-xs text-slate-600 mt-1">
             {health.ok
               ? health.secretOk
-                ? 'PROCESS_SECRET is set. Unlock on Home, then follow the ops checklist.'
+                ? 'PROCESS_SECRET is set. Unlock on Home, then follow the monthly ops path below.'
                 : 'Neon is connected. Set PROCESS_SECRET next so ops pages stay private.'
               : 'Google sheet credentials are optional and not required to start.'}
           </p>
         </div>
+
+        {health.ok && (
+          <div className="rounded-xl border border-violet-200 bg-violet-50/80 p-4 space-y-3 text-sm">
+            <h2 className="font-semibold text-violet-950">
+              This month ops path · {period}
+            </h2>
+            <ol className="list-decimal list-inside space-y-2 text-violet-950 text-xs sm:text-sm">
+              <li>
+                Unlock on{' '}
+                <Link href="/" className="underline font-medium">
+                  Home
+                </Link>{' '}
+                with PROCESS_SECRET
+              </li>
+              <li>
+                <Link href="/intake-ops" className="underline font-medium">
+                  1 Queue
+                </Link>{' '}
+                — process pending platform intake
+              </li>
+              <li>
+                <Link href="/claims" className="underline font-medium">
+                  2 Claims
+                </Link>{' '}
+                — review drafts · submit
+              </li>
+              <li>
+                <Link href="/pharmacy" className="underline font-medium">
+                  3 Pharmacy
+                </Link>{' '}
+                — filter EVA / Not EVA · CSV · batch dispense
+              </li>
+              <li>
+                <Link href="/programs" className="underline font-medium">
+                  4 Programs
+                </Link>{' '}
+                — chronic enrollments
+              </li>
+              <li>
+                <Link href="/refills" className="underline font-medium">
+                  5 Refills
+                </Link>{' '}
+                — monthly cycles · safety queue
+              </li>
+              <li>
+                <Link href="/notifications" className="underline font-medium">
+                  WhatsApp
+                </Link>{' '}
+                — dry-run due reminders when provider is set
+              </li>
+            </ol>
+          </div>
+        )}
+
+        {health.ok && health.wa.mode === 'none' && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-2 text-sm">
+            <h2 className="font-semibold text-blue-950">Next: WhatsApp Business</h2>
+            <p className="text-xs text-blue-900">
+              Add Meta or Twilio env on Vercel, redeploy, then test on{' '}
+              <Link href="/notifications" className="underline font-medium">
+                /notifications
+              </Link>
+              . Full steps: docs/whatsapp-setup.md
+            </p>
+            <ul className="text-xs text-blue-900 list-disc list-inside space-y-1">
+              <li>
+                Meta: WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID
+              </li>
+              <li>
+                Twilio: TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN +
+                TWILIO_WHATSAPP_FROM + WHATSAPP_PROVIDER=twilio
+              </li>
+              <li>Start with WHATSAPP_DRY_RUN=1</li>
+            </ul>
+          </div>
+        )}
 
         {health.ok && !health.secretOk && (
           <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3 text-sm">
             <h2 className="font-semibold text-amber-950">
               Recommended: set PROCESS_SECRET
             </h2>
-            <p className="text-amber-900 text-xs" dir="rtl">
-              بدون كلمة السر، صفحات التشغيل تبقى مقفولة. أضفها على Vercel ثم أعد
-              النشر.
-            </p>
             <ol className="list-decimal list-inside space-y-2 text-amber-950 text-xs">
               <li>
                 Open{' '}
@@ -160,75 +290,10 @@ export default async function StatusPage() {
                 </a>
               </li>
               <li>
-                Add key{' '}
-                <code className="bg-white/80 px-1 rounded">PROCESS_SECRET</code>{' '}
-                with a long random value (example:{' '}
-                <code className="bg-white/80 px-1 rounded text-[10px]">
-                  openssl rand -hex 24
-                </code>
-                )
+                Add <code className="bg-white/80 px-1 rounded">PROCESS_SECRET</code>
               </li>
               <li>
-                Scope: <strong>Production</strong> (and Preview if you use it)
-              </li>
-              <li>
-                <strong>Redeploy</strong> the latest Production deployment
-              </li>
-              <li>
-                Open{' '}
-                <Link href="/" className="underline font-medium">
-                  Home
-                </Link>{' '}
-                → enter the same value → <strong>Unlock ops</strong>
-              </li>
-              <li>
-                Follow checklist: Queue → Claims → Programs → Refills → Pharmacy
-              </li>
-            </ol>
-            <p className="text-[11px] text-amber-800">
-              Multiple staff passwords: comma-separated in the same variable, e.g.{' '}
-              <code className="bg-white/80 px-1 rounded">alice-secret,bob-secret</code>
-            </p>
-          </div>
-        )}
-
-        {health.ok && (
-          <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
-            <h2 className="font-medium text-sm">Next steps</h2>
-            <ol className="list-decimal list-inside text-sm text-slate-700 space-y-2">
-              {!health.secretOk && (
-                <li className="text-amber-800 font-medium">
-                  Set PROCESS_SECRET (box above) and unlock on Home
-                </li>
-              )}
-              <li>
-                <Link href="/guide" className="text-violet-700 font-medium hover:underline">
-                  Read the guide
-                </Link>
-              </li>
-              <li>
-                <Link href="/intake" className="text-violet-700 hover:underline">
-                  Submit a test request
-                </Link>
-              </li>
-              <li>
-                <Link href="/intake-ops" className="text-violet-700 hover:underline">
-                  Intake queue
-                </Link>{' '}
-                → Process platform intake
-              </li>
-              <li>
-                <Link href="/programs" className="text-violet-700 hover:underline">
-                  Programs
-                </Link>
-                {' · '}
-                <Link href="/claims" className="text-violet-700 hover:underline">
-                  Claims
-                </Link>
-                {' · '}
-                <Link href="/pharmacy" className="text-violet-700 hover:underline">
-                  Pharmacy
-                </Link>
+                <strong>Redeploy</strong>, then unlock on Home
               </li>
             </ol>
           </div>
@@ -247,7 +312,7 @@ export default async function StatusPage() {
                 )}
               </div>
               <span
-                className={`text-right text-xs ${val.ok ? 'text-emerald-700' : 'text-amber-700'}`}
+                className={`text-right text-xs max-w-[60%] ${val.ok ? 'text-emerald-700' : 'text-amber-700'}`}
               >
                 {val.ok ? 'OK' : 'Missing'} {val.detail ? `· ${val.detail}` : ''}
               </span>
@@ -264,21 +329,14 @@ export default async function StatusPage() {
               </li>
               <li>
                 Add <code className="text-xs bg-slate-100 px-1 rounded">DATABASE_URL</code> from
-                Neon (pooler, sslmode=require)
+                Neon
               </li>
               <li>
                 Add{' '}
-                <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>{' '}
-                (strong random string)
+                <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>
               </li>
               <li>
-                <strong>Redeploy</strong> from Deployments
-              </li>
-              <li>
-                Refresh this page, then open{' '}
-                <Link href="/guide" className="text-blue-700 underline">
-                  /guide
-                </Link>
+                <strong>Redeploy</strong>
               </li>
             </ol>
           </div>
@@ -287,6 +345,9 @@ export default async function StatusPage() {
         <div className="flex flex-wrap gap-3 text-sm justify-center pb-6">
           <Link href="/guide" className="text-violet-700 hover:underline font-medium">
             How to use
+          </Link>
+          <Link href="/notifications" className="text-blue-600 hover:underline">
+            Notifications
           </Link>
           <Link href="/" className="text-blue-600 hover:underline">
             Home
