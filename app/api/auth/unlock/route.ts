@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { ADMIN_COOKIE, getOpsSecrets, isValidOpsSecret } from '@/lib/auth';
+import { clearCookieOptions, sessionCookieOptions } from '@/lib/cookies';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST { secret } — sets httpOnly admin cookie if secret matches PROCESS_SECRET
- * (or one of a comma-separated list).
  * DELETE — clears cookie
  * GET — unlocked state
  */
@@ -28,28 +29,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   }
 
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, secret, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 60 * 12,
-  });
+  const res = NextResponse.json({ ok: true, cookie: ADMIN_COOKIE });
+  res.cookies.set(
+    ADMIN_COOKIE,
+    secret,
+    sessionCookieOptions(60 * 60 * 12)
+  );
   return res;
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, '', {
-    httpOnly: true,
-    path: '/',
-    maxAge: 0,
-  });
+  res.cookies.set(ADMIN_COOKIE, '', clearCookieOptions());
   return res;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const secrets = getOpsSecrets();
   if (!secrets.length) {
     return NextResponse.json({
@@ -59,20 +54,22 @@ export async function GET() {
       message: 'Set PROCESS_SECRET on Vercel to enable ops unlock',
     });
   }
-  const cookie = reqCookie();
+
+  let cookieVal: string | undefined =
+    req.cookies.get(ADMIN_COOKIE)?.value ?? undefined;
+  if (cookieVal == null) {
+    try {
+      cookieVal = cookies().get(ADMIN_COOKIE)?.value;
+    } catch {
+      cookieVal = undefined;
+    }
+  }
+
   return NextResponse.json({
-    unlocked: isValidOpsSecret(cookie),
+    unlocked: isValidOpsSecret(cookieVal),
     open: false,
     secret_configured: true,
+    cookie_name: ADMIN_COOKIE,
+    cookie_present: cookieVal != null && cookieVal !== '',
   });
-}
-
-function reqCookie(): string | undefined {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { cookies } = require('next/headers');
-    return cookies().get(ADMIN_COOKIE)?.value;
-  } catch {
-    return undefined;
-  }
 }
