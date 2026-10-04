@@ -20,6 +20,7 @@ const OPS_PRIMARY = [
 ];
 
 const OPS_MORE = [
+  { href: '/dry-run', label: 'Dry-run script' },
   { href: '/notifications', label: 'Notifications · WhatsApp' },
   { href: '/eva-split', label: 'EVA split' },
   { href: '/formulary', label: 'Formulary' },
