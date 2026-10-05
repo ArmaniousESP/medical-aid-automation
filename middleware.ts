@@ -11,10 +11,10 @@ const PUBLIC_EXACT = new Set([
   '/request-status',
   '/guide',
   '/status',
-  '/sign-in',
 ]);
 
 const PUBLIC_PREFIXES = [
+  '/sign-in',
   '/api/health',
   '/api/auth/',
   '/api/request-status',
@@ -26,7 +26,11 @@ const PUBLIC_PREFIXES = [
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
-  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p))) {
+    // /sign-in and /sign-in/callback; /api/auth/...
+    if (pathname.startsWith('/sign-in')) return true;
+    if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  }
   if (pathname === '/api/intake') return true;
   return false;
 }
@@ -100,7 +104,6 @@ export function middleware(req: NextRequest) {
   const allowlist = getAllowedEmails();
   const neonReady = !!process.env.NEON_AUTH_BASE_URL && allowlist.length > 0;
 
-  // No PROCESS_SECRET and no Google allowlist → lock ops
   if (!secrets.length && !neonReady) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
@@ -114,7 +117,7 @@ export function middleware(req: NextRequest) {
       );
     }
     const url = req.nextUrl.clone();
-    url.pathname = neonReady ? '/sign-in' : '/';
+    url.pathname = '/';
     url.searchParams.set('need_secret', '1');
     return NextResponse.redirect(url);
   }
