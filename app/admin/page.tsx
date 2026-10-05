@@ -19,7 +19,7 @@ export default function AdminPage() {
           </p>
           <h1 className="text-2xl font-semibold">Admin panel</h1>
           <p className="text-sm text-slate-600" dir="rtl">
-            لوحة التشغيل · Google Auth أو كلمة السر
+            لوحة التشغيل · Google Auth · إدارة الأدوار
           </p>
         </header>
 
@@ -47,6 +47,14 @@ export default function AdminPage() {
           </ul>
         </div>
 
+        <Link
+          href="/admin/roles"
+          className="flex items-center justify-between rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-950 hover:bg-violet-100"
+        >
+          <span>Role management</span>
+          <span className="text-xs font-normal text-violet-700">admin / operator / viewer →</span>
+        </Link>
+
         <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
           <AdminPanelClient />
         </Suspense>
@@ -55,14 +63,11 @@ export default function AdminPage() {
           <Link href="/" className="text-blue-600 hover:underline">
             Home
           </Link>
-          <Link href="/sign-in" className="text-violet-700 hover:underline">
-            /sign-in
+          <Link href="/admin/roles" className="text-violet-700 hover:underline">
+            Roles
           </Link>
           <Link href="/status" className="text-slate-600 hover:underline">
             Status
-          </Link>
-          <Link href="/guide#for-staff" className="text-slate-600 hover:underline">
-            Guide
           </Link>
         </div>
       </div>
