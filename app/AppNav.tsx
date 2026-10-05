@@ -9,7 +9,7 @@ const PUBLIC = [
   { href: '/intake', label: '1 · Submit', labelAr: 'تقديم' },
   { href: '/request-status', label: '2 · Status', labelAr: 'حالة' },
   { href: '/guide', label: 'Guide', labelAr: 'الدليل' },
-  { href: '/sign-in', label: 'Staff', labelAr: 'تشغيل' },
+  { href: '/admin', label: 'Admin', labelAr: 'تشغيل' },
 ];
 
 const OPS_PRIMARY = [
@@ -21,6 +21,8 @@ const OPS_PRIMARY = [
 ];
 
 const OPS_MORE = [
+  { href: '/admin', label: 'Admin · Google Auth' },
+  { href: '/sign-in', label: 'Sign-in page' },
   { href: '/dry-run', label: 'Dry-run script' },
   { href: '/notifications', label: 'Notifications · WhatsApp' },
   { href: '/eva-split', label: 'EVA split' },
@@ -58,7 +60,9 @@ export function AppNav() {
               href={item.href}
               className={`rounded-full px-2.5 py-1 text-xs font-medium transition whitespace-nowrap ${
                 active(item.href)
-                  ? 'bg-emerald-600 text-white'
+                  ? item.href === '/admin'
+                    ? 'bg-violet-700 text-white'
+                    : 'bg-emerald-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
               title={item.labelAr}
