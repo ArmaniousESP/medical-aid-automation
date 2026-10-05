@@ -11,6 +11,7 @@ const PUBLIC_EXACT = new Set([
   '/request-status',
   '/guide',
   '/status',
+  '/admin',
 ]);
 
 const PUBLIC_PREFIXES = [
@@ -113,7 +114,7 @@ export function middleware(req: NextRequest) {
       );
     }
     const url = req.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/admin';
     url.searchParams.set('need_secret', '1');
     return NextResponse.redirect(url);
   }
@@ -131,10 +132,11 @@ export function middleware(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   if (neonReady) {
-    url.pathname = '/sign-in';
+    url.pathname = '/admin';
     url.searchParams.set('next', pathname);
+    url.searchParams.set('unlock', '1');
   } else {
-    url.pathname = '/';
+    url.pathname = '/admin';
     url.searchParams.set('unlock', '1');
     url.searchParams.set('next', pathname);
   }
