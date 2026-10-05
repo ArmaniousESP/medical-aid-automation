@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 
-/** Signed cookie proving Google (Neon Auth) staff session was allowlisted */
+/** Signed cookie proving Google staff session was approved at mint time */
 export const STAFF_COOKIE = 'maa_ops_staff';
 
 export function getAllowedStaffEmails(): string[] {
@@ -19,7 +19,6 @@ export function getAllowedStaffEmails(): string[] {
 export function isEmailAllowed(email: string | null | undefined): boolean {
   if (!email) return false;
   const list = getAllowedStaffEmails();
-  // If allowlist empty but Neon Auth is on, deny all until configured
   if (!list.length) return false;
   return list.includes(email.trim().toLowerCase());
 }
@@ -42,6 +41,10 @@ export function signStaffToken(email: string): string {
   return `${payload}.${sig}`;
 }
 
+/**
+ * Verify HMAC only. Allowlist / role are enforced when the cookie is minted
+ * (staff-session POST), so DB role holders work without OPS_ALLOWED_EMAILS.
+ */
 export function verifyStaffToken(
   token: string | undefined | null
 ): { ok: boolean; email?: string } {
@@ -60,7 +63,7 @@ export function verifyStaffToken(
   }
   try {
     const email = Buffer.from(payload, 'base64url').toString('utf8');
-    if (!isEmailAllowed(email)) return { ok: false };
+    if (!email.includes('@')) return { ok: false };
     return { ok: true, email };
   } catch {
     return { ok: false };
