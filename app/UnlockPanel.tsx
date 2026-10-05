@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { LiveDryRunButton } from './LiveDryRunButton';
 
-/** Same order as AppNav Staff path */
 const OPS_CHECKLIST = [
   {
     n: 1,
@@ -50,6 +49,7 @@ export function UnlockPanel() {
   const search = useSearchParams();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [secretConfigured, setSecretConfigured] = useState(true);
+  const [staffEmail, setStaffEmail] = useState<string | null>(null);
   const [secret, setSecret] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -58,11 +58,15 @@ export function UnlockPanel() {
   const nextPath = search?.get('next');
 
   useEffect(() => {
-    fetch('/api/auth/unlock', cred)
-      .then((r) => r.json())
-      .then((d) => {
-        setUnlocked(!!d.unlocked);
-        setSecretConfigured(d.secret_configured !== false);
+    Promise.all([
+      fetch('/api/auth/unlock', cred).then((r) => r.json()),
+      fetch('/api/auth/staff-session', cred).then((r) => r.json()),
+    ])
+      .then(([unlock, staff]) => {
+        const staffOk = !!staff.staff_ok;
+        setUnlocked(!!unlock.unlocked || staffOk);
+        setSecretConfigured(unlock.secret_configured !== false);
+        setStaffEmail(staff.staff_email || null);
       })
       .catch(() => setUnlocked(false));
   }, []);
@@ -93,8 +97,12 @@ export function UnlockPanel() {
   }
 
   async function lock() {
-    await fetch('/api/auth/unlock', { ...cred, method: 'DELETE' });
+    await Promise.all([
+      fetch('/api/auth/unlock', { ...cred, method: 'DELETE' }),
+      fetch('/api/auth/staff-session', { ...cred, method: 'DELETE' }),
+    ]);
     setUnlocked(false);
+    setStaffEmail(null);
   }
 
   if (unlocked === null) return null;
@@ -104,7 +112,8 @@ export function UnlockPanel() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-emerald-700 font-medium">
-            Ops unlocked · التشغيل مفتوح
+            Ops unlocked
+            {staffEmail ? ` · ${staffEmail}` : ' · secret'}
           </span>
           <button
             type="button"
@@ -150,25 +159,21 @@ export function UnlockPanel() {
           href="/notifications"
           className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50/80 px-3 py-2 hover:border-red-300 hover:bg-red-50 transition"
         >
-          <span className="text-sm font-medium text-red-900">
-            Twilio WhatsApp
-          </span>
-          <span className="text-[11px] text-red-700/80">
-            Notifications · test send · due reminders
-          </span>
+          <span className="text-sm font-medium text-red-900">WhatsApp</span>
+          <span className="text-[11px] text-red-700/80">Notifications</span>
         </Link>
 
         <div className="flex flex-wrap gap-2 text-[11px] justify-center pt-1">
           <Link href="/dry-run" className="text-amber-800 font-medium hover:underline">
-            Full dry-run script
+            Dry-run script
           </Link>
           <span className="text-slate-300">·</span>
-          <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
-            Staff guide
+          <Link href="/sign-in" className="text-violet-700 hover:underline">
+            Google staff
           </Link>
           <span className="text-slate-300">·</span>
           <Link href="/status" className="text-slate-600 hover:underline">
-            System status
+            Status
           </Link>
         </div>
       </div>
@@ -176,23 +181,25 @@ export function UnlockPanel() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {showPrompt && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <p className="font-medium">Ops access required</p>
           <p className="mt-0.5">
-            {nextPath
-              ? `You tried to open ${nextPath}. Enter PROCESS_SECRET to continue.`
-              : 'Enter PROCESS_SECRET to unlock queue, claims, and pharmacy.'}
+            Sign in with Google (allowlisted) or enter PROCESS_SECRET.
           </p>
-          {!secretConfigured && (
-            <p className="mt-1 text-amber-800">
-              PROCESS_SECRET is not set on Vercel yet — add it under Environment
-              Variables, redeploy, then unlock here.
-            </p>
-          )}
         </div>
       )}
+
+      <Link
+        href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : '/sign-in'}
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+      >
+        Continue with Google (Neon Auth)
+      </Link>
+
+      <p className="text-center text-[10px] text-slate-400">or secret unlock</p>
+
       <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 text-sm">
         <input
           type="password"
@@ -212,11 +219,11 @@ export function UnlockPanel() {
         </button>
         {err && <span className="text-red-600 text-xs">{err}</span>}
       </form>
-      <p className="text-[10px] text-slate-400">
-        <Link href="/guide#for-staff" className="text-violet-700 hover:underline">
-          Staff steps in the guide
-        </Link>
-      </p>
+      {!secretConfigured && (
+        <p className="text-[10px] text-amber-800">
+          PROCESS_SECRET optional if Neon Auth + OPS_ALLOWED_EMAILS are set.
+        </p>
+      )}
     </div>
   );
 }
