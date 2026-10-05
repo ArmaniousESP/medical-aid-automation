@@ -54,6 +54,7 @@ function signingKey(): string {
   );
 }
 
+/** HMAC only — allowlist/role enforced when cookie was minted */
 function verifyStaffToken(token: string | undefined): boolean {
   if (!token || !token.includes('.')) return false;
   const [payload, sig] = token.split('.');
@@ -70,9 +71,7 @@ function verifyStaffToken(token: string | undefined): boolean {
   }
   try {
     const email = Buffer.from(payload, 'base64url').toString('utf8');
-    const list = getAllowedEmails();
-    if (!list.length) return false;
-    return list.includes(email.trim().toLowerCase());
+    return email.includes('@');
   } catch {
     return false;
   }
@@ -99,15 +98,16 @@ export function middleware(req: NextRequest) {
 
   const secrets = getOpsSecrets();
   const allowlist = getAllowedEmails();
-  const neonReady = !!process.env.NEON_AUTH_BASE_URL && allowlist.length > 0;
+  const neonConfigured = !!process.env.NEON_AUTH_BASE_URL;
+  const neonReady = neonConfigured && (allowlist.length > 0 || !!process.env.OPS_ADMIN_EMAILS);
 
-  if (!secrets.length && !neonReady) {
+  if (!secrets.length && !neonConfigured) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            'Ops locked: set PROCESS_SECRET and/or Neon Auth + OPS_ALLOWED_EMAILS',
+            'Ops locked: set PROCESS_SECRET and/or Neon Auth + roles',
           code: 'secret_required',
         },
         { status: 401 }
@@ -131,15 +131,9 @@ export function middleware(req: NextRequest) {
   }
 
   const url = req.nextUrl.clone();
-  if (neonReady) {
-    url.pathname = '/admin';
-    url.searchParams.set('next', pathname);
-    url.searchParams.set('unlock', '1');
-  } else {
-    url.pathname = '/admin';
-    url.searchParams.set('unlock', '1');
-    url.searchParams.set('next', pathname);
-  }
+  url.pathname = neonReady || neonConfigured ? '/admin' : '/admin';
+  url.searchParams.set('unlock', '1');
+  url.searchParams.set('next', pathname);
   return NextResponse.redirect(url);
 }
 
