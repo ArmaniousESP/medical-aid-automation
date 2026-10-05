@@ -47,7 +47,6 @@ export function getEnvAdminEmails(): string[] {
     .filter(Boolean);
 }
 
-/** Env super-admin or role=admin in DB */
 export async function resolveStaffRole(
   email: string | null | undefined
 ): Promise<{
@@ -96,10 +95,9 @@ export async function resolveStaffRole(
       };
     }
   } catch {
-    /* table / db may be missing */
+    /* */
   }
 
-  // Fallback: allowlist only → treat as operator (no role mgmt)
   if (isEmailAllowed(e)) {
     return {
       email: e,
@@ -144,15 +142,35 @@ export async function upsertStaffRole(input: {
     throw new Error('Invalid role');
   }
 
+  const existing = await query<{ id: string }>(
+    `SELECT id FROM staff_roles WHERE lower(email) = $1 LIMIT 1`,
+    [email]
+  );
+
+  if (existing.rows[0]) {
+    const r = await query<StaffRoleRow>(
+      `UPDATE staff_roles SET
+         role = $2,
+         display_name = COALESCE($3, display_name),
+         active = COALESCE($4, active),
+         notes = COALESCE($5, notes),
+         updated_at = now()
+       WHERE id = $1
+       RETURNING *`,
+      [
+        existing.rows[0].id,
+        input.role,
+        input.display_name || null,
+        input.active ?? true,
+        input.notes || null,
+      ]
+    );
+    return r.rows[0];
+  }
+
   const r = await query<StaffRoleRow>(
-    `INSERT INTO staff_roles (email, role, display_name, active, notes, created_by, updated_at)
-     VALUES ($1, $2, $3, COALESCE($4, true), $5, $6, now())
-     ON CONFLICT ((lower(email))) DO UPDATE SET
-       role = EXCLUDED.role,
-       display_name = COALESCE(EXCLUDED.display_name, staff_roles.display_name),
-       active = COALESCE(EXCLUDED.active, staff_roles.active),
-       notes = COALESCE(EXCLUDED.notes, staff_roles.notes),
-       updated_at = now()
+    `INSERT INTO staff_roles (email, role, display_name, active, notes, created_by)
+     VALUES ($1, $2, $3, COALESCE($4, true), $5, $6)
      RETURNING *`,
     [
       email,
@@ -184,7 +202,6 @@ export async function deleteStaffRole(email: string): Promise<boolean> {
   return (r.rowCount ?? 0) > 0;
 }
 
-/** Seed missing allowlist emails as operator (idempotent) */
 export async function syncAllowlistAsOperators(
   actor?: string
 ): Promise<{ added: number }> {
