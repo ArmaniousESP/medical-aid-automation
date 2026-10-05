@@ -7,19 +7,33 @@ import {
   staffAccessStatus,
 } from '@/lib/staffAccess';
 import { sessionCookieOptions, clearCookieOptions } from '@/lib/cookies';
+import { resolveStaffRole } from '@/lib/staffRoles';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET — current staff session status (public enough under /api/auth/)
- * POST — after Google sign-in, mint maa_ops_staff if email is allowlisted
+ * GET — current staff session status
+ * POST — after Google sign-in, mint maa_ops_staff if allowlisted or has DB role
  * DELETE — clear staff cookie
  */
 export async function GET(req: NextRequest) {
+  const status = staffAccessStatus(req);
+  let roleInfo = null;
+  if (status.staff_email) {
+    try {
+      roleInfo = await resolveStaffRole(status.staff_email);
+    } catch {
+      roleInfo = null;
+    }
+  }
   return NextResponse.json({
     ok: true,
     neon_configured: neonAuthConfigured(),
-    ...staffAccessStatus(req),
+    ...status,
+    role: roleInfo?.role ?? null,
+    role_source: roleInfo?.source ?? null,
+    can_manage_roles: roleInfo?.can_manage_roles ?? false,
+    can_ops: roleInfo?.can_ops ?? status.staff_ok,
   });
 }
 
@@ -52,11 +66,17 @@ export async function POST(req: NextRequest) {
   }
 
   const email = String(session.user.email);
-  if (!isEmailAllowed(email)) {
+  const roleInfo = await resolveStaffRole(email);
+  const allowed =
+    isEmailAllowed(email) ||
+    roleInfo.can_ops ||
+    roleInfo.source === 'env_admin';
+
+  if (!allowed) {
     return NextResponse.json(
       {
         ok: false,
-        error: `Email ${email} is not on OPS_ALLOWED_EMAILS`,
+        error: `Email ${email} is not allowlisted and has no staff role`,
         code: 'email_not_allowed',
       },
       { status: 403 }
@@ -69,6 +89,9 @@ export async function POST(req: NextRequest) {
     email,
     name: session.user.name || null,
     staff_cookie: STAFF_COOKIE,
+    role: roleInfo.role,
+    role_source: roleInfo.source,
+    can_manage_roles: roleInfo.can_manage_roles,
   });
   res.cookies.set(STAFF_COOKIE, token, sessionCookieOptions(60 * 60 * 12));
   return res;
