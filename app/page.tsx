@@ -6,107 +6,135 @@ import { UnlockPanel } from './UnlockPanel';
 
 export default function Home() {
   return (
-    <main className="min-h-screen text-slate-900">
-      <div className="max-w-lg mx-auto px-4 py-10 space-y-8">
-        <header className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Medical Aid</h1>
-          <p className="text-slate-600">Monthly treatment support</p>
-          <p className="text-sm text-slate-500" dir="rtl">
-            دعم العلاج الشهري · تقديم الطلب ومتابعة الحالة
+    <main className="min-h-screen text-slate-900 pb-24 md:pb-10">
+      <div className="max-w-lg mx-auto px-4 pt-8 space-y-8">
+        <header className="space-y-3 text-center">
+          <p className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+            Monthly medicine support · دعم العلاج الشهري
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+            How can we help?
+          </h1>
+          <p className="text-base text-slate-600" dir="rtl">
+            اختر خطوة واحدة فقط
           </p>
         </header>
 
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-emerald-700 text-center">
-            For you · للمستفيد
+        <section className="space-y-3" aria-label="For beneficiaries">
+          <Link
+            href="/intake"
+            className="group block rounded-2xl bg-emerald-600 p-6 text-white shadow-md hover:bg-emerald-700 hover:shadow-lg transition focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-xl font-bold">
+                1
+              </span>
+              <div className="text-left flex-1">
+                <div className="text-lg font-semibold">Submit a request</div>
+                <div className="text-sm opacity-90 mt-0.5" dir="rtl">
+                  قدّم طلب علاج شهري جديد
+                </div>
+                <div className="text-xs opacity-75 mt-2">
+                  About 3–5 minutes · ~٣–٥ دقائق
+                </div>
+              </div>
+              <span className="text-2xl opacity-70">→</span>
+            </div>
+          </Link>
+
+          <Link
+            href="/request-status"
+            className="group block rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm hover:border-emerald-400 hover:shadow-md transition focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-800">
+                2
+              </span>
+              <div className="text-left flex-1">
+                <div className="text-lg font-semibold text-slate-900">
+                  Check my status
+                </div>
+                <div className="text-sm text-slate-500 mt-0.5" dir="rtl">
+                  تابع طلبك برقم الطلب
+                </div>
+              </div>
+              <span className="text-2xl text-slate-300">→</span>
+            </div>
+          </Link>
+        </section>
+
+        <section className="rounded-2xl bg-slate-50 border border-slate-100 p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-center text-slate-800">
+            Simple path · المسار بسيط
           </h2>
-          <div className="grid gap-3">
+          <ol className="space-y-3">
+            <li className="flex gap-3 text-sm">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white border text-xs font-bold text-emerald-700">
+                1
+              </span>
+              <span>
+                <span className="text-slate-800">Submit — get a Request ID</span>
+                <span className="block text-slate-500 text-xs mt-0.5" dir="rtl">
+                  قدّم الطلب واحفظ رقم الطلب
+                </span>
+              </span>
+            </li>
+            <li className="flex gap-3 text-sm">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white border text-xs font-bold text-emerald-700">
+                2
+              </span>
+              <span>
+                <span className="text-slate-800">Staff reviews your medicines</span>
+                <span className="block text-slate-500 text-xs mt-0.5" dir="rtl">
+                  الفريق يراجع الأدوية
+                </span>
+              </span>
+            </li>
+            <li className="flex gap-3 text-sm">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white border text-xs font-bold text-emerald-700">
+                3
+              </span>
+              <span>
+                <span className="text-slate-800">Check status anytime with that ID</span>
+                <span className="block text-slate-500 text-xs mt-0.5" dir="rtl">
+                  تابع الحالة بنفس الرقم
+                </span>
+              </span>
+            </li>
+          </ol>
+          <p className="text-center pt-1">
             <Link
-              href="/intake"
-              className="rounded-xl border bg-emerald-600 text-white p-5 hover:bg-emerald-700 shadow-sm"
+              href="/guide"
+              className="text-sm font-medium text-violet-700 hover:underline"
             >
-              <div className="flex items-start gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
-                  1
-                </span>
-                <div>
-                  <div className="font-medium">Submit a request</div>
-                  <div className="text-xs font-normal opacity-90 mt-0.5" dir="rtl">
-                    تقديم طلب علاج شهري
-                  </div>
-                </div>
-              </div>
-            </Link>
-            <Link
-              href="/request-status"
-              className="rounded-xl border bg-white p-5 hover:border-emerald-300 shadow-sm"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-sm font-bold">
-                  2
-                </span>
-                <div>
-                  <div className="font-medium">Check request status</div>
-                  <div className="text-xs text-slate-500 mt-0.5" dir="rtl">
-                    متابعة حالة الطلب برقم الطلب
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 p-4 text-xs text-emerald-900 space-y-2">
-            <p className="font-semibold text-center">What happens next · ماذا بعد الإرسال؟</p>
-            <ol className="space-y-1.5 list-decimal list-inside text-emerald-800">
-              <li>
-                Save your <strong>Request ID</strong> after submit
-                <span className="block pr-5" dir="rtl">
-                  احفظ رقم الطلب بعد الإرسال
-                </span>
-              </li>
-              <li>
-                Staff process matching and approval
-                <span className="block pr-5" dir="rtl">
-                  الفريق يطابق الأدوية ويراجع الطلب
-                </span>
-              </li>
-              <li>
-                Check status anytime with that ID
-                <span className="block pr-5" dir="rtl">
-                  تابع الحالة بنفس الرقم في أي وقت
-                </span>
-              </li>
-            </ol>
-          </div>
-
-          <p className="text-center text-xs text-slate-500">
-            <Link href="/guide" className="text-violet-700 underline font-medium">
               Full guide / الدليل الكامل
             </Link>
           </p>
         </section>
 
-        <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 text-center">
-            Staff only · للتشغيل
-          </h2>
-          <p className="text-xs text-slate-500 text-center leading-relaxed">
-            Unlock once → follow the top bar:{' '}
-            <span className="font-mono text-[11px] text-violet-800">
-              Queue → Claims → Pharmacy → Programs → Refills
+        <details className="rounded-2xl border border-dashed border-slate-300 bg-white">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center justify-between">
+            <span>
+              Staff unlock{' '}
+              <span className="text-slate-400 font-normal" dir="rtl">
+                · للتشغيل فقط
+              </span>
             </span>
-          </p>
-          <p className="text-[10px] text-center text-slate-400" dir="rtl">
-            افتح التشغيل مرة · ثم اتبع الشريط العلوي المرقّم
-          </p>
-          <Suspense fallback={null}>
-            <UnlockPanel />
-          </Suspense>
-        </section>
+            <span className="text-xs text-slate-400">tap to open</span>
+          </summary>
+          <div className="border-t px-4 pb-4 pt-3 space-y-2">
+            <p className="text-xs text-slate-500 text-center">
+              Queue → Claims → Pharmacy → Programs → Refills
+            </p>
+            <Suspense fallback={<p className="text-xs text-slate-400">Loading…</p>}>
+              <UnlockPanel />
+            </Suspense>
+          </div>
+        </details>
 
-        <footer className="text-center text-xs text-slate-400 pb-6 space-y-1">
-          <p>Patient lists are private. Only submit and status are public.</p>
-          <p dir="rtl">قوائم المرضى غير عامة — التقديم ومتابعة الحالة فقط.</p>
+        <footer className="text-center text-xs text-slate-400 pb-4 space-y-1">
+          <p>Your data is private. Only submit & status are public.</p>
+          <p dir="rtl">بياناتك خاصة — التقديم والحالة فقط للعامة.</p>
         </footer>
       </div>
     </main>
