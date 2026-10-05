@@ -22,6 +22,7 @@ const OPS_PRIMARY = [
 
 const OPS_MORE = [
   { href: '/admin', label: 'Admin · Google Auth' },
+  { href: '/admin/roles', label: 'Role management' },
   { href: '/sign-in', label: 'Sign-in page' },
   { href: '/dry-run', label: 'Dry-run script' },
   { href: '/notifications', label: 'Notifications · WhatsApp' },
