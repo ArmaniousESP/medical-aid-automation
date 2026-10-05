@@ -5,4 +5,40 @@
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Comfortable reading */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Visible keyboard focus */
+:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* Larger default form controls on mobile */
+@layer base {
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea,
+    button {
+      font-size: inherit;
+    }
+  }
+}
+
+/* Utility for screen-reader only already in Tailwind; ensure bottom padding */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }
