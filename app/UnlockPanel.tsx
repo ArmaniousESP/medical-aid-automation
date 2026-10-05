@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { LiveDryRunButton } from './LiveDryRunButton';
+import { AdminGoogleAuth } from './AdminGoogleAuth';
 
 const OPS_CHECKLIST = [
   {
@@ -57,7 +58,7 @@ export function UnlockPanel() {
     search?.get('unlock') === '1' || search?.get('need_secret') === '1';
   const nextPath = search?.get('next');
 
-  useEffect(() => {
+  const refreshUnlock = useCallback(() => {
     Promise.all([
       fetch('/api/auth/unlock', cred).then((r) => r.json()),
       fetch('/api/auth/staff-session', cred).then((r) => r.json()),
@@ -70,6 +71,16 @@ export function UnlockPanel() {
       })
       .catch(() => setUnlocked(false));
   }, []);
+
+  useEffect(() => {
+    refreshUnlock();
+  }, [refreshUnlock]);
+
+  function onStaffChange(email: string | null, staffUnlocked: boolean) {
+    setStaffEmail(email);
+    if (staffUnlocked) setUnlocked(true);
+    else refreshUnlock();
+  }
 
   async function unlock(e: React.FormEvent) {
     e.preventDefault();
@@ -110,18 +121,21 @@ export function UnlockPanel() {
   if (unlocked) {
     return (
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-emerald-700 font-medium">
-            Ops unlocked
-            {staffEmail ? ` · ${staffEmail}` : ' · secret'}
-          </span>
-          <button
-            type="button"
-            onClick={lock}
-            className="text-xs text-slate-500 hover:text-slate-800 underline"
-          >
-            Lock
-          </button>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-emerald-700 font-medium">
+              Admin unlocked
+              {staffEmail ? ` · Google · ${staffEmail}` : ' · secret'}
+            </span>
+            <button
+              type="button"
+              onClick={lock}
+              className="text-xs text-slate-500 hover:text-slate-800 underline"
+            >
+              Lock
+            </button>
+          </div>
+          <AdminGoogleAuth nextPath={nextPath} onStaffChange={onStaffChange} />
         </div>
 
         <LiveDryRunButton />
@@ -169,7 +183,7 @@ export function UnlockPanel() {
           </Link>
           <span className="text-slate-300">·</span>
           <Link href="/sign-in" className="text-violet-700 hover:underline">
-            Google staff
+            /sign-in
           </Link>
           <span className="text-slate-300">·</span>
           <Link href="/status" className="text-slate-600 hover:underline">
@@ -181,49 +195,58 @@ export function UnlockPanel() {
   }
 
   return (
-    <div className="space-y-3">
-      {showPrompt && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <p className="font-medium">Ops access required</p>
-          <p className="mt-0.5">
-            Sign in with Google (allowlisted) or enter PROCESS_SECRET.
-          </p>
-        </div>
-      )}
-
-      <Link
-        href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : '/sign-in'}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-      >
-        Continue with Google (Neon Auth)
-      </Link>
-
-      <p className="text-center text-[10px] text-slate-400">or secret unlock</p>
-
-      <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 text-sm">
-        <input
-          type="password"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="Ops password (PROCESS_SECRET)"
-          className="rounded border px-2 py-1 text-sm min-w-[12rem]"
-          autoComplete="current-password"
-          autoFocus={showPrompt}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50"
-        >
-          {loading ? '…' : 'Unlock ops'}
-        </button>
-        {err && <span className="text-red-600 text-xs">{err}</span>}
-      </form>
-      {!secretConfigured && (
-        <p className="text-[10px] text-amber-800">
-          PROCESS_SECRET optional if Neon Auth + OPS_ALLOWED_EMAILS are set.
+    <div className="space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+        <h2 className="text-sm font-semibold text-slate-900">Admin panel</h2>
+        <p className="text-xs text-slate-600" dir="rtl">
+          لوحة التشغيل · Google أو كلمة السر
         </p>
-      )}
+
+        {showPrompt && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <p className="font-medium">Ops access required</p>
+            <p className="mt-0.5">
+              Use Google (allowlisted) or PROCESS_SECRET below.
+            </p>
+          </div>
+        )}
+
+        <AdminGoogleAuth nextPath={nextPath} onStaffChange={onStaffChange} />
+
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-[10px] uppercase tracking-wide">
+            <span className="bg-white px-2 text-slate-400">or secret</span>
+          </div>
+        </div>
+
+        <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 text-sm">
+          <input
+            type="password"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder="PROCESS_SECRET"
+            className="rounded border px-2 py-1.5 text-sm min-w-[12rem] flex-1"
+            autoComplete="current-password"
+            autoFocus={showPrompt}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded bg-slate-800 px-3 py-1.5 text-white text-sm disabled:opacity-50"
+          >
+            {loading ? '…' : 'Unlock'}
+          </button>
+        </form>
+        {err && <p className="text-red-600 text-xs">{err}</p>}
+        {!secretConfigured && (
+          <p className="text-[10px] text-amber-800">
+            PROCESS_SECRET optional when Neon Auth + OPS_ALLOWED_EMAILS are set.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
