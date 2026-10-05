@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { StaffAuthChip } from './StaffAuthChip';
 
 /** Same order as AppNav Staff path and FlowSteps */
 const STEPS = [
@@ -12,7 +13,7 @@ const STEPS = [
   { href: '/refills', label: 'Refills', n: 5 },
 ];
 
-/** Optional staff progress strip (pages may use FlowSteps instead) */
+/** Staff progress strip + Google Auth chip */
 export function OpsStepsBar() {
   const pathname = usePathname() || '';
 
@@ -21,7 +22,7 @@ export function OpsStepsBar() {
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-violet-100 bg-violet-50/80 p-3">
+    <div className="mb-4 rounded-xl border border-violet-100 bg-violet-50/80 p-3 space-y-2">
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-wide text-violet-500 mr-1">
           Staff path
@@ -43,10 +44,14 @@ export function OpsStepsBar() {
         ))}
         <Link
           href="/guide#for-staff"
-          className="ml-auto text-[10px] text-violet-600 hover:underline"
+          className="text-[10px] text-violet-600 hover:underline"
         >
           Guide
         </Link>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-t border-violet-100/80 pt-2">
+        <span className="text-[10px] text-violet-600 font-medium">Google Auth</span>
+        <StaffAuthChip />
       </div>
     </div>
   );
