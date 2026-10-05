@@ -8,9 +8,9 @@ const PUBLIC = [
   { href: '/intake', label: '1 · Submit', labelAr: 'تقديم' },
   { href: '/request-status', label: '2 · Status', labelAr: 'حالة' },
   { href: '/guide', label: 'Guide', labelAr: 'الدليل' },
+  { href: '/sign-in', label: 'Staff', labelAr: 'تشغيل' },
 ];
 
-/** Main monthly cycle — keep short so staff are not lost */
 const OPS_PRIMARY = [
   { href: '/intake-ops', label: '1 · Queue', hint: 'Process new requests' },
   { href: '/claims', label: '2 · Claims', hint: 'Review drafts' },
@@ -91,7 +91,7 @@ export function AppNav() {
             </summary>
             <div className="absolute left-0 mt-1 w-52 rounded-lg border bg-white py-1 shadow-lg z-50">
               <p className="px-3 py-1 text-[10px] text-slate-400">
-                Unlock on Home first
+                Google or secret unlock first
               </p>
               {OPS_MORE.map((item) => (
                 <Link
