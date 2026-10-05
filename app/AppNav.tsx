@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { StaffAuthChip } from './StaffAuthChip';
 
 const PUBLIC = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية' },
@@ -108,6 +109,7 @@ export function AppNav() {
               ))}
             </div>
           </details>
+          <StaffAuthChip />
         </div>
       </div>
     </nav>
