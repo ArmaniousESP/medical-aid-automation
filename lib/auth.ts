@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
+import { isStaffCookieValid, staffAccessStatus } from '@/lib/staffAccess';
 
 export const ADMIN_COOKIE = 'maa_admin';
 
@@ -21,12 +22,8 @@ export function isValidOpsSecret(value: string | undefined | null): boolean {
   return getOpsSecrets().includes(value);
 }
 
-/**
- * Ops access requires at least one PROCESS_SECRET.
- * Cookie / header / Bearer / ?secret= must match one of the configured secrets.
- * If PROCESS_SECRET is unset, ops are locked.
- */
 export function isAdminUnlocked(): boolean {
+  if (isStaffCookieValid()) return true;
   const secrets = getOpsSecrets();
   if (!secrets.length) return false;
   try {
@@ -38,7 +35,14 @@ export function isAdminUnlocked(): boolean {
   }
 }
 
+/**
+ * Ops access if:
+ * - PROCESS_SECRET cookie / header matches, OR
+ * - signed staff cookie from Neon Auth Google (allowlisted email)
+ */
 export function authorizeRequest(req: NextRequest): boolean {
+  if (isStaffCookieValid(req)) return true;
+
   const secrets = getOpsSecrets();
   if (!secrets.length) return false;
 
@@ -53,14 +57,26 @@ export function authorizeRequest(req: NextRequest): boolean {
 }
 
 export function unauthorizedResponse() {
-  const configured = getOpsSecrets().length > 0;
+  const secretConfigured = getOpsSecrets().length > 0;
+  const staff = staffAccessStatus();
+  const neonHint =
+    process.env.NEON_AUTH_BASE_URL && staff.allowlist_configured
+      ? ' or sign in with Google on /sign-in'
+      : process.env.NEON_AUTH_BASE_URL
+        ? ' — set OPS_ALLOWED_EMAILS for Google staff'
+        : '';
+
   return {
     body: {
       ok: false as const,
-      error: configured
-        ? 'Unauthorized — unlock on Home with PROCESS_SECRET'
-        : 'Ops locked — set PROCESS_SECRET on Vercel',
-      code: configured ? 'unauthorized' : 'secret_required',
+      error: secretConfigured
+        ? `Unauthorized — unlock on Home with PROCESS_SECRET${neonHint}`
+        : staff.allowlist_configured
+          ? 'Unauthorized — sign in with Google on /sign-in'
+          : 'Ops locked — set PROCESS_SECRET and/or Neon Auth + OPS_ALLOWED_EMAILS',
+      code: secretConfigured || staff.allowlist_configured
+        ? 'unauthorized'
+        : 'secret_required',
     },
     status: 401,
   };
