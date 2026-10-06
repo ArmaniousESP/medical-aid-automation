@@ -4,7 +4,7 @@ export const runtime = 'edge';
 export const size = { width: 512, height: 512 };
 export const contentType = 'image/png';
 
-/** Home-screen / favicon icon — emerald cross + MA mark */
+/** Home-screen / browser icon */
 export default function Icon() {
   return new ImageResponse(
     (
@@ -19,21 +19,35 @@ export default function Icon() {
           borderRadius: 96,
         }}
       >
+        {/* Medical cross */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            position: 'relative',
+            width: 280,
+            height: 280,
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            fontSize: 180,
-            fontWeight: 700,
-            lineHeight: 1,
-            letterSpacing: '-0.04em',
           }}
         >
-          <span style={{ fontSize: 120, marginBottom: 8 }}>✚</span>
-          <span style={{ fontSize: 72, fontWeight: 600 }}>MA</span>
+          <div
+            style={{
+              position: 'absolute',
+              width: 88,
+              height: 240,
+              background: 'white',
+              borderRadius: 24,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              width: 240,
+              height: 88,
+              background: 'white',
+              borderRadius: 24,
+            }}
+          />
         </div>
       </div>
     ),
