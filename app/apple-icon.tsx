@@ -21,15 +21,31 @@ export default function AppleIcon() {
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            position: 'relative',
+            width: 100,
+            height: 100,
             alignItems: 'center',
-            color: 'white',
-            fontWeight: 700,
-            lineHeight: 1,
+            justifyContent: 'center',
           }}
         >
-          <span style={{ fontSize: 48, marginBottom: 4 }}>✚</span>
-          <span style={{ fontSize: 28 }}>MA</span>
+          <div
+            style={{
+              position: 'absolute',
+              width: 32,
+              height: 88,
+              background: 'white',
+              borderRadius: 10,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              width: 88,
+              height: 32,
+              background: 'white',
+              borderRadius: 10,
+            }}
+          />
         </div>
       </div>
     ),
