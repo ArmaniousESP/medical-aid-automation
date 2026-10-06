@@ -12,6 +12,10 @@ const PUBLIC_EXACT = new Set([
   '/guide',
   '/status',
   '/admin',
+  '/icon',
+  '/apple-icon',
+  '/splash',
+  '/manifest.webmanifest',
 ]);
 
 const PUBLIC_PREFIXES = [
@@ -22,11 +26,15 @@ const PUBLIC_PREFIXES = [
   '/api/webhooks/twilio',
   '/_next/',
   '/favicon',
+  '/icon',
+  '/apple-icon',
+  '/splash',
 ];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (pathname === '/sign-in' || pathname.startsWith('/sign-in/')) return true;
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) return true;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
   if (pathname === '/api/intake') return true;
   return false;
@@ -139,6 +147,6 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
   ],
 };
