@@ -4,7 +4,7 @@
   "description": "Submit and track monthly treatment requests. دعم العلاج الشهري.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
+  "background_color": "#059669",
   "theme_color": "#059669",
   "orientation": "portrait-primary",
   "lang": "en",
