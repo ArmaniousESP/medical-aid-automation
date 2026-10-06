@@ -11,12 +11,29 @@ export const metadata: Metadata = {
   },
   description:
     'Submit a monthly treatment request and check status with your Request ID. دعم العلاج الشهري.',
+  applicationName: 'Medical Aid',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Medical Aid',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [{ url: '/icon', type: 'image/png' }],
+    apple: [{ url: '/apple-icon', type: 'image/png' }],
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#059669',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#059669' },
+    { media: '(prefers-color-scheme: dark)', color: '#047857' },
+  ],
   viewportFit: 'cover',
 };
 
@@ -38,7 +55,6 @@ export default function RootLayout({
         <div className="mx-auto max-w-6xl px-4 pt-3">
           <SetupBanner />
         </div>
-        {/* pb reserves room for fixed mobile bottom nav */}
         <div id="main-content" className="pb-24 md:pb-6">
           {children}
         </div>
