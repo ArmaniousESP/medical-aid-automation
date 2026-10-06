@@ -34,7 +34,6 @@ const PUBLIC_PREFIXES = [
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (pathname === '/sign-in' || pathname.startsWith('/sign-in/')) return true;
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) return true;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
   if (pathname === '/api/intake') return true;
   return false;
