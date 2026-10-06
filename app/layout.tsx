@@ -3,6 +3,7 @@ import './globals.css';
 import { SetupBanner } from './SetupBanner';
 import { AppNav } from './AppNav';
 import { MobilePublicNav } from './MobilePublicNav';
+import { SplashScreen } from './SplashScreen';
 
 export const metadata: Metadata = {
   title: {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Medical Aid',
   },
   formatDetection: {
@@ -24,6 +25,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: '/icon', type: 'image/png' }],
     apple: [{ url: '/apple-icon', type: 'image/png' }],
+  },
+  other: {
+    // iOS cold-start splash (common modern sizes)
+    'apple-touch-startup-image': '/splash',
   },
 };
 
@@ -37,6 +42,19 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+const APPLE_SPLASH = [
+  // iPhone 15 / 14 Pro Max
+  { w: 1290, h: 2796, media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)' },
+  // iPhone 14 / 13 / 12 Pro
+  { w: 1170, h: 2532, media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)' },
+  // iPhone 11 / XR
+  { w: 828, h: 1792, media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)' },
+  // iPhone SE
+  { w: 750, h: 1334, media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)' },
+  // iPad 10.9
+  { w: 1640, h: 2360, media: '(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2)' },
+] as const;
+
 export default function RootLayout({
   children,
 }: {
@@ -44,7 +62,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {APPLE_SPLASH.map((s) => (
+          <link
+            key={`${s.w}x${s.h}`}
+            rel="apple-touch-startup-image"
+            href={`/splash?w=${s.w}&h=${s.h}`}
+            media={s.media}
+          />
+        ))}
+      </head>
       <body className="min-h-screen bg-slate-50 antialiased">
+        <SplashScreen />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-white"
