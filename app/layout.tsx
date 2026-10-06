@@ -17,6 +17,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#059669',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -37,7 +38,10 @@ export default function RootLayout({
         <div className="mx-auto max-w-6xl px-4 pt-3">
           <SetupBanner />
         </div>
-        <div id="main-content">{children}</div>
+        {/* pb reserves room for fixed mobile bottom nav */}
+        <div id="main-content" className="pb-24 md:pb-6">
+          {children}
+        </div>
         <MobilePublicNav />
       </body>
     </html>
