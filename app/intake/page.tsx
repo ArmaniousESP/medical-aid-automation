@@ -6,6 +6,10 @@ import { PublicStepsBar } from '../PublicStepsBar';
 
 type MedLine = { name: string; qty: number };
 
+const field =
+  'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none';
+const label = 'block text-sm font-medium text-slate-700 mb-1.5';
+
 export default function IntakePage() {
   const [emp_name, setEmpName] = useState('');
   const [emp_id, setEmpId] = useState('');
@@ -19,9 +23,12 @@ export default function IntakePage() {
   const [loading, setLoading] = useState(false);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [searchHits, setSearchHits] = useState<any[]>([]);
+  const [searchHits, setSearchHits] = useState<
+    { name_en?: string; name_ar?: string; price_egp?: number }[]
+  >([]);
   const [estimate, setEstimate] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeMedIdx, setActiveMedIdx] = useState(0);
 
   function updateMed(i: number, patch: Partial<MedLine>) {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
@@ -32,14 +39,18 @@ export default function IntakePage() {
     try {
       await navigator.clipboard.writeText(resultId);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2500);
     } catch {
       /* ignore */
     }
   }
 
-  async function searchMed(q: string) {
-    if (q.length < 2) return;
+  async function searchMed(q: string, idx: number) {
+    setActiveMedIdx(idx);
+    if (q.length < 2) {
+      setSearchHits([]);
+      return;
+    }
     const res = await fetch('/api/intake', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -96,9 +107,7 @@ export default function IntakePage() {
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Submit failed');
       setResultId(data.id);
-      setMeds([{ name: '', qty: 1 }]);
-      setComments('');
-      setRoshetta('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error');
     } finally {
@@ -107,163 +116,225 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 p-6">
-      <div className="mx-auto max-w-lg space-y-6">
+    <main className="min-h-screen bg-slate-50 text-slate-900 pb-28 md:pb-12">
+      <div className="mx-auto max-w-lg px-4 pt-6 space-y-5">
         <PublicStepsBar active="submit" />
 
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold">تقديم طلب علاج شهري</h1>
-          <p className="text-sm text-slate-600">Submit a monthly aid request</p>
+        <header className="space-y-1 text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Submit request
+          </h1>
+          <p className="text-base text-slate-600" dir="rtl">
+            تقديم طلب علاج شهري
+          </p>
+          <p className="text-sm text-slate-500">
+            Required fields marked * · الحقول المطلوبة *
+          </p>
         </header>
 
         {resultId && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3 text-sm">
-            <p className="font-medium text-emerald-900">
-              تم استلام الطلب · Request received
+          <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-lg font-bold">
+                ✓
+              </span>
+              <div>
+                <p className="text-lg font-semibold text-emerald-950">
+                  Request received
+                </p>
+                <p className="text-sm text-emerald-800" dir="rtl">
+                  تم استلام طلبك بنجاح
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-emerald-900 font-medium">
+              Save this ID — you need it to check status.
+              <span className="block text-xs font-normal mt-1" dir="rtl">
+                احفظ الرقم — ستحتاجه لمتابعة الحالة
+              </span>
             </p>
-            <p className="text-xs text-emerald-800" dir="rtl">
-              احفظ رقم الطلب — ستحتاجه في الخطوة 2
-            </p>
-            <p className="text-xs text-emerald-800">
-              Save this Request ID — you need it for step 2:
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="flex-1 min-w-0 text-xs font-mono text-emerald-900 break-all bg-white/70 rounded p-2 border border-emerald-100">
+            <div className="rounded-xl bg-white border border-emerald-200 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                Request ID
+              </p>
+              <p className="font-mono text-sm break-all text-slate-900 select-all">
                 {resultId}
               </p>
-              <button
-                type="button"
-                onClick={copyId}
-                className="shrink-0 rounded-lg border border-emerald-400 bg-white px-3 py-2 text-xs font-medium text-emerald-900 hover:bg-emerald-100"
-              >
-                {copied ? 'Copied ✓' : 'Copy ID'}
-              </button>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Link
-                href={`/request-status?id=${encodeURIComponent(resultId)}`}
-                className="rounded-lg bg-emerald-700 text-white px-3 py-1.5 text-xs font-medium"
-              >
-                Step 2: Check status →
-              </Link>
-              <button
-                type="button"
-                onClick={() => setResultId(null)}
-                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
-              >
-                Submit another
-              </button>
-              <Link
-                href="/guide#public-1"
-                className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-900"
-              >
-                Help
-              </Link>
-            </div>
+            <button
+              type="button"
+              onClick={copyId}
+              className="w-full rounded-xl bg-emerald-700 py-3.5 text-base font-semibold text-white hover:bg-emerald-800"
+            >
+              {copied ? 'Copied ✓ · تم النسخ' : 'Copy Request ID · نسخ الرقم'}
+            </button>
+            <Link
+              href={`/request-status?id=${encodeURIComponent(resultId)}`}
+              className="block w-full rounded-xl border-2 border-emerald-600 bg-white py-3.5 text-center text-base font-semibold text-emerald-800 hover:bg-emerald-50"
+            >
+              Check status now → · عرض الحالة
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setResultId(null);
+                setMeds([{ name: '', qty: 1 }]);
+                setComments('');
+                setRoshetta('');
+              }}
+              className="w-full text-sm text-slate-500 hover:text-slate-800 underline"
+            >
+              Submit another request
+            </button>
           </div>
         )}
 
         {!resultId && (
-          <form
-            onSubmit={submit}
-            className="rounded-xl border bg-white p-5 shadow-sm space-y-4 text-sm"
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-1">
-                <span className="text-xs text-slate-500">اسم الموظف *</span>
+          <form onSubmit={submit} className="space-y-5">
+            {/* Section 1 */}
+            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
+                  A
+                </span>
+                About you · بيانات الموظف
+              </h2>
+              <label className="block">
+                <span className={label}>Employee name * · اسم الموظف</span>
                 <input
                   required
+                  autoComplete="name"
                   value={emp_name}
                   onChange={(e) => setEmpName(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
+                  className={field}
+                  placeholder="Full name"
                 />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-slate-500">الرقم الوظيفي</span>
-                <input
-                  value={emp_id}
-                  onChange={(e) => setEmpId(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-slate-500">الشركة</span>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className={label}>Employee ID · الرقم الوظيفي</span>
+                  <input
+                    value={emp_id}
+                    onChange={(e) => setEmpId(e.target.value)}
+                    className={field}
+                  />
+                </label>
+                <label className="block">
+                  <span className={label}>Phone · الموبايل</span>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={field}
+                    placeholder="01xxxxxxxxx"
+                  />
+                </label>
+              </div>
+              <label className="block">
+                <span className={label}>Company · الشركة</span>
                 <input
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
+                  className={field}
                 />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-slate-500">الموبايل</span>
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
-                />
-              </label>
-              <label className="block space-y-1 sm:col-span-2">
-                <span className="text-xs text-slate-500">اسم المريض</span>
+            </section>
+
+            {/* Section 2 */}
+            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
+                  B
+                </span>
+                Patient · المريض
+              </h2>
+              <label className="block">
+                <span className={label}>Patient name · اسم المريض</span>
                 <input
                   value={patient_name}
                   onChange={(e) => setPatient(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
+                  className={field}
+                  placeholder="If different from employee"
                 />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-slate-500">المدينة</span>
+              <label className="block">
+                <span className={label}>City · المدينة</span>
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded border px-3 py-2"
+                  className={field}
                 />
               </label>
-            </div>
+            </section>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-slate-600">الأدوية *</span>
+            {/* Section 3 */}
+            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
+                    C
+                  </span>
+                  Medicines * · الأدوية
+                </h2>
                 <button
                   type="button"
                   onClick={() => setMeds((m) => [...m, { name: '', qty: 1 }])}
-                  className="text-xs text-blue-600"
+                  className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
                 >
-                  + دواء
+                  + Add · إضافة
                 </button>
               </div>
               {meds.map((m, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={m.name}
-                    onChange={(e) => {
-                      updateMed(i, { name: e.target.value });
-                      searchMed(e.target.value);
-                    }}
-                    placeholder="اسم الدواء"
-                    className="flex-1 rounded border px-3 py-2"
-                    required={i === 0}
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    value={m.qty}
-                    onChange={(e) =>
-                      updateMed(i, { qty: Number(e.target.value) || 1 })
-                    }
-                    className="w-16 rounded border px-2 py-2"
-                    title="Quantity"
-                  />
+                <div key={i} className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <input
+                      value={m.name}
+                      onChange={(e) => {
+                        updateMed(i, { name: e.target.value });
+                        searchMed(e.target.value, i);
+                      }}
+                      placeholder={`Medicine ${i + 1} · اسم الدواء`}
+                      className={field}
+                      required={i === 0}
+                    />
+                  </div>
+                  <div className="w-20">
+                    <input
+                      type="number"
+                      min={1}
+                      value={m.qty}
+                      onChange={(e) =>
+                        updateMed(i, { qty: Number(e.target.value) || 1 })
+                      }
+                      className={field + ' text-center'}
+                      title="Quantity · الكمية"
+                      aria-label="Quantity"
+                    />
+                  </div>
+                  {meds.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMeds((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                      className="mt-2 text-xs text-red-600 px-1"
+                      aria-label="Remove"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
               {searchHits.length > 0 && (
-                <ul className="text-xs border rounded bg-slate-50 p-2 space-y-1 max-h-32 overflow-y-auto">
+                <ul className="rounded-xl border bg-slate-50 p-2 space-y-1 max-h-40 overflow-y-auto">
                   {searchHits.map((h, i) => (
                     <li key={i}>
                       <button
                         type="button"
-                        className="text-left w-full hover:underline text-indigo-700"
+                        className="w-full text-left rounded-lg px-3 py-2 text-sm text-indigo-800 hover:bg-white"
                         onClick={() => {
-                          updateMed(meds.length - 1, {
+                          updateMed(activeMedIdx, {
                             name: h.name_en || h.name_ar || '',
                           });
                           setSearchHits([]);
@@ -279,56 +350,79 @@ export default function IntakePage() {
               <button
                 type="button"
                 onClick={runEstimate}
-                className="text-xs text-slate-600 underline"
+                className="text-sm text-slate-600 underline"
               >
-                تقدير تكلفة تقريبي (MSH)
+                Optional: estimate cost · تقدير تقريبي
               </button>
-              {estimate && <p className="text-xs text-slate-500">{estimate}</p>}
-            </div>
+              {estimate && (
+                <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3">
+                  {estimate}
+                </p>
+              )}
+            </section>
 
-            <label className="block space-y-1">
-              <span className="text-xs text-slate-500">روابط الروشتة (Drive / URL)</span>
-              <textarea
-                value={roshetta}
-                onChange={(e) => setRoshetta(e.target.value)}
-                rows={2}
-                className="w-full rounded border px-3 py-2 text-xs"
-                placeholder="https://..."
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-xs text-slate-500">ملاحظات</span>
-              <textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={2}
-                className="w-full rounded border px-3 py-2"
-              />
-            </label>
+            {/* Section 4 optional */}
+            <details className="rounded-2xl border bg-white shadow-sm open:pb-4">
+              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-700 hover:text-slate-900">
+                Optional · اختياري — prescription links & notes
+              </summary>
+              <div className="px-5 space-y-4">
+                <label className="block">
+                  <span className={label}>Roshetta / Drive links</span>
+                  <textarea
+                    value={roshetta}
+                    onChange={(e) => setRoshetta(e.target.value)}
+                    rows={2}
+                    className={field + ' text-sm'}
+                    placeholder="https://..."
+                  />
+                </label>
+                <label className="block">
+                  <span className={label}>Notes · ملاحظات</span>
+                  <textarea
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={2}
+                    className={field}
+                  />
+                </label>
+              </div>
+            </details>
 
             {error && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">
+              <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-xl p-4">
                 {error}
               </p>
             )}
 
+            {/* Desktop submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-emerald-600 text-white py-2.5 font-medium hover:bg-emerald-700 disabled:opacity-50"
+              className="hidden md:block w-full rounded-2xl bg-emerald-600 py-4 text-lg font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-md"
             >
-              {loading ? 'جاري الإرسال…' : 'إرسال الطلب على المنصة'}
+              {loading ? 'Sending… · جاري الإرسال…' : 'Submit request · إرسال الطلب'}
             </button>
+
+            {/* Mobile sticky submit */}
+            <div className="fixed bottom-16 inset-x-0 z-40 border-t bg-white/95 backdrop-blur p-3 md:hidden safe-bottom">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full max-w-lg mx-auto block rounded-2xl bg-emerald-600 py-3.5 text-base font-semibold text-white disabled:opacity-50 shadow-lg"
+              >
+                {loading ? '…' : 'Submit · إرسال'}
+              </button>
+            </div>
           </form>
         )}
 
-        <p className="text-xs text-slate-500 text-center">
-          <Link href="/guide#for-you" className="text-violet-700 underline">
-            How to use
+        <p className="text-center text-sm text-slate-500 pb-4">
+          <Link href="/request-status" className="text-emerald-700 font-medium hover:underline">
+            Already submitted? Check status
           </Link>
           {' · '}
-          <Link href="/" className="text-blue-600 underline">
+          <Link href="/" className="hover:underline">
             Home
           </Link>
         </p>
