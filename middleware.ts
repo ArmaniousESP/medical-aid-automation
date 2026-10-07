@@ -17,6 +17,7 @@ const PUBLIC_EXACT = new Set([
   '/splash',
   '/manifest.webmanifest',
   '/sw.js',
+  '/templates/pharmacy-import-template.csv',
 ]);
 
 const PUBLIC_PREFIXES = [
@@ -30,6 +31,7 @@ const PUBLIC_PREFIXES = [
   '/icon',
   '/apple-icon',
   '/splash',
+  '/templates/',
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -147,6 +149,6 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|sw\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
+    '/((?!_next/static|_next/image|sw\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|csv)$).*)',
   ],
 };
