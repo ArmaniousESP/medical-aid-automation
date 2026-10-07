@@ -14,10 +14,8 @@ export function SplashScreen() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const reduced = window.matchMedia('(prefers-color-scheme: reduce)').matches;
-    // prefers-reduced-motion
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const hold = motion || reduced ? 200 : 900;
+    const hold = motion ? 200 : 900;
     const fadeMs = motion ? 150 : 350;
 
     const t1 = window.setTimeout(() => setFade(true), hold);
