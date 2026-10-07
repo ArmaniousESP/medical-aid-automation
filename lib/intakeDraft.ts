@@ -37,7 +37,6 @@ export function loadDraft(): IntakeDraft | null {
     if (!raw) return null;
     const d = JSON.parse(raw) as IntakeDraft;
     if (!d || typeof d !== 'object') return null;
-    // Expire after 7 days
     if (d.savedAt && Date.now() - d.savedAt > 7 * 24 * 60 * 60 * 1000) {
       localStorage.removeItem(INTAKE_DRAFT_KEY);
       return null;
@@ -48,14 +47,38 @@ export function loadDraft(): IntakeDraft | null {
   }
 }
 
-export function saveDraft(draft: Omit<IntakeDraft, 'savedAt'>) {
-  if (!canUseStorage()) return;
+export function draftHasContent(d: Partial<IntakeDraft> | null | undefined): boolean {
+  if (!d) return false;
+  if (d.emp_name?.trim() || d.emp_id?.trim() || d.company?.trim() || d.phone?.trim())
+    return true;
+  if (d.patient_name?.trim() || d.city?.trim() || d.comments?.trim() || d.roshetta?.trim())
+    return true;
+  if (d.meds?.some((m) => m.name?.trim())) return true;
+  return false;
+}
+
+export function formatDraftAge(savedAt: number): string {
+  const sec = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
+  if (sec < 15) return 'just now · الآن';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago · منذ ${min} د`;
+  const hr = Math.floor(min / 60);
+  if (hr < 48) return `${hr}h ago · منذ ${hr} س`;
+  const days = Math.floor(hr / 24);
+  return `${days}d ago · منذ ${days} ي`;
+}
+
+export function saveDraft(draft: Omit<IntakeDraft, 'savedAt'>): number {
+  const savedAt = Date.now();
+  if (!canUseStorage()) return savedAt;
   try {
-    const payload: IntakeDraft = { ...draft, savedAt: Date.now() };
+    const payload: IntakeDraft = { ...draft, savedAt };
     localStorage.setItem(INTAKE_DRAFT_KEY, JSON.stringify(payload));
   } catch {
     /* quota / private mode */
   }
+  return savedAt;
 }
 
 export function clearDraft() {
@@ -112,10 +135,10 @@ export function pushRecent(key: string, value: string, limit = 8) {
   try {
     const k = RECENT_PREFIX + key;
     const prev: string[] = JSON.parse(localStorage.getItem(k) || '[]');
-    const next = [value.trim(), ...prev.filter((v) => v.toLowerCase() !== value.trim().toLowerCase())].slice(
-      0,
-      limit
-    );
+    const next = [
+      value.trim(),
+      ...prev.filter((v) => v.toLowerCase() !== value.trim().toLowerCase()),
+    ].slice(0, limit);
     localStorage.setItem(k, JSON.stringify(next));
   } catch {
     /* ignore */
