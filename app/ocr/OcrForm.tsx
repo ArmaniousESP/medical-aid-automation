@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ConfidenceBadge, type ConfidenceDetail } from '@/components/ConfidenceBadge';
+import { SearchablePicker } from '@/components/SearchablePicker';
 
 type Line = {
   raw: string;
@@ -42,6 +43,12 @@ type FormFields = {
   ocr_meds_confidence?: ConfidenceDetail;
   invoice_confidence?: ConfidenceDetail;
 };
+
+const DOC_KIND_OPTIONS = [
+  { value: 'auto', label: 'Auto · تلقائي' },
+  { value: 'prescription', label: 'Roshetta · روشتة' },
+  { value: 'invoice', label: 'Invoice · فاتورة' },
+];
 
 export function OcrForm() {
   const [imageUrl, setImageUrl] = useState('');
@@ -154,22 +161,35 @@ export function OcrForm() {
 
   return (
     <div className="space-y-4 text-sm">
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-slate-500">Document type:</span>
-        {(['auto', 'prescription', 'invoice'] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setDocKind(k)}
-            className={`rounded-full px-3 py-1 text-xs border ${
-              docKind === k
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white'
-            }`}
-          >
-            {k === 'auto' ? 'Auto' : k === 'prescription' ? 'Roshetta' : 'Invoice'}
-          </button>
-        ))}
+      <div className="space-y-1 max-w-sm">
+        <label className="block text-xs font-semibold text-slate-600">
+          Document type · نوع المستند
+        </label>
+        <SearchablePicker
+          value={docKind}
+          onChange={(v) => {
+            if (v === 'auto' || v === 'prescription' || v === 'invoice') setDocKind(v);
+          }}
+          options={DOC_KIND_OPTIONS}
+          allowCreate={false}
+          placeholder="Auto / Roshetta / Invoice"
+        />
+        <div className="flex flex-wrap gap-2 pt-1">
+          {(['auto', 'prescription', 'invoice'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setDocKind(k)}
+              className={`rounded-full px-3 py-1 text-xs border ${
+                docKind === k
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white'
+              }`}
+            >
+              {k === 'auto' ? 'Auto' : k === 'prescription' ? 'Roshetta' : 'Invoice'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2">
