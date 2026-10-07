@@ -145,6 +145,13 @@ export async function searchEgyptianDrugs(
 ): Promise<{ ok: boolean; items: EgSearchItem[]; error?: string; total?: number }> {
   if (!q?.trim()) return { ok: true, items: [], total: 0 };
   try {
+    const { searchEgyptianDrugsDb } = await import('@/lib/egyptianCatalogDb');
+    const dbHit = await searchEgyptianDrugsDb(q, limit);
+    if (dbHit.items.length) return { ok: true, items: dbHit.items, total: dbHit.total };
+  } catch {
+    /* Neon table missing or empty — use CSV cache */
+  }
+  try {
     const drugs = await loadEgyptianDrugs();
     const scored = drugs
       .map((d) => ({ d, s: scoreDrug(d, q) }))
