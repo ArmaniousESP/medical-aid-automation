@@ -24,15 +24,12 @@ function isIosSafari(): boolean {
 
 /**
  * Always-visible "Get the app" control.
- * - Android/Chrome: triggers native install when available
- * - iOS: shows Share → Add to Home Screen steps
- * - Already installed: shows confirmation
  */
 export function GetAppButton({
   variant = 'primary',
   className = '',
 }: {
-  variant?: 'primary' | 'outline' | 'nav';
+  variant?: 'primary' | 'outline' | 'nav' | 'tab';
   className?: string;
 }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
@@ -78,16 +75,39 @@ export function GetAppButton({
   }
 
   const base =
-    variant === 'nav'
-      ? 'rounded-full border px-2.5 py-1 text-xs font-semibold text-emerald-800 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
-      : variant === 'outline'
-        ? 'w-full rounded-2xl border-2 border-emerald-600 bg-white py-3.5 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
-        : 'w-full rounded-2xl bg-slate-900 py-3.5 text-center text-sm font-semibold text-white hover:bg-slate-800';
+    variant === 'tab'
+      ? 'flex min-h-[3.5rem] min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-slate-500'
+      : variant === 'nav'
+        ? 'rounded-full border px-2.5 py-1 text-xs font-semibold text-emerald-800 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+        : variant === 'outline'
+          ? 'w-full rounded-2xl border-2 border-emerald-600 bg-white py-3.5 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
+          : 'w-full rounded-2xl bg-slate-900 py-3.5 text-center text-sm font-semibold text-white hover:bg-slate-800';
+
+  const label =
+    variant === 'tab'
+      ? installed
+        ? 'App'
+        : 'Get app'
+      : installed
+        ? 'App installed · التطبيق مثبت'
+        : 'Get the app · حمّل التطبيق';
 
   return (
     <>
       <button type="button" onClick={onClick} className={`${base} ${className}`}>
-        {installed ? 'App installed · التطبيق مثبت' : 'Get the app · حمّل التطبيق'}
+        {variant === 'tab' ? (
+          <>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-800">
+              +
+            </span>
+            <span className="text-[10px] font-semibold leading-tight">{label}</span>
+            <span className="text-[9px] leading-none opacity-75" dir="rtl">
+              تطبيق
+            </span>
+          </>
+        ) : (
+          label
+        )}
       </button>
 
       {open && (
