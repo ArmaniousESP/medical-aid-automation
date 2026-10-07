@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { webhookRetryDefaults } from '@/lib/httpRetry';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
+import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/health
  * Platform readiness: Neon required; Google optional (legacy).
- * auto_enroll / auto_claim defaults match processIntake (on unless =false).
+ * Egyptian drug catalog is primary for search/estimate; MSH is fallback.
  */
 export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
@@ -59,6 +60,24 @@ export async function GET() {
     ok: wa.mode !== 'none' || wa.dry_run_default,
     detail: `mode=${wa.mode}`,
   };
+
+  // Primary medicine catalog (karem505/egyptian-drug-database)
+  try {
+    const drugs = await loadEgyptianDrugs();
+    const sample = await searchEgyptianDrugs('Concor', 1);
+    checks.egyptian_catalog = {
+      ok: drugs.length > 1000,
+      detail: `primary · ${drugs.length} medicines · sample=${sample.items[0]?.name_en || 'n/a'} · MSH=fallback`,
+    };
+  } catch (e: unknown) {
+    checks.egyptian_catalog = {
+      ok: false,
+      detail:
+        e instanceof Error
+          ? `load failed: ${e.message}`
+          : 'Egyptian CSV unreachable — intake falls back to MSH',
+    };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
@@ -131,6 +150,7 @@ export async function GET() {
       ok,
       service: 'medical-aid-automation',
       path: 'platform-first (sheet optional)',
+      medicine_catalog: 'egyptian-drug-database primary · MSH fallback',
       guide: '/guide',
       time: new Date().toISOString(),
       checks,
