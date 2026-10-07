@@ -96,6 +96,57 @@ export async function suggestFromLearning(opts: {
   }));
 }
 
+export type LearningSummary = {
+  total_values: number;
+  total_hits: number;
+  by_key: {
+    key: string;
+    distinct: number;
+    hits: number;
+    top: { value: string; hits: number }[];
+  }[];
+};
+
+/** Dashboard snapshot of what the platform has learned. */
+export async function learningSummary(): Promise<LearningSummary> {
+  await ensureLearningTables();
+
+  const totals = await query<{ n: string; hits: string }>(
+    `SELECT count(*)::text AS n, coalesce(sum(hits),0)::text AS hits FROM usage_signals`
+  );
+  const keys = await query<{ signal_key: string; distinct: string; hits: string }>(
+    `SELECT signal_key,
+            count(*)::text AS distinct,
+            coalesce(sum(hits),0)::text AS hits
+     FROM usage_signals
+     GROUP BY signal_key
+     ORDER BY sum(hits) DESC`
+  );
+
+  const by_key = [];
+  for (const k of keys.rows) {
+    const top = await query<{ value: string; hits: number }>(
+      `SELECT value, hits FROM usage_signals
+       WHERE signal_key = $1
+       ORDER BY hits DESC, last_seen DESC
+       LIMIT 5`,
+      [k.signal_key]
+    );
+    by_key.push({
+      key: k.signal_key,
+      distinct: Number(k.distinct) || 0,
+      hits: Number(k.hits) || 0,
+      top: top.rows.map((r) => ({ value: r.value, hits: Number(r.hits) || 0 })),
+    });
+  }
+
+  return {
+    total_values: Number(totals.rows[0]?.n) || 0,
+    total_hits: Number(totals.rows[0]?.hits) || 0,
+    by_key,
+  };
+}
+
 /** Bootstrap signals from historical intake rows (safe to re-run). */
 export async function bootstrapFromIntake(limit = 500) {
   await ensureLearningTables();
