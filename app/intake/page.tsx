@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PublicStepsBar } from '../PublicStepsBar';
 import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
@@ -9,6 +9,15 @@ import {
   COMPANY_OPTIONS,
   RELATION_OPTIONS,
 } from '@/lib/intakeOptions';
+import {
+  clearDraft,
+  loadDraft,
+  loadLastRequestId,
+  loadProfile,
+  saveDraft,
+  saveLastRequestId,
+  saveProfile,
+} from '@/lib/intakeDraft';
 
 type MedLine = { name: string; qty: number };
 
@@ -59,6 +68,71 @@ export default function IntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [draftHint, setDraftHint] = useState<string | null>(null);
+  const [lastId, setLastId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const draft = loadDraft();
+    const profile = loadProfile();
+    setLastId(loadLastRequestId());
+
+    if (draft) {
+      setEmpName(draft.emp_name || '');
+      setEmpId(draft.emp_id || '');
+      setCompany(draft.company || '');
+      setPhone(draft.phone || '');
+      setPatient(draft.patient_name || '');
+      setRelation(draft.relation || 'self');
+      setCity(draft.city || '');
+      setComments(draft.comments || '');
+      setRoshetta(draft.roshetta || '');
+      setMeds(
+        draft.meds?.length ? draft.meds : [{ name: '', qty: 1 }]
+      );
+      setDraftHint('Draft restored · تم استعادة المسودة');
+    } else if (profile) {
+      setEmpName(profile.emp_name || '');
+      setEmpId(profile.emp_id || '');
+      setCompany(profile.company || '');
+      setPhone(profile.phone || '');
+      setCity(profile.city || '');
+      setDraftHint('Welcome back — profile filled · مرحباً مجدداً');
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || resultId) return;
+    const t = window.setTimeout(() => {
+      saveDraft({
+        emp_name,
+        emp_id,
+        company,
+        phone,
+        patient_name,
+        relation,
+        city,
+        comments,
+        roshetta,
+        meds,
+      });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [
+    hydrated,
+    resultId,
+    emp_name,
+    emp_id,
+    company,
+    phone,
+    patient_name,
+    relation,
+    city,
+    comments,
+    roshetta,
+    meds,
+  ]);
 
   function updateMed(i: number, patch: Partial<MedLine>) {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
@@ -124,6 +198,7 @@ export default function IntakePage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Submit failed');
+
       const signals: { key: string; value: string; weight?: number }[] = [];
       if (company.trim()) signals.push({ key: 'company', value: company.trim() });
       if (city.trim()) signals.push({ key: 'city', value: city.trim() });
@@ -141,6 +216,18 @@ export default function IntakePage() {
           keepalive: true,
         }).catch(() => {});
       }
+
+      saveProfile({
+        emp_name: emp_name.trim(),
+        emp_id: emp_id.trim(),
+        company: company.trim(),
+        phone: phone.trim(),
+        city: city.trim(),
+      });
+      saveLastRequestId(String(data.id));
+      setLastId(String(data.id));
+      clearDraft();
+      setDraftHint(null);
       setResultId(data.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
@@ -163,9 +250,36 @@ export default function IntakePage() {
             تقديم طلب علاج شهري
           </p>
           <p className="text-sm text-slate-500">
-            Gets smarter with every request · يتحسن مع كل طلب
+            Auto-saves as you type · يحفظ تلقائياً أثناء الكتابة
           </p>
         </header>
+
+        {draftHint && !resultId && (
+          <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-900 flex flex-wrap items-center justify-between gap-2">
+            <span>{draftHint}</span>
+            <button
+              type="button"
+              className="text-xs font-semibold text-sky-800 underline"
+              onClick={() => {
+                clearDraft();
+                setDraftHint(null);
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {lastId && !resultId && (
+          <Link
+            href={`/request-status?id=${encodeURIComponent(lastId)}`}
+            className="block rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 hover:bg-emerald-100"
+          >
+            Last request · آخر طلب:{' '}
+            <span className="font-mono font-semibold">{lastId.slice(0, 8)}…</span>
+            <span className="float-right text-emerald-700">Status →</span>
+          </Link>
+        )}
 
         {resultId && (
           <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-4 shadow-sm">
@@ -206,6 +320,7 @@ export default function IntakePage() {
                 setMeds([{ name: '', qty: 1 }]);
                 setComments('');
                 setRoshetta('');
+                setPatient('');
               }}
               className="w-full text-sm text-slate-500 hover:text-slate-800 underline"
             >
@@ -327,7 +442,7 @@ export default function IntakePage() {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Suggestions improve from real requests. Pick a match or type a new name.
+                Recent on this device + popular community picks.
               </p>
               {meds.map((m, i) => (
                 <div key={i} className="flex gap-2 items-start">
