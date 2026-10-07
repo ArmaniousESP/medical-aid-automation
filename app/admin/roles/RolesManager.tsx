@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { SearchablePicker } from '@/components/SearchablePicker';
+import { STAFF_ROLE_OPTIONS } from '@/lib/optionLists';
 
 type RoleRow = {
   id: string;
@@ -179,17 +181,15 @@ export function RolesManager() {
           placeholder="Display name (optional)"
           className="w-full rounded border px-3 py-2 text-sm"
         />
-        <select
+        <SearchablePicker
           value={role}
-          onChange={(e) =>
-            setRole(e.target.value as 'admin' | 'operator' | 'viewer')
-          }
-          className="w-full rounded border px-3 py-2 text-sm"
-        >
-          <option value="admin">admin</option>
-          <option value="operator">operator</option>
-          <option value="viewer">viewer</option>
-        </select>
+          onChange={(v) => {
+            if (v === 'admin' || v === 'operator' || v === 'viewer') setRole(v);
+          }}
+          options={STAFF_ROLE_OPTIONS}
+          allowCreate={false}
+          placeholder="Select role…"
+        />
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
