@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { query } from '@/lib/db';
 import { FlowSteps } from '../FlowSteps';
+import { FormSelectPicker } from '@/components/FormSelectPicker';
+import { PROGRAM_STATUS_OPTIONS } from '@/lib/optionLists';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,17 +149,14 @@ export default async function ProgramsPage({
             placeholder="Search name, emp ID, program code…"
             className="flex-1 min-w-[200px] rounded-xl border border-slate-200 px-4 py-2.5 text-base"
           />
-          <select
+          <FormSelectPicker
             name="status"
             defaultValue={status}
-            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="expired">Expired</option>
-          </select>
+            options={PROGRAM_STATUS_OPTIONS}
+            allowCreate={false}
+            placeholder="Status…"
+            className="min-w-[160px]"
+          />
           <button
             type="submit"
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
@@ -166,7 +165,6 @@ export default async function ProgramsPage({
           </button>
         </form>
 
-        {/* Quick status chips */}
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -177,7 +175,11 @@ export default async function ProgramsPage({
           ).map(([s, label]) => (
             <Link
               key={s || 'all'}
-              href={s ? `/programs?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}` : `/programs${q ? `?q=${encodeURIComponent(q)}` : ''}`}
+              href={
+                s
+                  ? `/programs?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}`
+                  : `/programs${q ? `?q=${encodeURIComponent(q)}` : ''}`
+              }
               className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s
                   ? 'bg-slate-900 text-white border-slate-900'
@@ -215,7 +217,6 @@ export default async function ProgramsPage({
           </div>
         )}
 
-        {/* Mobile cards */}
         <div className="space-y-3 md:hidden">
           {rows.map((r) => (
             <Link
@@ -248,7 +249,6 @@ export default async function ProgramsPage({
           ))}
         </div>
 
-        {/* Desktop table */}
         {rows.length > 0 && (
           <div className="hidden md:block overflow-x-auto rounded-2xl border bg-white shadow-sm">
             <table className="w-full text-sm text-left">
