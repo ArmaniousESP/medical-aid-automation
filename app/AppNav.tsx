@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { StaffAuthChip } from './StaffAuthChip';
+import { GetAppButton } from './GetAppButton';
 
 const PUBLIC = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية' },
@@ -89,6 +90,9 @@ export function AppNav() {
               {item.label}
             </Link>
           ))}
+          <span className="ml-auto sm:ml-0">
+            <GetAppButton variant="nav" />
+          </span>
         </div>
 
         <div className="border-t border-slate-100 pt-1.5">
