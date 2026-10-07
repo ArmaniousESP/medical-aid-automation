@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { buildPharmacyPickList } from '@/lib/pharmacy';
 import { scanRefillSafetyQueue } from '@/lib/refillSafety';
 import { PharmacyBatchButton } from './PharmacyBatchButton';
+import { PharmacyCsvImport } from './PharmacyCsvImport';
 import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
@@ -88,7 +89,7 @@ export default async function PharmacyPage({
                 Pharmacy
               </h1>
               <p className="text-sm text-slate-600" dir="rtl">
-                الصيدلية · إيفا / غير إيفا · تصدير CSV
+                الصيدلية · إيفا / غير إيفا · تصدير واستيراد CSV
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-sm">
@@ -108,7 +109,6 @@ export default async function PharmacyPage({
           </div>
         </header>
 
-        {/* Period */}
         <form
           method="get"
           className="flex flex-wrap items-center gap-2 rounded-2xl border bg-white p-3 shadow-sm"
@@ -135,7 +135,6 @@ export default async function PharmacyPage({
           </span>
         </form>
 
-        {/* Big EVA / NOT EVA route cards */}
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href={buildHref(period, { formulary: 'EVA', status })}
@@ -192,7 +191,6 @@ export default async function PharmacyPage({
           </Link>
         </div>
 
-        {/* Exports */}
         <div className="rounded-2xl border-2 border-teal-200 bg-teal-50/80 p-5 space-y-3">
           <p className="text-sm font-semibold text-teal-950">
             Download for pharmacy · تحميل للصيدلية
@@ -228,6 +226,8 @@ export default async function PharmacyPage({
           </div>
         </div>
 
+        <PharmacyCsvImport />
+
         {safetyFlagged > 0 && (
           <div className="rounded-2xl border-2 border-red-300 bg-red-50 p-4 text-sm text-red-900 space-y-2">
             <p className="font-semibold">
@@ -245,7 +245,6 @@ export default async function PharmacyPage({
           </div>
         )}
 
-        {/* Status filters */}
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -330,7 +329,6 @@ export default async function PharmacyPage({
                 </div>
               </div>
 
-              {/* Mobile line list */}
               <ul className="md:hidden divide-y">
                 {group.map((l) => (
                   <li
@@ -358,7 +356,6 @@ export default async function PharmacyPage({
                 ))}
               </ul>
 
-              {/* Desktop table */}
               <table className="hidden md:table w-full text-sm">
                 <thead className="text-xs text-slate-500 text-left">
                   <tr>
