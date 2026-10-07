@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FlowSteps } from '../FlowSteps';
+import { SearchablePicker } from '@/components/SearchablePicker';
 
 type Claim = {
   id: string;
@@ -23,6 +24,11 @@ const FILTERS = [
   { id: 'paid', label: 'Paid' },
   { id: 'rejected', label: 'Rejected' },
 ];
+
+const STATUS_OPTIONS = FILTERS.map((f) => ({
+  value: f.id,
+  label: f.label,
+}));
 
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -117,6 +123,19 @@ export default function ClaimsPage() {
           </div>
         </div>
 
+        <div className="rounded-2xl border bg-white p-3 shadow-sm space-y-2">
+          <label className="text-xs font-semibold text-slate-600">
+            Status filter · حالة المطالبة
+          </label>
+          <SearchablePicker
+            value={status}
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+            allowCreate={false}
+            placeholder="Search status…"
+          />
+        </div>
+
         <div className="flex flex-wrap gap-2 items-center">
           {FILTERS.map((s) => (
             <button
@@ -149,7 +168,6 @@ export default function ClaimsPage() {
 
         {loading && <p className="text-sm text-slate-500 animate-pulse">Loading…</p>}
 
-        {/* Mobile cards */}
         <div className="space-y-3 md:hidden">
           {claims.map((c) => (
             <article
@@ -196,7 +214,6 @@ export default function ClaimsPage() {
           )}
         </div>
 
-        {/* Desktop table */}
         <div className="hidden md:block rounded-2xl border bg-white shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-500">
