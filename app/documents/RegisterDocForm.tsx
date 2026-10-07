@@ -2,22 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const TYPES = [
-  ['prescription', 'روشتة'],
-  ['lab', 'تحاليل'],
-  ['imaging', 'أشعة'],
-  ['id_card', 'كارنيه'],
-  ['relation_proof', 'إثبات قرابة'],
-  ['invoice', 'فاتورة'],
-  ['rejection_letter', 'خطاب رفض'],
-  ['other', 'أخرى'],
-] as const;
+import { SearchablePicker } from '@/components/SearchablePicker';
+import { DOC_TYPE_OPTIONS } from '@/lib/optionLists';
 
 export function RegisterDocForm() {
   const [programId, setProgramId] = useState('');
   const [url, setUrl] = useState('');
-  const [docType, setDocType] = useState('prescription');
+  const [docType, setDocType] = useState('roshetta');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
@@ -60,23 +51,20 @@ export function RegisterDocForm() {
           value={programId}
           onChange={(e) => setProgramId(e.target.value)}
           required
-          className="rounded border px-2 py-1.5 min-w-[220px] font-mono text-xs"
+          className="rounded-xl border border-slate-200 px-3 py-3 min-w-[220px] font-mono text-xs"
           placeholder="من صفحة البرامج"
         />
       </div>
-      <div>
-        <label className="block text-xs text-slate-500 mb-1">النوع</label>
-        <select
+      <div className="min-w-[180px]">
+        <label className="block text-xs text-slate-500 mb-1">النوع · Type</label>
+        <SearchablePicker
           value={docType}
-          onChange={(e) => setDocType(e.target.value)}
-          className="rounded border px-2 py-1.5"
-        >
-          {TYPES.map(([v, l]) => (
-            <option key={v} value={v}>
-              {l}
-            </option>
-          ))}
-        </select>
+          onChange={setDocType}
+          options={DOC_TYPE_OPTIONS}
+          allowCreate
+          placeholder="Doc type…"
+          createLabel={(q) => `Add type “${q}”`}
+        />
       </div>
       <div className="flex-1 min-w-[200px]">
         <label className="block text-xs text-slate-500 mb-1">رابط Drive / ملف</label>
@@ -85,14 +73,14 @@ export function RegisterDocForm() {
           onChange={(e) => setUrl(e.target.value)}
           required
           type="url"
-          className="rounded border px-2 py-1.5 w-full"
+          className="rounded-xl border border-slate-200 px-3 py-3 w-full"
           placeholder="https://drive.google.com/..."
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="rounded bg-emerald-600 px-4 py-1.5 text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="rounded-xl bg-emerald-600 px-4 py-3 text-white hover:bg-emerald-700 disabled:opacity-50 font-semibold"
       >
         {loading ? '…' : 'تسجيل مستند'}
       </button>
