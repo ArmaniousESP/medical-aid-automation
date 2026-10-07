@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { splitFromDatabase } from '@/lib/evaSplit';
 import { FlowSteps } from '../FlowSteps';
+import { FormSelectPicker } from '@/components/FormSelectPicker';
+import { EVA_BUCKET_OPTIONS } from '@/lib/optionLists';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +21,7 @@ export default async function EvaSplitPage({
   try {
     const data = await splitFromDatabase({
       bucket:
-        bucket === 'EVA' || bucket === 'NOT_EVA' ? (bucket as any) : 'all',
+        bucket === 'EVA' || bucket === 'NOT_EVA' ? (bucket as 'EVA' | 'NOT_EVA') : 'all',
       q,
     });
     eva = data.eva;
@@ -107,15 +109,14 @@ export default async function EvaSplitPage({
               placeholder="بحث اسم / دواء / برنامج"
               className="rounded border px-3 py-1.5 text-sm min-w-[180px]"
             />
-            <select
+            <FormSelectPicker
               name="bucket"
-              defaultValue={bucket === 'ALL' ? 'all' : bucket}
-              className="rounded border px-2 py-1.5"
-            >
-              <option value="all">الكل</option>
-              <option value="EVA">Available in EVA</option>
-              <option value="NOT_EVA">NOT IN EVA</option>
-            </select>
+              defaultValue={bucket === 'ALL' ? 'all' : bucket.toLowerCase() === 'all' ? 'all' : bucket}
+              options={EVA_BUCKET_OPTIONS}
+              allowCreate={false}
+              placeholder="Bucket…"
+              className="min-w-[160px]"
+            />
             <button
               type="submit"
               className="rounded bg-slate-800 px-3 py-1.5 text-white"
