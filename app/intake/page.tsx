@@ -124,6 +124,22 @@ export default function IntakePage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Submit failed');
+      const signals = [
+        company.trim() && { key: 'company', value: company.trim() },
+        city.trim() && { key: 'city', value: city.trim() },
+        relation.trim() && { key: 'relation', value: relation.trim() },
+        ...meds
+          .filter((m) => m.name.trim())
+          .map((m) => ({ key: 'medicine', value: m.name.trim(), weight: 1.5 })),
+      ].filter(Boolean);
+      if (signals.length) {
+        void fetch('/api/learning', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ signals }),
+          keepalive: true,
+        }).catch(() => {});
+      }
       setResultId(data.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
@@ -146,7 +162,7 @@ export default function IntakePage() {
             تقديم طلب علاج شهري
           </p>
           <p className="text-sm text-slate-500">
-            Search lists or type a new value · ابحث أو اكتب قيمة جديدة
+            Gets smarter with every request · يتحسن مع كل طلب
           </p>
         </header>
 
@@ -244,6 +260,7 @@ export default function IntakePage() {
                   value={company}
                   onChange={setCompany}
                   options={COMPANY_OPTIONS}
+                  learnKey="company"
                   allowCreate
                   placeholder="Search or add company…"
                   emptyHint="Type to add a new company"
@@ -273,6 +290,7 @@ export default function IntakePage() {
                   value={relation}
                   onChange={setRelation}
                   options={RELATION_OPTIONS}
+                  learnKey="relation"
                   allowCreate
                   placeholder="Self, spouse, child…"
                 />
@@ -283,6 +301,7 @@ export default function IntakePage() {
                   value={city}
                   onChange={setCity}
                   options={CITY_OPTIONS}
+                  learnKey="city"
                   allowCreate
                   placeholder="Search city or type new…"
                   emptyHint="Type to add a city"
@@ -307,7 +326,7 @@ export default function IntakePage() {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Pick from formulary search or add a name not in the list.
+                Suggestions improve from real requests. Pick a match or type a new name.
               </p>
               {meds.map((m, i) => (
                 <div key={i} className="flex gap-2 items-start">
@@ -316,6 +335,7 @@ export default function IntakePage() {
                       value={m.name}
                       onChange={(v) => updateMed(i, { name: v })}
                       loadOptions={medLoader}
+                      learnKey="medicine"
                       allowCreate
                       minQueryLength={2}
                       required={i === 0}
@@ -338,8 +358,7 @@ export default function IntakePage() {
                   </div>
                   {meds.length > 1 && (
                     <button
-                      type="button"
-                      onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
+                      type="button"\lambda onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
                       className="mt-2 text-xs text-red-600 hover:underline px-1"
                       aria-label="Remove"
                     >
