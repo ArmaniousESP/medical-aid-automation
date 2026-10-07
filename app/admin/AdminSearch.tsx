@@ -12,22 +12,27 @@ type AdminLink = {
 };
 
 const LINKS: AdminLink[] = [
-  { href: '/intake-ops', label: '1 Queue', labelAr: 'الطابور', hint: 'Process intake', group: 'Path' },
+  { href: '/intake-ops', label: '1 Queue', labelAr: 'الطابور', hint: 'Process intake · search rows', group: 'Path' },
   { href: '/claims', label: '2 Claims', labelAr: 'المطالبات', hint: 'Submit drafts', group: 'Path' },
-  { href: '/pharmacy', label: '3 Pharmacy', labelAr: 'الصيدلية', hint: 'EVA CSV import/export', group: 'Path' },
+  { href: '/pharmacy', label: '3 Pharmacy', labelAr: 'الصيدلية', hint: 'EVA CSV · search patients', group: 'Path' },
   { href: '/programs', label: '4 Programs', labelAr: 'البرامج', hint: 'Chronic enrollments', group: 'Path' },
   { href: '/refills', label: '5 Refills', labelAr: 'إعادة الصرف', hint: 'Monthly cycles', group: 'Path' },
   { href: '/admin/roles', label: 'Roles', labelAr: 'الأدوار', hint: 'admin · operator · viewer', group: 'Admin' },
   { href: '/notifications', label: 'WhatsApp', labelAr: 'واتساب', hint: 'Alerts & dry-run', group: 'Ops' },
   { href: '/dry-run', label: 'Dry-run', hint: 'WhatsApp test mode', group: 'Ops' },
   { href: '/eva-split', label: 'EVA split', hint: 'Available vs not EVA', group: 'Ops' },
-  { href: '/formulary', label: 'Formulary', labelAr: 'القائمة الدوائية', hint: 'Canonical & substitutions', group: 'Ops' },
+  { href: '/formulary', label: 'Formulary', labelAr: 'القائمة الدوائية', hint: 'Catalog search & sync', group: 'Ops' },
+  { href: '/inventory', label: 'Inventory', labelAr: 'المخزون', hint: 'Stock · receive · CSV', group: 'Ops' },
+  { href: '/ocr', label: 'OCR', labelAr: 'مسح الروشتة', hint: 'Prescriptions & invoices', group: 'Ops' },
+  { href: '/documents', label: 'Documents', labelAr: 'المستندات', hint: 'Register Drive files', group: 'Ops' },
+  { href: '/ddinter', label: 'DDInter', labelAr: 'تفاعلات دوائية', hint: 'Drug interaction check', group: 'Ops' },
+  { href: '/combinations', label: 'Combinations', hint: 'Observed med combos', group: 'Ops' },
+  { href: '/care-line', label: 'Care line', hint: 'Patient support notes', group: 'Ops' },
+  { href: '/analytics', label: 'Analytics', labelAr: 'تحليلات', hint: 'Enrollment & cost trends', group: 'Ops' },
   { href: '/reports', label: 'Reports', labelAr: 'التقارير', hint: 'Costs & analytics', group: 'Ops' },
-  { href: '/inventory', label: 'Inventory', hint: 'Stock tracking', group: 'Ops' },
-  { href: '/ocr', label: 'OCR', hint: 'Prescriptions & invoices', group: 'Ops' },
   { href: '/review', label: 'Review', hint: 'Manual review queue', group: 'Ops' },
   { href: '/requests', label: 'Requests', hint: 'Aid requests list', group: 'Ops' },
-  { href: '/safety', label: 'Safety', hint: 'DDInter / allergy flags', group: 'Ops' },
+  { href: '/refills/safety', label: 'Safety queue', hint: 'DDInter / allergy flags', group: 'Ops' },
   { href: '/status', label: 'System status', hint: 'Health checks', group: 'System' },
   { href: '/guide#for-staff', label: 'Staff guide', labelAr: 'دليل التشغيل', hint: 'How to use ops', group: 'System' },
   { href: '/sign-in', label: 'Sign in', labelAr: 'تسجيل الدخول', hint: 'Neon Google Auth', group: 'System' },
@@ -79,7 +84,7 @@ export function AdminSearch() {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Pharmacy, roles, WhatsApp, EVA…"
+            placeholder="Pharmacy, OCR, DDInter, inventory…"
             className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-10 text-base outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
             autoComplete="off"
             dir="auto"
