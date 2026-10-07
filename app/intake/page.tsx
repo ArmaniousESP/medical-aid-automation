@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PublicStepsBar } from '../PublicStepsBar';
 import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
@@ -70,10 +70,12 @@ export default function IntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [draftHint, setDraftHint] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [popularMeds, setPopularMeds] = useState<string[]>([]);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -101,6 +103,13 @@ export default function IntakePage() {
       setDraftHint('Welcome back');
     }
     setHydrated(true);
+    void fetch('/api/learning?key=medicine&limit=6')
+      .then((r) => r.json())
+      .then((d) => {
+        const items = (d.items || []) as { value: string }[];
+        setPopularMeds(items.map((i) => i.value).filter(Boolean));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -128,9 +137,31 @@ export default function IntakePage() {
     return () => window.removeEventListener('beforeunload', onLeave);
   }, [resultId, emp_name, emp_id, company, phone, patient_name, city, comments, roshetta, meds]);
 
+  const dupNames = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const m of meds) {
+      const k = m.name.trim().toLowerCase();
+      if (!k) continue;
+      seen.set(k, (seen.get(k) || 0) + 1);
+    }
+    return [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+  }, [meds]);
+
   function updateMed(i: number, patch: Partial<MedLine>) {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
   }
+
+  function addPopularMed(name: string) {
+    setMeds((prev) => {
+      const emptyIdx = prev.findIndex((m) => !m.name.trim());
+      if (emptyIdx >= 0) {
+        return prev.map((m, i) => (i === emptyIdx ? { ...m, name } : m));
+      }
+      if (prev.some((m) => m.name.trim().toLowerCase() === name.toLowerCase())) return prev;
+      return [...prev, { name, qty: 1 }];
+    });
+  }
+
   const medLoader = useCallback((q: string) => loadMedOptions(q), []);
 
   async function copyId() {
@@ -140,6 +171,38 @@ export default function IntakePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {}
+  }
+
+  function statusUrl(id: string) {
+    if (typeof window === 'undefined') return `/request-status?id=${encodeURIComponent(id)}`;
+    return `${window.location.origin}/request-status?id=${encodeURIComponent(id)}`;
+  }
+
+  async function copyStatusLink() {
+    if (!resultId) return;
+    try {
+      await navigator.clipboard.writeText(statusUrl(resultId));
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } catch {}
+  }
+
+  async function shareStatus() {
+    if (!resultId) return;
+    const url = statusUrl(resultId);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Medical aid request status',
+          text: `Request ID: ${resultId}`,
+          url,
+        });
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    await copyStatusLink();
   }
 
   async function runEstimate() {
@@ -160,6 +223,7 @@ export default function IntakePage() {
     setError(null);
     setResultId(null);
     setCopied(false);
+    setLinkCopied(false);
     try {
       const res = await fetch('/api/intake', {
         method: 'POST',
@@ -188,7 +252,13 @@ export default function IntakePage() {
           keepalive: true,
         }).catch(() => {});
       }
-      saveProfile({ emp_name: emp_name.trim(), emp_id: emp_id.trim(), company: company.trim(), phone: phone.trim(), city: city.trim() });
+      saveProfile({
+        emp_name: emp_name.trim(),
+        emp_id: emp_id.trim(),
+        company: company.trim(),
+        phone: phone.trim(),
+        city: city.trim(),
+      });
       saveLastRequestId(String(data.id));
       setLastId(String(data.id));
       clearDraft();
@@ -239,11 +309,17 @@ export default function IntakePage() {
         )}
 
         {resultId && (
-          <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-4 shadow-sm">
+          <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-3 shadow-sm">
             <p className="font-semibold text-emerald-950">Request received · تم الاستلام</p>
             <p className="font-mono text-lg font-bold select-all">{resultId}</p>
-            <button type="button" onClick={copyId} className="w-full rounded-xl bg-emerald-700 py-3 text-white font-semibold">{copied ? 'Copied' : 'Copy Request ID'}</button>
-            <Link href={`/request-status?id=${encodeURIComponent(resultId)}`} className="block w-full rounded-xl border-2 border-emerald-600 bg-white py-3 text-center font-semibold text-emerald-800">Check status →</Link>
+            <button type="button" onClick={copyId} className="w-full rounded-xl bg-emerald-700 py-3 text-white font-semibold">{copied ? 'Copied ✓' : 'Copy Request ID'}</button>
+            <button type="button" onClick={shareStatus} className="w-full rounded-xl border-2 border-emerald-600 bg-white py-3 font-semibold text-emerald-800">
+              Share status link · مشاركة الرابط
+            </button>
+            <button type="button" onClick={copyStatusLink} className="w-full text-sm text-emerald-800 font-medium hover:underline">
+              {linkCopied ? 'Link copied ✓' : 'Copy status link only'}
+            </button>
+            <Link href={`/request-status?id=${encodeURIComponent(resultId)}`} className="block w-full rounded-xl bg-emerald-100 py-3 text-center font-semibold text-emerald-900">Check status →</Link>
             <button type="button" onClick={() => { setResultId(null); setMeds([{ name: '', qty: 1 }]); setComments(''); setRoshetta(''); setPatient(''); }} className="w-full text-sm text-slate-500 underline">Submit another</button>
           </div>
         )}
@@ -272,9 +348,32 @@ export default function IntakePage() {
               </label>
             </section>
             <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
-              <div className="flex justify-between"><h2 className="text-sm font-semibold">C · Medicines *</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-sm font-semibold">C · Medicines *</h2>
                 <button type="button" onClick={() => setMeds((m) => [...m, { name: '', qty: 1 }])} className="text-xs font-semibold text-emerald-800">+ Add</button>
               </div>
+              {popularMeds.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-violet-800">Quick add popular · شائع</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {popularMeds.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => addPopularMed(name)}
+                        className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-900 hover:bg-violet-100"
+                      >
+                        + {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {dupNames.length > 0 && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Duplicate medicine listed: {dupNames.join(', ')}. You can still submit, or remove the extra line.
+                </p>
+              )}
               {meds.map((m, i) => (
                 <div key={i} className="flex gap-2 items-start">
                   <div className="flex-1">
@@ -282,7 +381,7 @@ export default function IntakePage() {
                   </div>
                   <input type="number" min={1} value={m.qty} onChange={(e) => updateMed(i, { qty: Number(e.target.value) || 1 })} className={field + ' w-20'} />
                   {meds.length > 1 && (
-                    <button type="button" onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))} className="text-xs text-red-600">✕</button>
+                    <button type="button" onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))} className="text-xs text-red-600 mt-3">✕</button>
                   )}
                 </div>
               ))}
