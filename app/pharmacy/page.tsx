@@ -195,7 +195,7 @@ export default async function PharmacyPage({
           <p className="text-sm font-semibold text-teal-950">
             Download for pharmacy · تحميل للصيدلية
           </p>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <a
               href={`${csvBase}&formulary=EVA`}
               className="rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white hover:bg-teal-700 shadow-sm"
@@ -214,7 +214,18 @@ export default async function PharmacyPage({
             >
               CSV · current filter
             </a>
+            <a
+              href="/templates/pharmacy-import-template.csv"
+              download="pharmacy-import-template.csv"
+              className="rounded-xl border-2 border-indigo-400 bg-indigo-50 py-3 text-center text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
+            >
+              CSV template · قالب
+            </a>
           </div>
+          <p className="text-xs text-teal-900/80">
+            Template has the import columns (fill <strong>dispensed_qty</strong>). For real
+            data, export EVA / Not EVA above, then re-upload in the import panel below.
+          </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <PharmacyBatchButton period={period} />
             <Link
