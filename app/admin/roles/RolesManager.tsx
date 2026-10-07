@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SearchablePicker } from '@/components/SearchablePicker';
 import { STAFF_ROLE_OPTIONS } from '@/lib/optionLists';
 
@@ -22,6 +22,7 @@ export function RolesManager() {
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [q, setQ] = useState('');
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'operator' | 'viewer'>('operator');
@@ -45,6 +46,18 @@ export function RolesManager() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((r) =>
+      [r.email, r.display_name, r.role, r.active ? 'active' : 'inactive']
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(needle)
+    );
+  }, [rows, q]);
 
   async function upsert(e: React.FormEvent) {
     e.preventDefault();
@@ -209,6 +222,22 @@ export function RolesManager() {
         </div>
       </form>
 
+      <div className="rounded-xl border bg-white p-3 shadow-sm space-y-2">
+        <label className="text-xs font-semibold text-slate-600">
+          Search staff · بحث
+        </label>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Email, name, role…"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        />
+        <p className="text-xs text-slate-500">
+          Showing {filtered.length} of {rows.length}
+        </p>
+      </div>
+
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500">
@@ -220,14 +249,16 @@ export function RolesManager() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={4} className="p-4 text-xs text-slate-500">
-                  No rows yet — save a role or sync allowlist.
+                  {rows.length === 0
+                    ? 'No rows yet — save a role or sync allowlist.'
+                    : `No matches for “${q}”.`}
                 </td>
               </tr>
             )}
-            {rows.map((r) => (
+            {filtered.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-3">
                   <div className="font-medium">{r.email}</div>
