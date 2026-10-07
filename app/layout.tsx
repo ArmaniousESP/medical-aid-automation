@@ -5,6 +5,7 @@ import { AppNav } from './AppNav';
 import { MobilePublicNav } from './MobilePublicNav';
 import { SplashScreen } from './SplashScreen';
 import { InstallPrompt } from './InstallPrompt';
+import { RegisterSW } from './RegisterSW';
 
 export const metadata: Metadata = {
   title: {
@@ -68,6 +69,7 @@ export default function RootLayout({
         ))}
       </head>
       <body className="min-h-screen bg-slate-50 antialiased">
+        <RegisterSW />
         <SplashScreen />
         <a
           href="#main-content"
