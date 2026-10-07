@@ -6,6 +6,10 @@ import {
   type IntakeMedLine,
 } from '@/lib/intake';
 import { mshSearchMedicines, mshEstimateCost } from '@/lib/msh';
+import {
+  estimateEgyptianCost,
+  searchEgyptianDrugs,
+} from '@/lib/egyptianDrugs';
 import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
 
@@ -54,17 +58,46 @@ export async function POST(req: NextRequest) {
     const action = String(body.action || 'submit');
 
     if (action === 'search_med') {
-      const result = await mshSearchMedicines(
-        String(body.q || ''),
-        Number(body.limit) || 8
-      );
-      return NextResponse.json(result);
+      const q = String(body.q || '');
+      const limit = Number(body.limit) || 8;
+      const eg = await searchEgyptianDrugs(q, limit);
+      if (eg.ok && eg.items.length) {
+        return NextResponse.json({
+          ok: true,
+          items: eg.items.map((it) => ({
+            name_en: it.name_en,
+            name_ar: it.name_ar,
+            scientific_name: it.scientific_name,
+            manufacturer: it.manufacturer,
+            price_egp: it.price_egp,
+            drug_class: it.drug_class,
+            route: it.route,
+            source: it.source,
+          })),
+          source: 'egyptian-drug-database',
+          catalog_size: eg.total,
+        });
+      }
+      // Fallback: MSH if Egyptian catalog empty / failed
+      const msh = await mshSearchMedicines(q, limit);
+      return NextResponse.json({
+        ...msh,
+        source: msh.items.length ? 'msh' : eg.error ? 'none' : 'egyptian-drug-database',
+        egyptian_error: eg.error,
+      });
     }
 
     if (action === 'estimate') {
       const lines = Array.isArray(body.lines) ? body.lines : [];
-      const result = await mshEstimateCost(lines);
-      return NextResponse.json(result);
+      const eg = await estimateEgyptianCost(lines);
+      if (eg.ok && eg.total_egp != null) {
+        return NextResponse.json(eg);
+      }
+      const msh = await mshEstimateCost(lines);
+      return NextResponse.json({
+        ...msh,
+        egyptian_partial: eg,
+      });
     }
 
     if (action === 'set_status') {
