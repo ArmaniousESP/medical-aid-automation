@@ -124,14 +124,15 @@ export default function IntakePage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Submit failed');
-      const signals = [
-        company.trim() && { key: 'company', value: company.trim() },
-        city.trim() && { key: 'city', value: city.trim() },
-        relation.trim() && { key: 'relation', value: relation.trim() },
-        ...meds
-          .filter((m) => m.name.trim())
-          .map((m) => ({ key: 'medicine', value: m.name.trim(), weight: 1.5 })),
-      ].filter(Boolean);
+      const signals: { key: string; value: string; weight?: number }[] = [];
+      if (company.trim()) signals.push({ key: 'company', value: company.trim() });
+      if (city.trim()) signals.push({ key: 'city', value: city.trim() });
+      if (relation.trim()) signals.push({ key: 'relation', value: relation.trim() });
+      for (const m of meds) {
+        if (m.name.trim()) {
+          signals.push({ key: 'medicine', value: m.name.trim(), weight: 1.5 });
+        }
+      }
       if (signals.length) {
         void fetch('/api/learning', {
           method: 'POST',
@@ -358,7 +359,10 @@ export default function IntakePage() {
                   </div>
                   {meds.length > 1 && (
                     <button
-                      type="button"\lambda onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
+                      type="button"
+                      onClick={() =>
+                        setMeds((prev) => prev.filter((_, j) => j !== i))
+                      }
                       className="mt-2 text-xs text-red-600 hover:underline px-1"
                       aria-label="Remove"
                     >
