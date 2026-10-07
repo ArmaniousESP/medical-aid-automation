@@ -4,6 +4,7 @@ import { neonAuthConfigured } from '@/lib/auth/server';
 import { getAllowedStaffEmails } from '@/lib/staffAccess';
 import { AdminPanelClient } from './AdminPanelClient';
 import { AdminSearch } from './AdminSearch';
+import { LearningBootstrap } from './LearningBootstrap';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,8 @@ export default function AdminPage() {
         <Suspense fallback={<p className="text-sm text-slate-500">Loading sign-in…</p>}>
           <AdminPanelClient />
         </Suspense>
+
+        <LearningBootstrap />
 
         <AdminSearch />
 
