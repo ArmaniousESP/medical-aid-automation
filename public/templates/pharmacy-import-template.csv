@@ -1,0 +1,3 @@
+period,claim_id,program_code,employee_id,employee_name,patient_name,relation,cycle_status,line_code,drug_name,qty,days_supply,formulary_flag,company_preferred,item_status,approved_qty,dispensed_qty
+2026-10,,CP-EXAMPLE-001,EMP001,Example Employee,Example Patient,self,approved,L001,Example Drug 5mg,30,30,EVA,true,approved,30,30
+2026-10,,CP-EXAMPLE-001,EMP001,Example Employee,Example Patient,self,approved,L002,Other Brand 10mg,15,30,NOT_EVA,false,approved,15,
