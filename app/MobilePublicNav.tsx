@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { GetAppButton } from './GetAppButton';
 
 const PUBLIC_ITEMS = [
   { href: '/', label: 'Home', labelAr: 'رئيسية', icon: '⌂' },
@@ -46,7 +47,7 @@ function isActive(pathname: string, href: string) {
 
 /**
  * Fixed bottom bar on phones:
- * - Beneficiaries: Home · Submit · Status · Help
+ * - Beneficiaries: Home · Submit · Status · Get app · Help
  * - Staff ops: 1–5 path
  */
 export function MobilePublicNav() {
@@ -99,14 +100,43 @@ export function MobilePublicNav() {
         paddingBottom: 'max(0.35rem, env(safe-area-inset-bottom))',
       }}
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1">
-        {PUBLIC_ITEMS.map((item) => {
+      <div className="mx-auto flex max-w-lg items-stretch justify-around px-0.5 pt-1">
+        {PUBLIC_ITEMS.slice(0, 3).map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[3.5rem] min-w-[4rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center ${
+              className={`flex min-h-[3.5rem] min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
+                active ? 'text-emerald-700' : 'text-slate-500'
+              }`}
+            >
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                  active
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {item.icon}
+              </span>
+              <span className="text-[10px] font-semibold leading-tight">
+                {item.label}
+              </span>
+              <span className="text-[9px] leading-none opacity-75" dir="rtl">
+                {item.labelAr}
+              </span>
+            </Link>
+          );
+        })}
+        <GetAppButton variant="tab" />
+        {PUBLIC_ITEMS.slice(3).map((item) => {
+          const active = isActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex min-h-[3.5rem] min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
                 active ? 'text-emerald-700' : 'text-slate-500'
               }`}
             >
