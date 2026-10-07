@@ -71,6 +71,7 @@ export function DdinterCheckForm() {
               value={d}
               onChange={(v) => updateDrug(i, v)}
               loadOptions={medLoader}
+              learnKey="medicine"
               allowCreate
               minQueryLength={2}
               placeholder={`Drug ${i + 1}`}
