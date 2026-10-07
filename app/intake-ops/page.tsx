@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ProcessIntakeButton } from '../ProcessIntakeButton';
 import { FlowSteps } from '../FlowSteps';
+import { SearchablePicker } from '@/components/SearchablePicker';
 
 type Row = {
   id: string;
@@ -25,6 +26,11 @@ const FILTERS = [
   { id: 'dispensed', label: 'Dispensed' },
 ];
 
+const STATUS_OPTIONS = FILTERS.map((f) => ({
+  value: f.id,
+  label: f.label,
+}));
+
 function statusStyle(s: string) {
   if (s === 'submitted') return 'bg-amber-100 text-amber-900';
   if (s === 'enrolled') return 'bg-emerald-100 text-emerald-900';
@@ -32,9 +38,42 @@ function statusStyle(s: string) {
   return 'bg-slate-100 text-slate-700';
 }
 
+function medNames(meds: unknown): string {
+  if (!Array.isArray(meds)) return '';
+  return meds
+    .map((m) =>
+      typeof m === 'object' && m && 'name' in m
+        ? String((m as { name: string }).name)
+        : String(m)
+    )
+    .join(' ');
+}
+
+function matches(r: Row, q: string): boolean {
+  if (!q) return true;
+  const hay = [
+    r.emp_name,
+    r.emp_id,
+    r.patient_name,
+    r.status,
+    r.id,
+    r.program_id,
+    medNames(r.meds),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return q
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((t) => hay.includes(t));
+}
+
 export default function IntakeOpsPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState('submitted');
+  const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +97,11 @@ export default function IntakeOpsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const filtered = useMemo(
+    () => rows.filter((r) => matches(r, q.trim())),
+    [rows, q]
+  );
 
   const waiting = status === 'submitted' ? rows.length : 0;
 
@@ -88,7 +132,6 @@ export default function IntakeOpsPage() {
           </div>
         </header>
 
-        {/* Primary action card */}
         <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -122,7 +165,52 @@ export default function IntakeOpsPage() {
           </div>
         </div>
 
-        {/* Filters */}
+        <div className="rounded-2xl border bg-white p-3 shadow-sm space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-600">
+              Status · الحالة
+            </label>
+            <SearchablePicker
+              value={status}
+              onChange={setStatus}
+              options={STATUS_OPTIONS}
+              allowCreate={false}
+              placeholder="Filter by status…"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-600">
+              Search rows · بحث
+            </label>
+            <div className="relative mt-1">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+                ⌕
+              </span>
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Name, emp ID, patient, drug…"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-10 text-base outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                dir="auto"
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-200"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Showing {filtered.length} of {rows.length}
+              {q ? ` · “${q}”` : ''}
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((s) => (
             <button
@@ -157,11 +245,10 @@ export default function IntakeOpsPage() {
           <p className="text-sm text-slate-500 animate-pulse">Loading queue…</p>
         )}
 
-        {/* Mobile cards */}
         <div className="space-y-3 md:hidden">
-          {rows.map((r) => {
+          {filtered.map((r) => {
             const meds = Array.isArray(r.meds) ? r.meds : [];
-            const medNames = meds
+            const names = meds
               .map((m: unknown) =>
                 typeof m === 'object' && m && 'name' in m
                   ? String((m as { name: string }).name)
@@ -194,8 +281,8 @@ export default function IntakeOpsPage() {
                 <p className="text-sm text-slate-600">
                   Patient: {r.patient_name || '—'}
                 </p>
-                {medNames && (
-                  <p className="text-xs text-slate-500 line-clamp-2">{medNames}</p>
+                {names && (
+                  <p className="text-xs text-slate-500 line-clamp-2">{names}</p>
                 )}
                 <p className="text-[11px] text-slate-400">
                   {r.created_at
@@ -205,19 +292,30 @@ export default function IntakeOpsPage() {
               </article>
             );
           })}
-          {!rows.length && !loading && !error && (
+          {!filtered.length && !loading && !error && (
             <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-slate-500 text-sm">
-              No “{FILTERS.find((f) => f.id === status)?.label || status}” rows.
+              {q
+                ? `No matches for “${q}”.`
+                : `No “${FILTERS.find((f) => f.id === status)?.label || status}” rows.`}
               <div className="mt-2">
-                <Link href="/intake" className="text-emerald-700 font-medium underline">
-                  Submit a test request
-                </Link>
+                {q ? (
+                  <button
+                    type="button"
+                    onClick={() => setQ('')}
+                    className="text-violet-700 font-medium underline"
+                  >
+                    Clear search
+                  </button>
+                ) : (
+                  <Link href="/intake" className="text-emerald-700 font-medium underline">
+                    Submit a test request
+                  </Link>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Desktop table */}
         <div className="hidden md:block rounded-2xl border bg-white shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-500">
@@ -231,7 +329,7 @@ export default function IntakeOpsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {filtered.map((r) => {
                 const meds = Array.isArray(r.meds) ? r.meds : [];
                 return (
                   <tr key={r.id} className="border-t hover:bg-slate-50/80">
@@ -282,13 +380,28 @@ export default function IntakeOpsPage() {
                   </tr>
                 );
               })}
-              {!rows.length && !loading && !error && (
+              {!filtered.length && !loading && !error && (
                 <tr>
                   <td colSpan={6} className="p-10 text-center text-slate-400">
-                    Empty filter ·{' '}
-                    <Link href="/intake" className="text-emerald-700 underline">
-                      submit a request
-                    </Link>
+                    {q ? (
+                      <>
+                        No matches ·{' '}
+                        <button
+                          type="button"
+                          onClick={() => setQ('')}
+                          className="text-violet-700 underline"
+                        >
+                          clear search
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        Empty filter ·{' '}
+                        <Link href="/intake" className="text-emerald-700 underline">
+                          submit a request
+                        </Link>
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
