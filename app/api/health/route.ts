@@ -133,6 +133,23 @@ export async function GET() {
           detail: 'formulary_meds missing',
         };
       }
+      try {
+        const eg = await query<{ n: string }>(
+          `SELECT count(*)::text AS n FROM egyptian_drugs`
+        );
+        const n = Number(eg.rows[0]?.n || 0);
+        checks.egyptian_drugs_neon = {
+          ok: n > 1000,
+          detail: n
+            ? `egyptian_drugs=${n} in Neon`
+            : 'empty — POST /api/catalog/egyptian to load ~25k rows',
+        };
+      } catch {
+        checks.egyptian_drugs_neon = {
+          ok: false,
+          detail: 'table missing — POST /api/catalog/egyptian',
+        };
+      }
     } catch (e: unknown) {
       checks.neon = {
         ok: false,
