@@ -92,6 +92,7 @@ export function ReceiveStockForm() {
           value={drug}
           onChange={setDrug}
           loadOptions={medLoader}
+          learnKey="medicine"
           allowCreate
           minQueryLength={2}
           required
