@@ -11,10 +11,10 @@ export type PickerOption = {
 type Props = {
   value: string;
   onChange: (value: string) => void;
-  /** Static list (filtered client-side). */
   options?: PickerOption[];
-  /** Async search — used when provided (e.g. medicine API). */
   loadOptions?: (query: string) => Promise<PickerOption[]>;
+  /** When set, selections are recorded and popular values rank higher over time. */
+  learnKey?: string;
   allowCreate?: boolean;
   createLabel?: (query: string) => string;
   placeholder?: string;
@@ -31,14 +31,25 @@ function normalize(s: string) {
   return s.trim().toLowerCase();
 }
 
+function recordLearn(key: string, value: string, label?: string) {
+  if (!key || !value.trim()) return;
+  void fetch('/api/learning', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, value: value.trim(), label }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 /**
- * Combobox: search a known list, or add a custom value.
+ * Combobox: search a known list, learn from usage, or add a custom value.
  */
 export function SearchablePicker({
   value,
   onChange,
   options = [],
   loadOptions,
+  learnKey,
   allowCreate = true,
   createLabel = (q) => `Add “${q}” · إضافة`,
   placeholder = 'Search or type…',
@@ -57,6 +68,7 @@ export function SearchablePicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const [asyncOpts, setAsyncOpts] = useState<PickerOption[]>([]);
+  const [learned, setLearned] = useState<PickerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
 
@@ -71,6 +83,31 @@ export function SearchablePicker({
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
+
+  const fetchLearned = useCallback(
+    async (q: string) => {
+      if (!learnKey) return;
+      try {
+        const p = new URLSearchParams({
+          key: learnKey,
+          limit: '10',
+        });
+        if (q.trim()) p.set('q', q.trim());
+        const res = await fetch(`/api/learning?${p}`);
+        const data = await res.json();
+        setLearned(
+          (data.items || []).map((it: PickerOption) => ({
+            value: it.value,
+            label: it.label || it.value,
+            sublabel: it.sublabel,
+          }))
+        );
+      } catch {
+        setLearned([]);
+      }
+    },
+    [learnKey]
+  );
 
   const runLoad = useCallback(
     async (q: string) => {
@@ -93,13 +130,15 @@ export function SearchablePicker({
   );
 
   useEffect(() => {
-    if (!open || !loadOptions) return;
-    const t = window.setTimeout(() => runLoad(query), 200);
+    if (!open) return;
+    const t = window.setTimeout(() => {
+      void fetchLearned(query);
+      if (loadOptions) void runLoad(query);
+    }, 200);
     return () => window.clearTimeout(t);
-  }, [query, open, loadOptions, runLoad]);
+  }, [query, open, loadOptions, runLoad, fetchLearned]);
 
   const filteredStatic = useMemo(() => {
-    if (loadOptions) return [];
     const q = normalize(query);
     if (!q) return options.slice(0, 40);
     return options
@@ -110,18 +149,38 @@ export function SearchablePicker({
           (o.sublabel && normalize(o.sublabel).includes(q))
       )
       .slice(0, 40);
-  }, [options, query, loadOptions]);
+  }, [options, query]);
 
-  const baseList = loadOptions ? asyncOpts : filteredStatic;
+  const baseList = useMemo(() => {
+    const seen = new Set<string>();
+    const out: PickerOption[] = [];
+    const push = (list: PickerOption[]) => {
+      for (const o of list) {
+        const k = normalize(o.value);
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        out.push(o);
+      }
+    };
+    // Learned first when no/few characters — self-evolution surface
+    if (normalize(query).length < 2) {
+      push(learned);
+      if (loadOptions) push(asyncOpts);
+      push(filteredStatic);
+    } else {
+      if (loadOptions) push(asyncOpts);
+      push(learned);
+      push(filteredStatic);
+    }
+    return out.slice(0, 40);
+  }, [learned, asyncOpts, filteredStatic, loadOptions, query]);
 
   const exactMatch = baseList.some(
-    (o) => normalize(o.value) === normalize(query) || normalize(o.label) === normalize(query)
+    (o) =>
+      normalize(o.value) === normalize(query) || normalize(o.label) === normalize(query)
   );
 
-  const showCreate =
-    allowCreate &&
-    query.trim().length > 0 &&
-    !exactMatch;
+  const showCreate = allowCreate && query.trim().length > 0 && !exactMatch;
 
   const items: Array<PickerOption & { isCreate?: boolean }> = [
     ...baseList,
@@ -138,6 +197,7 @@ export function SearchablePicker({
     onChange(opt.value);
     setQuery(opt.value);
     setOpen(false);
+    if (learnKey) recordLearn(learnKey, opt.value, opt.label);
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -185,7 +245,6 @@ export function SearchablePicker({
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
-          // Live free-text for forms that need intermediate values
           if (allowCreate) onChange(e.target.value);
         }}
         onFocus={() => setOpen(true)}
@@ -206,7 +265,11 @@ export function SearchablePicker({
             <li className="px-4 py-2 text-xs text-slate-500">{emptyHint}</li>
           )}
           {items.map((opt, i) => (
-            <li key={`${opt.value}-${opt.isCreate ? 'new' : i}`} role="option" aria-selected={i === highlight}>
+            <li
+              key={`${opt.value}-${opt.isCreate ? 'new' : i}`}
+              role="option"
+              aria-selected={i === highlight}
+            >
               <button
                 type="button"
                 className={`flex w-full flex-col items-start px-4 py-2.5 text-left text-sm ${
