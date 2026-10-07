@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const TEMPLATE_URL = '/templates/pharmacy-import-template.csv';
+
 export function PharmacyCsvImport() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -59,14 +61,22 @@ export function PharmacyCsvImport() {
           Import pharmacy CSV · استيراد ملف الصيدلية
         </p>
         <p className="text-xs text-indigo-800/80 mt-1">
-          Same columns as the export (line_code, period, dispensed_qty…). Updates
-          dispensed quantities in the database.
+          Use the same columns as the export. Fill <strong>dispensed_qty</strong>{' '}
+          (or qty), then upload. Match is by <code className="text-[10px]">line_code</code> +{' '}
+          <code className="text-[10px]">period</code>.
         </p>
         <p className="text-xs text-indigo-800/80 mt-0.5" dir="rtl">
-          نفس أعمدة التصدير — يحدّث كميات الصرف في النظام
+          نفس أعمدة التصدير — عبّئ dispensed_qty ثم ارفع الملف
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={TEMPLATE_URL}
+          download="pharmacy-import-template.csv"
+          className="rounded-xl border-2 border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
+        >
+          Download template · قالب CSV
+        </a>
         <input
           ref={inputRef}
           type="file"
