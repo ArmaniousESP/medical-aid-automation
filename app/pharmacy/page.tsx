@@ -3,6 +3,7 @@ import { buildPharmacyPickList } from '@/lib/pharmacy';
 import { scanRefillSafetyQueue } from '@/lib/refillSafety';
 import { PharmacyBatchButton } from './PharmacyBatchButton';
 import { PharmacyCsvImport } from './PharmacyCsvImport';
+import { PharmacySearchList } from './PharmacySearchList';
 import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
@@ -63,13 +64,7 @@ export default async function PharmacyPage({
     safetyFlagged = 0;
   }
 
-  const groups = new Map<string, typeof lines>();
-  for (const line of lines) {
-    const key = line.cycle_id;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(line);
-  }
-
+  const cycleCount = new Set(lines.map((l) => l.cycle_id)).size;
   const evaCount = lines.filter((l) => l.company_preferred).length;
   const notEvaCount = lines.length - evaCount;
 
@@ -131,7 +126,7 @@ export default async function PharmacyPage({
             Go
           </button>
           <span className="text-xs text-slate-500 ml-auto">
-            {lines.length} lines · {groups.size} patients
+            {lines.length} lines · {cycleCount} patients
           </span>
         </form>
 
@@ -288,123 +283,9 @@ export default async function PharmacyPage({
           </div>
         )}
 
-        {!error && groups.size === 0 && (
-          <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
-            <p>No lines for this period / filter.</p>
-            <p className="text-xs">
-              Process the{' '}
-              <Link href="/intake-ops" className="text-violet-700 font-medium underline">
-                queue
-              </Link>{' '}
-              and generate{' '}
-              <Link href="/refills" className="text-violet-700 font-medium underline">
-                refills
-              </Link>{' '}
-              first.
-            </p>
-          </div>
+        {!error && (
+          <PharmacySearchList lines={lines} emptyHint />
         )}
-
-        {Array.from(groups.entries()).map(([cycleId, group]) => {
-          const head = group[0];
-          const evaLines = group.filter((l) => l.company_preferred).length;
-          return (
-            <article
-              key={cycleId}
-              className="rounded-2xl border bg-white shadow-sm overflow-hidden"
-            >
-              <div className="bg-slate-50 px-4 py-3 flex flex-wrap justify-between gap-2 border-b">
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {head.patient_name}
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    {head.employee_name}
-                    {head.program_code ? ` · ${head.program_code}` : ''}
-                    {head.relation ? ` · ${head.relation}` : ''}
-                  </p>
-                </div>
-                <div className="text-right space-y-1">
-                  <span className="inline-block rounded-full bg-white border px-2 py-0.5 text-[11px] font-semibold">
-                    {head.cycle_status}
-                  </span>
-                  <p className="text-[11px] text-slate-500">
-                    {evaLines}/{group.length} EVA
-                  </p>
-                  <Link
-                    href={`/refills/${cycleId}`}
-                    className="block text-xs font-medium text-violet-700 hover:underline"
-                  >
-                    Cycle detail
-                  </Link>
-                </div>
-              </div>
-
-              <ul className="md:hidden divide-y">
-                {group.map((l) => (
-                  <li
-                    key={`${l.cycle_id}-${l.line_code}`}
-                    className="px-4 py-3 flex justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{l.drug_name}</p>
-                      <p className="text-[11px] text-slate-500">
-                        Qty {l.dispensed_qty ?? l.approved_qty ?? l.qty}
-                        {' · '}
-                        {l.item_status}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full h-fit ${
-                        l.company_preferred
-                          ? 'bg-teal-100 text-teal-900'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {l.company_preferred ? 'EVA' : 'NOT EVA'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <table className="hidden md:table w-full text-sm">
-                <thead className="text-xs text-slate-500 text-left">
-                  <tr>
-                    <th className="p-3 font-semibold">Drug</th>
-                    <th className="p-3 font-semibold">Qty</th>
-                    <th className="p-3 font-semibold">Route</th>
-                    <th className="p-3 font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.map((l) => (
-                    <tr
-                      key={`${l.cycle_id}-${l.line_code}`}
-                      className="border-t hover:bg-slate-50/80"
-                    >
-                      <td className="p-3 font-medium">{l.drug_name}</td>
-                      <td className="p-3">
-                        {l.dispensed_qty ?? l.approved_qty ?? l.qty}
-                      </td>
-                      <td className="p-3">
-                        {l.company_preferred ? (
-                          <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">
-                            EVA
-                          </span>
-                        ) : (
-                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
-                            NOT EVA
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-xs text-slate-600">{l.item_status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </article>
-          );
-        })}
       </div>
     </main>
   );
