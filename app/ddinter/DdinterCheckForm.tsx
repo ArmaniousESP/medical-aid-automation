@@ -10,12 +10,23 @@ async function loadMedOptions(q: string): Promise<PickerOption[]> {
     body: JSON.stringify({ action: 'search_med', q, limit: 8 }),
   });
   const data = await res.json();
-  return ((data.items || []) as { name_en?: string; name_ar?: string }[]).map((it) => {
+  return ((data.items || []) as {
+    name_en?: string;
+    name_ar?: string;
+    scientific_name?: string;
+    price_egp?: number;
+  }[]).map((it) => {
     const name = it.name_en || it.name_ar || '';
     return {
       value: name,
       label: name,
-      sublabel: it.name_ar && it.name_en ? it.name_ar : undefined,
+      sublabel: [
+        it.scientific_name || null,
+        it.name_ar && it.name_en ? it.name_ar : null,
+        it.price_egp != null ? `${it.price_egp} EGP` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
     };
   });
 }
@@ -62,7 +73,7 @@ export function DdinterCheckForm() {
   return (
     <form onSubmit={check} className="space-y-3 text-sm">
       <p className="text-xs text-slate-500">
-        Pick from formulary or type any name · اختر من القائمة أو اكتب
+        Search Egyptian catalog or type any name · ابحث في قاعدة الأدوية المصرية
       </p>
       {drugs.map((d, i) => (
         <div key={i} className="flex gap-2 items-start">
