@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { loadRecent, pushRecent } from '@/lib/intakeDraft';
 
 export type PickerOption = {
   value: string;
@@ -13,7 +14,6 @@ type Props = {
   onChange: (value: string) => void;
   options?: PickerOption[];
   loadOptions?: (query: string) => Promise<PickerOption[]>;
-  /** When set, selections are recorded and popular values rank higher over time. */
   learnKey?: string;
   allowCreate?: boolean;
   createLabel?: (query: string) => string;
@@ -30,6 +30,7 @@ type Props = {
 type ListItem = PickerOption & {
   isCreate?: boolean;
   isLearned?: boolean;
+  isRecent?: boolean;
 };
 
 function normalize(s: string) {
@@ -46,9 +47,6 @@ function recordLearn(key: string, value: string, label?: string) {
   }).catch(() => {});
 }
 
-/**
- * Combobox: search a known list, learn from usage, or add a custom value.
- */
 export function SearchablePicker({
   value,
   onChange,
@@ -74,6 +72,7 @@ export function SearchablePicker({
   const [query, setQuery] = useState(value);
   const [asyncOpts, setAsyncOpts] = useState<PickerOption[]>([]);
   const [learned, setLearned] = useState<PickerOption[]>([]);
+  const [recent, setRecent] = useState<PickerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -82,6 +81,17 @@ export function SearchablePicker({
   useEffect(() => {
     setQuery(value);
   }, [value]);
+
+  useEffect(() => {
+    if (!learnKey) return;
+    setRecent(
+      loadRecent(learnKey).map((v) => ({
+        value: v,
+        label: v,
+        sublabel: 'Your recent · مؤخراً',
+      }))
+    );
+  }, [learnKey]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -107,10 +117,7 @@ export function SearchablePicker({
     async (q: string) => {
       if (!learnKey) return;
       try {
-        const p = new URLSearchParams({
-          key: learnKey,
-          limit: '10',
-        });
+        const p = new URLSearchParams({ key: learnKey, limit: '10' });
         if (q.trim()) p.set('q', q.trim());
         const res = await fetch(`/api/learning?${p}`);
         const data = await res.json();
@@ -170,6 +177,12 @@ export function SearchablePicker({
       .slice(0, 40);
   }, [options, query]);
 
+  const filteredRecent = useMemo(() => {
+    const q = normalize(query);
+    if (!q) return recent;
+    return recent.filter((o) => normalize(o.label).includes(q) || normalize(o.value).includes(q));
+  }, [recent, query]);
+
   const learnedKeys = useMemo(
     () => new Set(learned.map((o) => normalize(o.value))),
     [learned]
@@ -178,28 +191,43 @@ export function SearchablePicker({
   const baseList = useMemo(() => {
     const seen = new Set<string>();
     const out: ListItem[] = [];
-    const push = (list: PickerOption[], markLearned: boolean) => {
+    const push = (
+      list: PickerOption[],
+      flags: { isLearned?: boolean; isRecent?: boolean }
+    ) => {
       for (const o of list) {
         const k = normalize(o.value);
         if (!k || seen.has(k)) continue;
         seen.add(k);
         out.push({
           ...o,
-          isLearned: markLearned || learnedKeys.has(k),
+          isLearned: flags.isLearned || learnedKeys.has(k),
+          isRecent: flags.isRecent,
         });
       }
     };
+    // Device recent first, then community popular, then catalog/static
     if (normalize(query).length < 2) {
-      push(learned, true);
-      if (loadOptions) push(asyncOpts, false);
-      push(filteredStatic, false);
+      push(filteredRecent, { isRecent: true });
+      push(learned, { isLearned: true });
+      if (loadOptions) push(asyncOpts, {});
+      push(filteredStatic, {});
     } else {
-      if (loadOptions) push(asyncOpts, false);
-      push(learned, true);
-      push(filteredStatic, false);
+      if (loadOptions) push(asyncOpts, {});
+      push(filteredRecent, { isRecent: true });
+      push(learned, { isLearned: true });
+      push(filteredStatic, {});
     }
     return out.slice(0, 40);
-  }, [learned, asyncOpts, filteredStatic, loadOptions, query, learnedKeys]);
+  }, [
+    filteredRecent,
+    learned,
+    asyncOpts,
+    filteredStatic,
+    loadOptions,
+    query,
+    learnedKeys,
+  ]);
 
   const exactMatch = baseList.some(
     (o) =>
@@ -207,18 +235,12 @@ export function SearchablePicker({
   );
 
   const showCreate = allowCreate && query.trim().length > 0 && !exactMatch;
-  const popularCount = baseList.filter((o) => o.isLearned).length;
+  const popularCount = baseList.filter((o) => o.isLearned || o.isRecent).length;
 
   const items: ListItem[] = [
     ...baseList,
     ...(showCreate
-      ? [
-          {
-            value: query.trim(),
-            label: createLabel(query.trim()),
-            isCreate: true as const,
-          },
-        ]
+      ? [{ value: query.trim(), label: createLabel(query.trim()), isCreate: true as const }]
       : []),
   ];
 
@@ -226,19 +248,24 @@ export function SearchablePicker({
     setHighlight(0);
   }, [query, open]);
 
-  function pick(opt: PickerOption & { isCreate?: boolean; isLearned?: boolean }) {
+  function pick(opt: ListItem) {
     onChange(opt.value);
     setQuery(opt.value);
     setOpen(false);
     if (learnKey) {
+      pushRecent(learnKey, opt.value);
+      setRecent((prev) => {
+        const next = [
+          { value: opt.value, label: opt.value, sublabel: 'Your recent · مؤخراً' },
+          ...prev.filter((p) => normalize(p.value) !== normalize(opt.value)),
+        ].slice(0, 8);
+        return next;
+      });
       recordLearn(learnKey, opt.value, opt.label);
-      if (opt.isCreate) {
-        flashFeedback('New value remembered · قيمة جديدة');
-      } else if (opt.isLearned) {
-        flashFeedback('Popular choice · اختيار شائع');
-      } else {
-        flashFeedback('Remembered for next time · تم الحفظ');
-      }
+      if (opt.isCreate) flashFeedback('New value remembered · قيمة جديدة');
+      else if (opt.isRecent) flashFeedback('From your recent · من اختياراتك');
+      else if (opt.isLearned) flashFeedback('Popular choice · اختيار شائع');
+      else flashFeedback('Remembered for next time · تم الحفظ');
     }
   }
 
@@ -320,7 +347,7 @@ export function SearchablePicker({
 
       {feedback && (
         <p
-          className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 animate-[fadeIn_0.2s_ease]"
+          className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-emerald-800"
           role="status"
         >
           <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-[10px]">
@@ -338,7 +365,7 @@ export function SearchablePicker({
         >
           {learnKey && popularCount > 0 && normalize(query).length < 2 && (
             <li className="sticky top-0 z-10 border-b border-violet-100 bg-violet-50/95 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800">
-              Popular from past use · من الاستخدام
+              Suggested for you · مقترح لك
               <span className="ml-1 font-normal normal-case text-violet-600">
                 ({popularCount})
               </span>
@@ -372,7 +399,12 @@ export function SearchablePicker({
                     </span>
                   )}
                 </span>
-                {opt.isLearned && !opt.isCreate && (
+                {opt.isRecent && !opt.isCreate && (
+                  <span className="shrink-0 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-800">
+                    Recent
+                  </span>
+                )}
+                {opt.isLearned && !opt.isRecent && !opt.isCreate && (
                   <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-800">
                     Popular
                   </span>
@@ -387,7 +419,7 @@ export function SearchablePicker({
           ))}
           {learnKey && !loading && items.length > 0 && (
             <li className="border-t border-slate-100 px-4 py-1.5 text-[10px] text-slate-400">
-              Choices improve suggestions over time · يتحسن الاقتراح مع الوقت
+              Your device + community improve suggestions · جهازك والمجتمع
             </li>
           )}
         </ul>
