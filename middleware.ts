@@ -24,6 +24,7 @@ const PUBLIC_PREFIXES = [
   '/api/health',
   '/api/auth/',
   '/api/request-status',
+  '/api/learning',
   '/api/webhooks/whatsapp',
   '/api/webhooks/twilio',
   '/_next/',
@@ -149,6 +150,6 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|sw\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|csv)$).*)',
+    '/((?!_next/static|_next/image|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|csv)$).*)',
   ],
 };
