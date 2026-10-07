@@ -37,6 +37,8 @@ async function loadMedOptions(q: string): Promise<PickerOption[]> {
   const items = (data.items || []) as {
     name_en?: string;
     name_ar?: string;
+    scientific_name?: string;
+    manufacturer?: string;
     price_egp?: number;
   }[];
   return items.map((it) => {
@@ -46,7 +48,8 @@ async function loadMedOptions(q: string): Promise<PickerOption[]> {
       label: name,
       sublabel: [
         it.name_ar && it.name_en ? it.name_ar : null,
-        it.price_egp != null ? `~${it.price_egp} EGP` : null,
+        it.scientific_name || null,
+        it.price_egp != null ? `${it.price_egp} EGP` : null,
       ]
         .filter(Boolean)
         .join(' · '),
@@ -69,6 +72,9 @@ export default function IntakePage() {
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<string | null>(null);
+  const [estimateLines, setEstimateLines] = useState<
+    { query: string; matched?: string; unit_price_egp?: number | null; quantity?: number; line_total?: number | null }[]
+  >([]);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [draftHint, setDraftHint] = useState<string | null>(null);
@@ -214,7 +220,12 @@ export default function IntakePage() {
       body: JSON.stringify({ action: 'estimate', lines }),
     });
     const data = await res.json();
-    setEstimate(data.total_egp != null ? `~${data.total_egp} EGP` : data.error || 'No estimate');
+    setEstimateLines(Array.isArray(data.lines) ? data.lines : []);
+    if (data.total_egp != null) {
+      setEstimate(`~${data.total_egp} EGP · Egyptian catalog`);
+    } else {
+      setEstimate(data.error || 'No price match in catalog');
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -280,7 +291,9 @@ export default function IntakePage() {
         <header className="space-y-1 text-center sm:text-left">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Submit request</h1>
           <p className="text-base text-slate-600" dir="rtl">تقديم طلب علاج شهري</p>
-          <p className="text-sm text-slate-500">Auto-saves as you type · يحفظ تلقائياً</p>
+          <p className="text-sm text-slate-500">
+            ~25k Egyptian medicines · أسعار السوق المصرية
+          </p>
         </header>
 
         {!resultId && (draftHint || draftSavedAt) && (
@@ -352,6 +365,9 @@ export default function IntakePage() {
                 <h2 className="text-sm font-semibold">C · Medicines *</h2>
                 <button type="button" onClick={() => setMeds((m) => [...m, { name: '', qty: 1 }])} className="text-xs font-semibold text-emerald-800">+ Add</button>
               </div>
+              <p className="text-[11px] text-slate-500">
+                Search Egyptian catalog (EN / AR / scientific) · قاعدة الأدوية المصرية
+              </p>
               {popularMeds.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-medium text-violet-800">Quick add popular · شائع</p>
@@ -385,8 +401,23 @@ export default function IntakePage() {
                   )}
                 </div>
               ))}
-              <button type="button" onClick={runEstimate} className="text-sm text-violet-700 font-medium">Estimate cost</button>
-              {estimate && <p className="text-xs text-slate-600">{estimate}</p>}
+              <button type="button" onClick={runEstimate} className="text-sm text-violet-700 font-medium">Estimate cost · تقدير التكلفة</button>
+              {estimate && (
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-1.5 text-xs text-slate-700">
+                  <p className="font-semibold text-slate-900">{estimate}</p>
+                  {estimateLines.map((ln, i) => (
+                    <div key={i} className="flex justify-between gap-2">
+                      <span className="truncate">{ln.matched || ln.query}</span>
+                      <span className="shrink-0 font-mono">
+                        {ln.line_total != null ? `${ln.line_total} EGP` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-slate-400 pt-1">
+                    Source: egyptian-drug-database (CC0) · indicative only
+                  </p>
+                </div>
+              )}
             </section>
             <details className="rounded-2xl border bg-white p-4">
               <summary className="cursor-pointer text-sm font-semibold">Optional notes / links</summary>
