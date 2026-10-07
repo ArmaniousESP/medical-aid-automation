@@ -16,6 +16,7 @@ const PUBLIC_EXACT = new Set([
   '/apple-icon',
   '/splash',
   '/manifest.webmanifest',
+  '/sw.js',
 ]);
 
 const PUBLIC_PREFIXES = [
@@ -146,6 +147,6 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
+    '/((?!_next/static|_next/image|sw\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)',
   ],
 };
