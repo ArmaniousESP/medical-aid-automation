@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { UnlockPanel } from './UnlockPanel';
+import { GetAppButton } from './GetAppButton';
 
 export default function Home() {
   return (
@@ -61,6 +62,8 @@ export default function Home() {
               <span className="text-2xl text-slate-300">→</span>
             </div>
           </Link>
+
+          <GetAppButton variant="outline" />
         </section>
 
         <section className="rounded-2xl bg-slate-50 border border-slate-100 p-5 space-y-3">
