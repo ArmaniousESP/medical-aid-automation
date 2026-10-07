@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { bitrixConfigStatus } from '@/lib/bitrix';
+import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,26 @@ async function loadHealth() {
       required: false,
     },
   };
+
+  try {
+    const drugs = await loadEgyptianDrugs();
+    const sample = await searchEgyptianDrugs('Concor', 1);
+    checks.egyptian_catalog = {
+      ok: drugs.length > 1000,
+      detail: `Primary · ${drugs.length.toLocaleString()} meds · hit=${sample.items[0]?.name_en || '—'} · MSH=fallback`,
+      required: false,
+      recommended: true,
+    };
+  } catch (e: unknown) {
+    checks.egyptian_catalog = {
+      ok: false,
+      detail:
+        e instanceof Error
+          ? e.message
+          : 'CSV load failed — search falls back to MSH',
+      recommended: true,
+    };
+  }
 
   const wa = whatsappConfigStatus();
   checks.whatsapp = {
@@ -188,11 +209,7 @@ export default async function StatusPage() {
               : 'Setup needed — add DATABASE_URL on Vercel'}
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            {health.ok
-              ? health.secretOk
-                ? 'PROCESS_SECRET is set. Unlock on Home, then follow the monthly ops path below.'
-                : 'Neon is connected. Set PROCESS_SECRET next so ops pages stay private.'
-              : 'Google sheet credentials are optional and not required to start.'}
+            Medicine search uses the open Egyptian drug database first; MSH is fallback only.
           </p>
         </div>
 
@@ -249,56 +266,6 @@ export default async function StatusPage() {
           </div>
         )}
 
-        {health.ok && health.wa.mode === 'none' && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-2 text-sm">
-            <h2 className="font-semibold text-blue-950">Next: WhatsApp Business</h2>
-            <p className="text-xs text-blue-900">
-              Add Meta or Twilio env on Vercel, redeploy, then test on{' '}
-              <Link href="/notifications" className="underline font-medium">
-                /notifications
-              </Link>
-              . Full steps: docs/whatsapp-setup.md
-            </p>
-            <ul className="text-xs text-blue-900 list-disc list-inside space-y-1">
-              <li>
-                Meta: WHATSAPP_TOKEN + WHATSAPP_PHONE_NUMBER_ID
-              </li>
-              <li>
-                Twilio: TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN +
-                TWILIO_WHATSAPP_FROM + WHATSAPP_PROVIDER=twilio
-              </li>
-              <li>Start with WHATSAPP_DRY_RUN=1</li>
-            </ul>
-          </div>
-        )}
-
-        {health.ok && !health.secretOk && (
-          <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3 text-sm">
-            <h2 className="font-semibold text-amber-950">
-              Recommended: set PROCESS_SECRET
-            </h2>
-            <ol className="list-decimal list-inside space-y-2 text-amber-950 text-xs">
-              <li>
-                Open{' '}
-                <a
-                  href="https://vercel.com/armanious-foundation/medical-aid-automation/settings/environment-variables"
-                  className="underline font-medium"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Vercel → Environment Variables
-                </a>
-              </li>
-              <li>
-                Add <code className="bg-white/80 px-1 rounded">PROCESS_SECRET</code>
-              </li>
-              <li>
-                <strong>Redeploy</strong>, then unlock on Home
-              </li>
-            </ol>
-          </div>
-        )}
-
         <ul className="rounded-xl border bg-white divide-y shadow-sm">
           {Object.entries(health.checks).map(([key, val]) => (
             <li key={key} className="flex justify-between gap-3 p-3 text-sm">
@@ -320,34 +287,12 @@ export default async function StatusPage() {
           ))}
         </ul>
 
-        {!health.ok && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm space-y-3">
-            <h2 className="font-semibold">Setup on Vercel</h2>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700">
-              <li>
-                Project → <strong>Settings → Environment Variables</strong>
-              </li>
-              <li>
-                Add <code className="text-xs bg-slate-100 px-1 rounded">DATABASE_URL</code> from
-                Neon
-              </li>
-              <li>
-                Add{' '}
-                <code className="text-xs bg-slate-100 px-1 rounded">PROCESS_SECRET</code>
-              </li>
-              <li>
-                <strong>Redeploy</strong>
-              </li>
-            </ol>
-          </div>
-        )}
-
         <div className="flex flex-wrap gap-3 text-sm justify-center pb-6">
           <Link href="/guide" className="text-violet-700 hover:underline font-medium">
             How to use
           </Link>
-          <Link href="/notifications" className="text-blue-600 hover:underline">
-            Notifications
+          <Link href="/intake" className="text-emerald-700 hover:underline font-medium">
+            Intake
           </Link>
           <Link href="/" className="text-blue-600 hover:underline">
             Home
