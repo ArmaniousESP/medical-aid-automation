@@ -3,16 +3,9 @@ import { Suspense } from 'react';
 import { neonAuthConfigured } from '@/lib/auth/server';
 import { getAllowedStaffEmails } from '@/lib/staffAccess';
 import { AdminPanelClient } from './AdminPanelClient';
+import { AdminSearch } from './AdminSearch';
 
 export const dynamic = 'force-dynamic';
-
-const PATH = [
-  { n: 1, label: 'Queue', href: '/intake-ops', hint: 'Process intake' },
-  { n: 2, label: 'Claims', href: '/claims', hint: 'Submit drafts' },
-  { n: 3, label: 'Pharmacy', href: '/pharmacy', hint: 'EVA CSV' },
-  { n: 4, label: 'Programs', href: '/programs', hint: 'Enrollments' },
-  { n: 5, label: 'Refills', href: '/refills', hint: 'Monthly cycles' },
-] as const;
 
 export default function AdminPage() {
   const neonOk = neonAuthConfigured();
@@ -25,9 +18,7 @@ export default function AdminPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
             Staff only
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Admin
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin</h1>
           <p className="text-sm text-slate-600" dir="rtl">
             لوحة التشغيل · تسجيل الدخول · الأدوار
           </p>
@@ -50,9 +41,7 @@ export default function AdminPage() {
             </li>
             <li className="flex justify-between gap-2">
               <span>PROCESS_SECRET</span>
-              <strong>
-                {process.env.PROCESS_SECRET ? 'set' : 'not set'}
-              </strong>
+              <strong>{process.env.PROCESS_SECRET ? 'set' : 'not set'}</strong>
             </li>
           </ul>
         </div>
@@ -61,39 +50,7 @@ export default function AdminPage() {
           <AdminPanelClient />
         </Suspense>
 
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-slate-800">
-            Start work · ابدأ التشغيل
-          </h2>
-          <div className="grid gap-2">
-            {PATH.map((s) => (
-              <Link
-                key={s.n}
-                href={s.href}
-                className="flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm hover:border-violet-300 hover:bg-violet-50/50 transition"
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-800">
-                  {s.n}
-                </span>
-                <span className="flex-1">
-                  <span className="block font-semibold text-slate-900">{s.label}</span>
-                  <span className="text-xs text-slate-500">{s.hint}</span>
-                </span>
-                <span className="text-slate-300">→</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <Link
-          href="/admin/roles"
-          className="flex items-center justify-between rounded-2xl border-2 border-violet-200 bg-violet-50 px-4 py-3.5 text-sm font-semibold text-violet-950 hover:bg-violet-100"
-        >
-          <span>Role management</span>
-          <span className="text-xs font-normal text-violet-700">
-            admin · operator · viewer →
-          </span>
-        </Link>
+        <AdminSearch />
 
         <div className="flex flex-wrap gap-3 text-sm justify-center text-slate-500">
           <Link href="/" className="hover:text-slate-800 hover:underline">
@@ -102,7 +59,10 @@ export default function AdminPage() {
           <Link href="/status" className="hover:text-slate-800 hover:underline">
             System status
           </Link>
-          <Link href="/guide#for-staff" className="hover:text-violet-700 hover:underline">
+          <Link
+            href="/guide#for-staff"
+            className="hover:text-violet-700 hover:underline"
+          >
             Staff guide
           </Link>
         </div>
