@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   bootstrapFromIntake,
+  learningSummary,
   recordSignal,
   suggestFromLearning,
 } from '@/lib/learning';
 
 export const dynamic = 'force-dynamic';
 
-/** GET ?key=city&q=cai&limit=12 — ranked learned suggestions (public read). */
+/** GET ?key=city | ?summary=1 — ranked suggestions or insights. */
 export async function GET(req: NextRequest) {
   try {
+    if (req.nextUrl.searchParams.get('summary') === '1') {
+      const summary = await learningSummary();
+      return NextResponse.json({ ok: true, summary });
+    }
+
     const key = req.nextUrl.searchParams.get('key') || '';
     if (!key) {
       return NextResponse.json({ ok: false, error: 'key required' }, { status: 400 });
