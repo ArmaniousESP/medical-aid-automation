@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { PublicStepsBar } from '../PublicStepsBar';
+import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
+import {
+  CITY_OPTIONS,
+  COMPANY_OPTIONS,
+  RELATION_OPTIONS,
+} from '@/lib/intakeOptions';
 
 type MedLine = { name: string; qty: number };
 
@@ -10,12 +16,40 @@ const field =
   'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none';
 const label = 'block text-sm font-medium text-slate-700 mb-1.5';
 
+async function loadMedOptions(q: string): Promise<PickerOption[]> {
+  const res = await fetch('/api/intake', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'search_med', q, limit: 8 }),
+  });
+  const data = await res.json();
+  const items = (data.items || []) as {
+    name_en?: string;
+    name_ar?: string;
+    price_egp?: number;
+  }[];
+  return items.map((it) => {
+    const name = it.name_en || it.name_ar || '';
+    return {
+      value: name,
+      label: name,
+      sublabel: [
+        it.name_ar && it.name_en ? it.name_ar : null,
+        it.price_egp != null ? `~${it.price_egp} EGP` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    };
+  });
+}
+
 export default function IntakePage() {
   const [emp_name, setEmpName] = useState('');
   const [emp_id, setEmpId] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
   const [patient_name, setPatient] = useState('');
+  const [relation, setRelation] = useState('self');
   const [city, setCity] = useState('');
   const [comments, setComments] = useState('');
   const [roshetta, setRoshetta] = useState('');
@@ -23,16 +57,14 @@ export default function IntakePage() {
   const [loading, setLoading] = useState(false);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [searchHits, setSearchHits] = useState<
-    { name_en?: string; name_ar?: string; price_egp?: number }[]
-  >([]);
   const [estimate, setEstimate] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [activeMedIdx, setActiveMedIdx] = useState(0);
 
   function updateMed(i: number, patch: Partial<MedLine>) {
     setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
   }
+
+  const medLoader = useCallback((q: string) => loadMedOptions(q), []);
 
   async function copyId() {
     if (!resultId) return;
@@ -43,21 +75,6 @@ export default function IntakePage() {
     } catch {
       /* ignore */
     }
-  }
-
-  async function searchMed(q: string, idx: number) {
-    setActiveMedIdx(idx);
-    if (q.length < 2) {
-      setSearchHits([]);
-      return;
-    }
-    const res = await fetch('/api/intake', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'search_med', q, limit: 6 }),
-    });
-    const data = await res.json();
-    setSearchHits(data.items || []);
   }
 
   async function runEstimate() {
@@ -94,6 +111,7 @@ export default function IntakePage() {
           company,
           phone,
           patient_name,
+          relation,
           city,
           comments,
           meds: meds.filter((m) => m.name.trim()),
@@ -128,36 +146,26 @@ export default function IntakePage() {
             تقديم طلب علاج شهري
           </p>
           <p className="text-sm text-slate-500">
-            Required fields marked * · الحقول المطلوبة *
+            Search lists or type a new value · ابحث أو اكتب قيمة جديدة
           </p>
         </header>
 
         {resultId && (
           <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-4 shadow-sm">
             <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-lg font-bold">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg text-white">
                 ✓
               </span>
               <div>
-                <p className="text-lg font-semibold text-emerald-950">
-                  Request received
-                </p>
+                <p className="font-semibold text-emerald-950">Request received</p>
                 <p className="text-sm text-emerald-800" dir="rtl">
-                  تم استلام طلبك بنجاح
+                  تم استلام الطلب — احفظ الرقم
                 </p>
               </div>
             </div>
-            <p className="text-sm text-emerald-900 font-medium">
-              Save this ID — you need it to check status.
-              <span className="block text-xs font-normal mt-1" dir="rtl">
-                احفظ الرقم — ستحتاجه لمتابعة الحالة
-              </span>
-            </p>
-            <div className="rounded-xl bg-white border border-emerald-200 p-3">
-              <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">
-                Request ID
-              </p>
-              <p className="font-mono text-sm break-all text-slate-900 select-all">
+            <div className="rounded-xl bg-white border border-emerald-200 px-4 py-3">
+              <p className="text-xs text-slate-500 mb-1">Request ID</p>
+              <p className="font-mono text-lg font-bold text-slate-900 select-all">
                 {resultId}
               </p>
             </div>
@@ -191,7 +199,6 @@ export default function IntakePage() {
 
         {!resultId && (
           <form onSubmit={submit} className="space-y-5">
-            {/* Section 1 */}
             <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
@@ -233,15 +240,17 @@ export default function IntakePage() {
               </div>
               <label className="block">
                 <span className={label}>Company · الشركة</span>
-                <input
+                <SearchablePicker
                   value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className={field}
+                  onChange={setCompany}
+                  options={COMPANY_OPTIONS}
+                  allowCreate
+                  placeholder="Search or add company…"
+                  emptyHint="Type to add a new company"
                 />
               </label>
             </section>
 
-            {/* Section 2 */}
             <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
@@ -259,16 +268,28 @@ export default function IntakePage() {
                 />
               </label>
               <label className="block">
+                <span className={label}>Relation · صلة القرابة</span>
+                <SearchablePicker
+                  value={relation}
+                  onChange={setRelation}
+                  options={RELATION_OPTIONS}
+                  allowCreate
+                  placeholder="Self, spouse, child…"
+                />
+              </label>
+              <label className="block">
                 <span className={label}>City · المدينة</span>
-                <input
+                <SearchablePicker
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className={field}
+                  onChange={setCity}
+                  options={CITY_OPTIONS}
+                  allowCreate
+                  placeholder="Search city or type new…"
+                  emptyHint="Type to add a city"
                 />
               </label>
             </section>
 
-            {/* Section 3 */}
             <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
@@ -285,18 +306,22 @@ export default function IntakePage() {
                   + Add · إضافة
                 </button>
               </div>
+              <p className="text-xs text-slate-500">
+                Pick from formulary search or add a name not in the list.
+              </p>
               {meds.map((m, i) => (
                 <div key={i} className="flex gap-2 items-start">
                   <div className="flex-1">
-                    <input
+                    <SearchablePicker
                       value={m.name}
-                      onChange={(e) => {
-                        updateMed(i, { name: e.target.value });
-                        searchMed(e.target.value, i);
-                      }}
-                      placeholder={`Medicine ${i + 1} · اسم الدواء`}
-                      className={field}
+                      onChange={(v) => updateMed(i, { name: v })}
+                      loadOptions={medLoader}
+                      allowCreate
+                      minQueryLength={2}
                       required={i === 0}
+                      placeholder={`Medicine ${i + 1} · اسم الدواء`}
+                      emptyHint="Keep typing or add as new"
+                      createLabel={(q) => `Use “${q}” as written · استخدام كما هو`}
                     />
                   </div>
                   <div className="w-20">
@@ -307,18 +332,15 @@ export default function IntakePage() {
                       onChange={(e) =>
                         updateMed(i, { qty: Number(e.target.value) || 1 })
                       }
-                      className={field + ' text-center'}
-                      title="Quantity · الكمية"
+                      className={field}
                       aria-label="Quantity"
                     />
                   </div>
                   {meds.length > 1 && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setMeds((prev) => prev.filter((_, idx) => idx !== i))
-                      }
-                      className="mt-2 text-xs text-red-600 px-1"
+                      onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
+                      className="mt-2 text-xs text-red-600 hover:underline px-1"
                       aria-label="Remove"
                     >
                       ✕
@@ -326,42 +348,18 @@ export default function IntakePage() {
                   )}
                 </div>
               ))}
-              {searchHits.length > 0 && (
-                <ul className="rounded-xl border bg-slate-50 p-2 space-y-1 max-h-40 overflow-y-auto">
-                  {searchHits.map((h, i) => (
-                    <li key={i}>
-                      <button
-                        type="button"
-                        className="w-full text-left rounded-lg px-3 py-2 text-sm text-indigo-800 hover:bg-white"
-                        onClick={() => {
-                          updateMed(activeMedIdx, {
-                            name: h.name_en || h.name_ar || '',
-                          });
-                          setSearchHits([]);
-                        }}
-                      >
-                        {h.name_en || h.name_ar}
-                        {h.price_egp != null ? ` · ${h.price_egp} EGP` : ''}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
               <button
                 type="button"
                 onClick={runEstimate}
-                className="text-sm text-slate-600 underline"
+                className="text-sm font-medium text-violet-700 hover:underline"
               >
-                Optional: estimate cost · تقدير تقريبي
+                Estimate cost · تقدير التكلفة
               </button>
               {estimate && (
-                <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3">
-                  {estimate}
-                </p>
+                <p className="text-xs text-slate-600 bg-slate-50 rounded-lg p-2">{estimate}</p>
               )}
             </section>
 
-            {/* Section 4 optional */}
             <details className="rounded-2xl border bg-white shadow-sm open:pb-4">
               <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-700 hover:text-slate-900">
                 Optional · اختياري — prescription links & notes
@@ -395,7 +393,6 @@ export default function IntakePage() {
               </p>
             )}
 
-            {/* Desktop submit */}
             <button
               type="submit"
               disabled={loading}
@@ -404,7 +401,6 @@ export default function IntakePage() {
               {loading ? 'Sending… · جاري الإرسال…' : 'Submit request · إرسال الطلب'}
             </button>
 
-            {/* Mobile sticky submit */}
             <div className="fixed bottom-16 inset-x-0 z-40 border-t bg-white/95 backdrop-blur p-3 md:hidden safe-bottom">
               <button
                 type="submit"
@@ -418,7 +414,10 @@ export default function IntakePage() {
         )}
 
         <p className="text-center text-sm text-slate-500 pb-4">
-          <Link href="/request-status" className="text-emerald-700 font-medium hover:underline">
+          <Link
+            href="/request-status"
+            className="text-emerald-700 font-medium hover:underline"
+          >
             Already submitted? Check status
           </Link>
           {' · '}
