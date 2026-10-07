@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { listRefills } from '@/lib/refills';
 import { GenerateMonthButton } from './GenerateMonthButton';
 import { FlowSteps } from '../FlowSteps';
+import { FormSelectPicker } from '@/components/FormSelectPicker';
+import { REFILL_STATUS_OPTIONS } from '@/lib/optionLists';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,11 @@ const FILTERS = [
   { id: 'rejected', label: 'Rejected' },
 ];
 
+function defaultPeriod() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export default async function RefillsPage({
   searchParams,
 }: {
@@ -30,11 +37,13 @@ export default async function RefillsPage({
 }) {
   let rows: Awaited<ReturnType<typeof listRefills>> = [];
   let error: string | null = null;
+  const status = searchParams.status || '';
+  const period = searchParams.period || '';
 
   try {
     rows = await listRefills({
-      status: searchParams.status,
-      period: searchParams.period,
+      status: status || undefined,
+      period: period || undefined,
       limit: 100,
     });
   } catch (e: unknown) {
@@ -77,7 +86,6 @@ export default async function RefillsPage({
           </div>
         </header>
 
-        {/* Primary action */}
         <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -111,13 +119,46 @@ export default async function RefillsPage({
           </div>
         </div>
 
+        <form
+          method="get"
+          className="rounded-2xl border bg-white p-3 shadow-sm flex flex-wrap gap-2 items-center"
+        >
+          <label className="text-sm font-medium text-slate-700">Period</label>
+          <input
+            type="month"
+            name="period"
+            defaultValue={period || defaultPeriod()}
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-base"
+          />
+          <FormSelectPicker
+            name="status"
+            defaultValue={status}
+            options={REFILL_STATUS_OPTIONS}
+            allowCreate={false}
+            placeholder="Status…"
+            className="min-w-[180px]"
+          />
+          <button
+            type="submit"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Filter
+          </button>
+        </form>
+
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((s) => (
             <Link
               key={s.id || 'all'}
-              href={s.id ? `/refills?status=${s.id}` : '/refills'}
+              href={
+                s.id
+                  ? `/refills?status=${s.id}${period ? `&period=${encodeURIComponent(period)}` : ''}`
+                  : period
+                    ? `/refills?period=${encodeURIComponent(period)}`
+                    : '/refills'
+              }
               className={`min-h-[2.25rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
-                (searchParams.status || '') === s.id
+                status === s.id
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white border-slate-200 text-slate-600'
               }`}
@@ -153,7 +194,6 @@ export default async function RefillsPage({
           </div>
         )}
 
-        {/* Mobile cards */}
         <div className="space-y-3 md:hidden">
           {rows.map((r) => (
             <Link
@@ -190,7 +230,6 @@ export default async function RefillsPage({
           ))}
         </div>
 
-        {/* Desktop table */}
         {rows.length > 0 && (
           <div className="hidden md:block overflow-x-auto rounded-2xl border bg-white shadow-sm">
             <table className="w-full text-sm text-left">
