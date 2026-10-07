@@ -1,7 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
+import { INVENTORY_MODE_OPTIONS } from '@/lib/optionLists';
+
+async function loadMedOptions(q: string): Promise<PickerOption[]> {
+  const res = await fetch('/api/intake', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'search_med', q, limit: 8 }),
+  });
+  const data = await res.json();
+  return ((data.items || []) as { name_en?: string; name_ar?: string }[]).map((it) => {
+    const name = it.name_en || it.name_ar || '';
+    return {
+      value: name,
+      label: name,
+      sublabel: it.name_ar && it.name_en ? it.name_ar : undefined,
+    };
+  });
+}
 
 export function ReceiveStockForm() {
   const [drug, setDrug] = useState('');
@@ -10,6 +29,7 @@ export function ReceiveStockForm() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
+  const medLoader = useCallback((q: string) => loadMedOptions(q), []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,26 +74,29 @@ export function ReceiveStockForm() {
       onSubmit={submit}
       className="rounded-lg border bg-white p-4 shadow-sm flex flex-wrap gap-3 items-end text-sm"
     >
-      <div>
+      <div className="min-w-[180px]">
         <label className="block text-xs text-slate-500 mb-1">العملية</label>
-        <select
+        <SearchablePicker
           value={mode}
-          onChange={(e) => setMode(e.target.value as typeof mode)}
-          className="rounded border px-2 py-1.5"
-        >
-          <option value="receive">استلام (+)</option>
-          <option value="adjust">تسوية (+/−)</option>
-          <option value="write_off">إهلاك (−)</option>
-        </select>
+          onChange={(v) => {
+            if (v === 'receive' || v === 'adjust' || v === 'write_off') setMode(v);
+          }}
+          options={INVENTORY_MODE_OPTIONS}
+          allowCreate={false}
+          placeholder="Mode…"
+        />
       </div>
-      <div>
+      <div className="min-w-[220px] flex-1">
         <label className="block text-xs text-slate-500 mb-1">اسم الدواء</label>
-        <input
+        <SearchablePicker
           value={drug}
-          onChange={(e) => setDrug(e.target.value)}
+          onChange={setDrug}
+          loadOptions={medLoader}
+          allowCreate
+          minQueryLength={2}
           required
-          className="rounded border px-2 py-1.5 min-w-[200px]"
-          placeholder="مثلاً Blokatens 5/160"
+          placeholder="Search formulary or add…"
+          createLabel={(q) => `Use “${q}” · استخدام`}
         />
       </div>
       <div>
@@ -86,13 +109,13 @@ export function ReceiveStockForm() {
           value={qty}
           onChange={(e) => setQty(e.target.value)}
           required
-          className="rounded border px-2 py-1.5 w-28"
+          className="rounded-xl border border-slate-200 px-3 py-3 w-28 text-base"
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="rounded bg-emerald-600 px-4 py-1.5 text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="rounded-xl bg-emerald-600 px-4 py-3 text-white hover:bg-emerald-700 disabled:opacity-50 font-semibold"
       >
         {loading ? '…' : 'تنفيذ'}
       </button>
