@@ -22,10 +22,11 @@ type ProgramRow = {
 };
 
 function statusStyle(s: string) {
-  if (s === 'active') return 'bg-emerald-100 text-emerald-900';
-  if (s === 'suspended') return 'bg-amber-100 text-amber-900';
-  if (s === 'cancelled' || s === 'expired') return 'bg-slate-200 text-slate-700';
-  return 'bg-slate-100 text-slate-700';
+  if (s === 'active') return 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200';
+  if (s === 'suspended') return 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
+  if (s === 'cancelled' || s === 'expired')
+    return 'bg-slate-200 text-slate-700 ring-1 ring-slate-300';
+  return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
 }
 
 export default async function ProgramsPage({
@@ -88,16 +89,17 @@ export default async function ProgramsPage({
   }
 
   const activeCount = rows.filter((r) => r.status === 'active').length;
+  const suspendedCount = rows.filter((r) => r.status === 'suspended').length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={4} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 4 of 5
+                Step 4 of 5 · Programs
               </p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Programs
@@ -106,7 +108,7 @@ export default async function ProgramsPage({
                 البرامج المزمنة · بعد المعالجة
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/pharmacy"
                 className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
@@ -123,12 +125,26 @@ export default async function ProgramsPage({
           </div>
         </header>
 
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-slate-900">{rows.length}</p>
+            <p className="text-[11px] text-slate-500">shown</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-emerald-800">{activeCount}</p>
+            <p className="text-[11px] text-slate-500">active</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-amber-800">{suspendedCount}</p>
+            <p className="text-[11px] text-slate-500">suspended</p>
+          </div>
+        </div>
+
         <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm">
             <p className="font-medium text-slate-800">Chronic enrollments</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              {rows.length} shown
-              {activeCount > 0 ? ` · ${activeCount} active` : ''}
+              Tap a row to open the program file
             </p>
           </div>
           <Link
@@ -180,7 +196,7 @@ export default async function ProgramsPage({
                   ? `/programs?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}`
                   : `/programs${q ? `?q=${encodeURIComponent(q)}` : ''}`
               }
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
+              className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white border-slate-200 text-slate-600'
@@ -206,7 +222,10 @@ export default async function ProgramsPage({
 
         {!error && rows.length === 0 && (
           <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
-            <p>No programs yet.</p>
+            <p className="text-2xl" aria-hidden>
+              ○
+            </p>
+            <p className="font-medium text-slate-700">No programs yet</p>
             <p className="text-xs">
               Run <strong>Process queue</strong> on{' '}
               <Link href="/intake-ops" className="text-violet-700 font-medium underline">
@@ -222,14 +241,14 @@ export default async function ProgramsPage({
             <Link
               key={r.id}
               href={`/programs/${r.id}`}
-              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300"
+              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300 active:bg-slate-50"
             >
               <div className="flex justify-between gap-2">
-                <p className="font-semibold text-slate-900">
+                <p className="font-semibold text-slate-900 truncate">
                   {r.patient_name || '—'}
                 </p>
                 <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full h-fit ${statusStyle(
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full h-fit shrink-0 ${statusStyle(
                     r.status
                   )}`}
                 >
@@ -310,6 +329,23 @@ export default async function ProgramsPage({
             </table>
           </div>
         )}
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/pharmacy"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Pharmacy
+          </Link>
+          <Link
+            href="/refills"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Refills →
+          </Link>
+        </div>
       </div>
     </main>
   );
