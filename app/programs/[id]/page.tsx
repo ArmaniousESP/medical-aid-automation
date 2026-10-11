@@ -12,6 +12,11 @@ import { JOURNEY_LABELS_AR, ELIGIBILITY_LABELS_AR } from '@/lib/psp';
 import { checkProgramInteractions, ddinterStats } from '@/lib/ddinter';
 import { checkProgramAllergies } from '@/lib/allergyCrossReact';
 import { AllergyPanel } from './AllergyPanel';
+import { AdherenceCoachPanel } from './AdherenceCoachPanel';
+import {
+  isWhoAssessmentEnabled,
+  isAiAdherenceCoachEnabled,
+} from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,6 +152,8 @@ export default async function ProgramDetailPage({
   const latest = assessments[0];
   const allergyHigh =
     allergyData?.hits?.some((h) => h.risk === 'high') ?? false;
+  const whoOn = isWhoAssessmentEnabled();
+  const coachOn = isAiAdherenceCoachEnabled();
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -174,7 +181,7 @@ export default async function ProgramDetailPage({
                   {ELIGIBILITY_LABELS_AR[program.eligibility_tier] || program.eligibility_tier}
                 </span>
               )}
-              {latest?.risk_band && (
+              {whoOn && latest?.risk_band && (
                 <span className={`rounded px-2 py-0.5 text-xs font-medium ${RISK_COLOR[latest.risk_band] || 'bg-slate-100'}`}>
                   Risk: {latest.risk_band}
                 </span>
@@ -260,15 +267,41 @@ export default async function ProgramDetailPage({
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
           <h2 className="font-medium">WHO needs assessment · تقييم الاحتياج</h2>
-          <PnatForm programId={program.id} medCount={activeMeds} />
-          {plans.filter((x) => x.status === 'active').map((pl) => (
-            <div key={pl.id} className="text-xs rounded border p-2 bg-indigo-50/50">
-              Plan · {pl.risk_band} · review {String(pl.next_review_at).slice(0, 10)}
-              <div className="text-indigo-800 mt-1">
-                {Array.isArray(pl.interventions) ? pl.interventions.join(' · ') : String(pl.interventions || '')}
-              </div>
+          {whoOn ? (
+            <>
+              <PnatForm programId={program.id} medCount={activeMeds} />
+              {plans
+                .filter((x) => x.status === 'active')
+                .map((pl) => (
+                  <div key={pl.id} className="text-xs rounded border p-2 bg-indigo-50/50">
+                    Plan · {pl.risk_band} · review {String(pl.next_review_at).slice(0, 10)}
+                    <div className="text-indigo-800 mt-1">
+                      {Array.isArray(pl.interventions)
+                        ? pl.interventions.join(' · ')
+                        : String(pl.interventions || '')}
+                    </div>
+                  </div>
+                ))}
+            </>
+          ) : (
+            <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-950 space-y-2">
+              <p className="font-medium">Pending management approval</p>
+              <p className="text-xs leading-relaxed">
+                The WHO-aligned needs assessment is built but not enabled for staff use until
+                management approves. After approval, set{' '}
+                <code className="text-[11px] bg-white px-1 rounded border">ENABLE_WHO_ASSESSMENT=true</code>{' '}
+                in Vercel Environment Variables.
+              </p>
+              <p className="text-xs" dir="rtl">
+                التقييم جاهز تقنياً وموقوف تشغيله حتى موافقة الإدارة.
+              </p>
             </div>
-          ))}
+          )}
+        </section>
+
+        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+          <h2 className="font-medium">AI adherence coach</h2>
+          <AdherenceCoachPanel programId={program.id} enabled={coachOn} />
         </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
