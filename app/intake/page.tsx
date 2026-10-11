@@ -390,14 +390,46 @@ export default function IntakePage() {
                   Duplicate medicine listed: {dupNames.join(', ')}. You can still submit, or remove the extra line.
                 </p>
               )}
+              <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 px-0.5">
+                <span className="flex-1">Medicine name · اسم الدواء</span>
+                <span className="w-16 text-center shrink-0">Qty</span>
+                <span className="w-8 shrink-0" aria-hidden />
+              </div>
               {meds.map((m, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <div className="flex-1">
-                    <SearchablePicker value={m.name} onChange={(v) => updateMed(i, { name: v })} loadOptions={medLoader} learnKey="medicine" allowCreate minQueryLength={2} required={i === 0} placeholder={`Medicine ${i + 1}`} createLabel={(q) => `Use “${q}”`} />
+                <div key={i} className="flex gap-2 items-center">
+                  <div className="min-w-0 flex-1">
+                    <SearchablePicker
+                      value={m.name}
+                      onChange={(v) => updateMed(i, { name: v })}
+                      loadOptions={medLoader}
+                      learnKey="medicine"
+                      allowCreate
+                      minQueryLength={1}
+                      required={i === 0}
+                      placeholder="Type to search catalog…"
+                      createLabel={(q) => `Use “${q}”`}
+                    />
                   </div>
-                  <input type="number" min={1} value={m.qty} onChange={(e) => updateMed(i, { qty: Number(e.target.value) || 1 })} className={field + ' w-20'} />
-                  {meds.length > 1 && (
-                    <button type="button" onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))} className="text-xs text-red-600 mt-3">✕</button>
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={m.qty}
+                    onChange={(e) => updateMed(i, { qty: Number(e.target.value) || 1 })}
+                    aria-label={`Quantity for medicine ${i + 1}`}
+                    className="w-16 shrink-0 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  />
+                  {meds.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
+                      className="w-8 shrink-0 rounded-lg py-3 text-sm text-red-600 hover:bg-red-50"
+                      aria-label="Remove medicine"
+                    >
+                      ✕
+                    </button>
+                  ) : (
+                    <span className="w-8 shrink-0" aria-hidden />
                   )}
                 </div>
               ))}
