@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { neonAuthConfigured } from '@/lib/auth/server';
 import { getAllowedStaffEmails } from '@/lib/staffAccess';
+import { featureFlagsStatus } from '@/lib/featureFlags';
 import { AdminPanelClient } from './AdminPanelClient';
 import { AdminSearch } from './AdminSearch';
 import { LearningBootstrap } from './LearningBootstrap';
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export default function AdminPage() {
   const neonOk = neonAuthConfigured();
   const allowlist = getAllowedStaffEmails();
+  const flags = featureFlagsStatus();
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
@@ -43,6 +45,48 @@ export default function AdminPage() {
             <li className="flex justify-between gap-2">
               <span>PROCESS_SECRET</span>
               <strong>{process.env.PROCESS_SECRET ? 'set' : 'not set'}</strong>
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border bg-white p-4 shadow-sm space-y-2 text-sm">
+          <p className="font-semibold text-slate-800">Management feature flags</p>
+          <p className="text-[11px] text-slate-500">
+            Off by default until approved. Toggle in Vercel → Environment Variables.
+          </p>
+          <ul className="text-xs text-slate-600 space-y-2">
+            <li className="flex justify-between gap-2 items-start">
+              <span>
+                WHO needs assessment
+                <span className="block text-[10px] text-slate-400">
+                  {flags.who_assessment.env}
+                </span>
+              </span>
+              <strong
+                className={
+                  flags.who_assessment.enabled ? 'text-emerald-700' : 'text-amber-700'
+                }
+              >
+                {flags.who_assessment.enabled ? 'ON' : 'OFF'}
+              </strong>
+            </li>
+            <li className="flex justify-between gap-2 items-start">
+              <span>
+                AI adherence coach
+                <span className="block text-[10px] text-slate-400">
+                  {flags.ai_adherence_coach.env}
+                  {flags.ai_adherence_coach.llm ? ' · LLM key present' : ' · rules only'}
+                </span>
+              </span>
+              <strong
+                className={
+                  flags.ai_adherence_coach.enabled
+                    ? 'text-emerald-700'
+                    : 'text-amber-700'
+                }
+              >
+                {flags.ai_adherence_coach.enabled ? 'ON' : 'OFF'}
+              </strong>
             </li>
           </ul>
         </div>
