@@ -30,12 +30,25 @@ const STATUS_OPTIONS = FILTERS.map((f) => ({
   label: f.label,
 }));
 
+function statusStyle(s?: string) {
+  const x = (s || '').toLowerCase();
+  if (x === 'draft') return 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
+  if (x === 'submitted' || x === 'under_review')
+    return 'bg-sky-100 text-sky-900 ring-1 ring-sky-200';
+  if (x === 'approved' || x === 'paid')
+    return 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200';
+  if (x === 'rejected') return 'bg-red-100 text-red-800 ring-1 ring-red-200';
+  return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
+}
+
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [status, setStatus] = useState('draft');
   const [msg, setMsg] = useState<string | null>(null);
+  const [msgOk, setMsgOk] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,13 +59,14 @@ export default function ClaimsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setClaims(data.claims || []);
-      setMsg(null);
+      if (!msgOk) setMsg(null);
     } catch (e: unknown) {
+      setMsgOk(false);
       setMsg(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, msgOk]);
 
   useEffect(() => {
     load();
@@ -60,6 +74,7 @@ export default function ClaimsPage() {
 
   async function submitClaim(id: string) {
     setMsg(null);
+    setMsgOk(false);
     setBusyId(id);
     try {
       const res = await fetch('/api/claims', {
@@ -69,8 +84,10 @@ export default function ClaimsPage() {
         body: JSON.stringify({ action: 'submit', id }),
       });
       const data = await res.json();
+      const ok = !!data.ok;
+      setMsgOk(ok);
       setMsg(
-        data.ok
+        ok
           ? `Submitted${data.external_ref ? ' · ref ' + data.external_ref : ''}${data.skipped ? ' (internal only)' : ''}`
           : `Error: ${data.error || 'submit failed'}`
       );
@@ -80,43 +97,120 @@ export default function ClaimsPage() {
     }
   }
 
-  const draftCount = status === 'draft' ? claims.length : 0;
+  async function submitAllDrafts() {
+    const drafts = claims.filter((c) => c.status === 'draft');
+    if (!drafts.length) return;
+    setBatchBusy(true);
+    setMsg(null);
+    setMsgOk(false);
+    let okN = 0;
+    let failN = 0;
+    try {
+      for (const c of drafts) {
+        setBusyId(c.id);
+        try {
+          const res = await fetch('/api/claims', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'submit', id: c.id }),
+          });
+          const data = await res.json();
+          if (data.ok) okN += 1;
+          else failN += 1;
+        } catch {
+          failN += 1;
+        }
+      }
+      setMsgOk(failN === 0);
+      setMsg(
+        failN === 0
+          ? `Submitted ${okN} draft${okN === 1 ? '' : 's'}`
+          : `Submitted ${okN}, failed ${failN}`
+      );
+      await load();
+    } finally {
+      setBusyId(null);
+      setBatchBusy(false);
+    }
+  }
+
+  const draftCount =
+    status === 'draft'
+      ? claims.length
+      : claims.filter((c) => c.status === 'draft').length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-4xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={2} />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-              Step 2 of 5
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Claims</h1>
-            <p className="text-sm text-slate-600" dir="rtl">
-              المطالبات · راجع المسودات ثم Submit
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Step 2 of 5 · Claims
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Claims</h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                المطالبات · راجع المسودات ثم Submit
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+            >
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </button>
           </div>
         </header>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-700">
-            <p className="font-medium">Review drafts → Submit each → Pharmacy</p>
-            {draftCount > 0 && (
-              <p className="text-xs text-amber-700 mt-0.5 font-semibold">
-                {draftCount} draft{draftCount === 1 ? '' : 's'} waiting
+        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-violet-950">
+                Review drafts → Submit → Pharmacy
               </p>
+              <p className="text-xs text-violet-800 mt-0.5">
+                One-tap submit, or submit all drafts at once
+              </p>
+            </div>
+            {draftCount > 0 ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
+                {draftCount} draft{draftCount === 1 ? '' : 's'}
+              </span>
+            ) : (
+              !loading &&
+              status === 'draft' && (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-900">
+                  No drafts ✓
+                </span>
+              )
             )}
           </div>
+          {status === 'draft' && draftCount > 0 && (
+            <button
+              type="button"
+              disabled={batchBusy}
+              onClick={submitAllDrafts}
+              className="w-full sm:w-auto rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50 shadow-sm"
+            >
+              {batchBusy
+                ? 'Submitting all…'
+                : `Submit all ${draftCount} draft${draftCount === 1 ? '' : 's'}`}
+            </button>
+          )}
           <div className="flex flex-wrap gap-2">
             <Link
               href="/intake-ops"
-              className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               ← Queue
             </Link>
             <Link
               href="/pharmacy"
-              className="rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-semibold hover:bg-teal-700"
+              className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 shadow-sm"
             >
               Next: Pharmacy →
             </Link>
@@ -142,31 +236,34 @@ export default function ClaimsPage() {
               key={s.id}
               type="button"
               onClick={() => setStatus(s.id)}
-              className={`min-h-[2.25rem] rounded-full px-3.5 py-1.5 text-xs font-semibold ${
+              className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                 status === s.id
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white border border-slate-200 text-slate-600'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
               {s.label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={load}
-            className="text-xs text-violet-700 font-medium hover:underline ml-1"
-          >
-            Refresh
-          </button>
         </div>
 
         {msg && (
-          <p className="text-sm rounded-xl border bg-white p-3 text-slate-700 shadow-sm">
+          <p
+            className={`text-sm rounded-xl border p-3 shadow-sm ${
+              msgOk
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-amber-200 bg-amber-50 text-amber-950'
+            }`}
+          >
             {msg}
           </p>
         )}
 
-        {loading && <p className="text-sm text-slate-500 animate-pulse">Loading…</p>}
+        {loading && (
+          <p className="text-sm text-slate-500 animate-pulse text-center py-4">
+            Loading claims…
+          </p>
+        )}
 
         <div className="space-y-3 md:hidden">
           {claims.map((c) => (
@@ -175,11 +272,15 @@ export default function ClaimsPage() {
               className="rounded-2xl border bg-white p-4 shadow-sm space-y-3"
             >
               <div className="flex justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{c.patient_name || '—'}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{c.patient_name || '—'}</p>
                   <p className="text-xs text-slate-500">{c.emp_name}</p>
                 </div>
-                <span className="text-[11px] font-semibold rounded-full bg-slate-100 px-2 py-0.5 h-fit">
+                <span
+                  className={`text-[11px] font-semibold rounded-full px-2 py-0.5 h-fit shrink-0 ${statusStyle(
+                    c.status
+                  )}`}
+                >
                   {c.status}
                 </span>
               </div>
@@ -195,21 +296,38 @@ export default function ClaimsPage() {
               {c.status === 'draft' && (
                 <button
                   type="button"
-                  disabled={busyId === c.id}
+                  disabled={busyId === c.id || batchBusy}
                   onClick={() => submitClaim(c.id)}
                   className="w-full rounded-xl bg-violet-700 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {busyId === c.id ? '…' : 'Submit claim'}
+                  {busyId === c.id ? 'Submitting…' : 'Submit claim'}
                 </button>
               )}
             </article>
           ))}
           {!claims.length && !loading && (
-            <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-              No claims here ·{' '}
-              <Link href="/intake-ops" className="text-violet-700 font-medium underline">
-                process the queue first
-              </Link>
+            <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
+              {status === 'draft' ? (
+                <>
+                  <p className="text-2xl" aria-hidden>
+                    ✓
+                  </p>
+                  <p className="font-medium text-slate-700">No drafts waiting</p>
+                  <Link
+                    href="/pharmacy"
+                    className="inline-block mt-1 text-teal-700 font-semibold"
+                  >
+                    Continue to Pharmacy →
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p>No claims in this filter</p>
+                  <Link href="/intake-ops" className="text-violet-700 font-medium underline">
+                    process the queue first
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -241,7 +359,11 @@ export default function ClaimsPage() {
                       : '—'}
                   </td>
                   <td className="p-3">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100">
+                    <span
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusStyle(
+                        c.status
+                      )}`}
+                    >
                       {c.status}
                     </span>
                   </td>
@@ -249,7 +371,7 @@ export default function ClaimsPage() {
                     {c.status === 'draft' && (
                       <button
                         type="button"
-                        disabled={busyId === c.id}
+                        disabled={busyId === c.id || batchBusy}
                         onClick={() => submitClaim(c.id)}
                         className="rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                       >
@@ -262,16 +384,44 @@ export default function ClaimsPage() {
               {!claims.length && !loading && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400 text-sm">
-                    Empty · process{' '}
-                    <Link href="/intake-ops" className="text-violet-700 underline">
-                      intake queue
-                    </Link>{' '}
-                    first
+                    {status === 'draft' ? (
+                      <>
+                        No drafts ·{' '}
+                        <Link href="/pharmacy" className="text-teal-700 underline">
+                          go to Pharmacy
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        Empty · process{' '}
+                        <Link href="/intake-ops" className="text-violet-700 underline">
+                          intake queue
+                        </Link>{' '}
+                        first
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-4xl flex gap-2">
+          <Link
+            href="/intake-ops"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Queue
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
         </div>
       </div>
     </main>
