@@ -176,7 +176,7 @@ export default async function ProgramDetailPage({
               )}
               {latest?.risk_band && (
                 <span className={`rounded px-2 py-0.5 text-xs font-medium ${RISK_COLOR[latest.risk_band] || 'bg-slate-100'}`}>
-                  PNAT: {latest.risk_band}
+                  Risk: {latest.risk_band}
                 </span>
               )}
               {ddi && ddi.hits.some((h) => /major/i.test(h.level)) && (
@@ -259,7 +259,7 @@ export default async function ProgramDetailPage({
         </section>
 
         <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
-          <h2 className="font-medium">Adherence (PNAT-style)</h2>
+          <h2 className="font-medium">WHO needs assessment · تقييم الاحتياج</h2>
           <PnatForm programId={program.id} medCount={activeMeds} />
           {plans.filter((x) => x.status === 'active').map((pl) => (
             <div key={pl.id} className="text-xs rounded border p-2 bg-indigo-50/50">
