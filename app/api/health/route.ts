@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/health
  * Platform readiness: Neon required; Google optional (legacy).
- * Egyptian drug catalog is primary for search/estimate; MSH is fallback.
+ * Egyptian catalog: Neon egyptian_drugs preferred; CSV cache fallback; MSH last.
  */
 export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
@@ -61,21 +61,33 @@ export async function GET() {
     detail: `mode=${wa.mode}`,
   };
 
-  // Primary medicine catalog (karem505/egyptian-drug-database)
+  // Neon-stored Egyptian catalog count (0 until staff runs sync)
+  let neonCatalog = 0;
+  try {
+    const { egyptianDrugCount } = await import('@/lib/egyptianCatalogDb');
+    neonCatalog = await egyptianDrugCount();
+  } catch {
+    neonCatalog = 0;
+  }
+
   try {
     const drugs = await loadEgyptianDrugs();
     const sample = await searchEgyptianDrugs('Concor', 1);
     checks.egyptian_catalog = {
-      ok: drugs.length > 1000,
-      detail: `primary · ${drugs.length} medicines · sample=${sample.items[0]?.name_en || 'n/a'} · MSH=fallback`,
+      ok: drugs.length > 1000 || neonCatalog > 1000,
+      detail: neonCatalog
+        ? `Neon egyptian_drugs=${neonCatalog} · sample=${sample.items[0]?.name_en || 'n/a'} · MSH=fallback`
+        : `CSV cache · ${drugs.length} medicines · sample=${sample.items[0]?.name_en || 'n/a'} · sync to Neon via POST /api/catalog/egyptian`,
     };
   } catch (e: unknown) {
     checks.egyptian_catalog = {
-      ok: false,
+      ok: neonCatalog > 0,
       detail:
-        e instanceof Error
-          ? `load failed: ${e.message}`
-          : 'Egyptian CSV unreachable — intake falls back to MSH',
+        neonCatalog > 0
+          ? `Neon only · egyptian_drugs=${neonCatalog}`
+          : e instanceof Error
+            ? `load failed: ${e.message}`
+            : 'Egyptian CSV unreachable — intake falls back to MSH',
     };
   }
 
@@ -150,7 +162,8 @@ export async function GET() {
       ok,
       service: 'medical-aid-automation',
       path: 'platform-first (sheet optional)',
-      medicine_catalog: 'egyptian-drug-database primary · MSH fallback',
+      medicine_catalog:
+        'Neon egyptian_drugs (if synced) → CSV cache → MSH fallback',
       guide: '/guide',
       time: new Date().toISOString(),
       checks,
