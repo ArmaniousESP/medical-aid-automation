@@ -71,14 +71,14 @@ export default async function PharmacyPage({
   const csvBase = `/api/pharmacy/pick-list?period=${encodeURIComponent(period)}&format=csv&includePending=true`;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={3} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 3 of 5
+                Step 3 of 5 · Pharmacy
               </p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Pharmacy
@@ -87,7 +87,7 @@ export default async function PharmacyPage({
                 الصيدلية · إيفا / غير إيفا · تصدير واستيراد CSV
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/claims"
                 className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
@@ -103,6 +103,22 @@ export default async function PharmacyPage({
             </div>
           </div>
         </header>
+
+        {/* At-a-glance strip */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-slate-900">{lines.length}</p>
+            <p className="text-[11px] text-slate-500">lines</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-teal-800">{evaCount}</p>
+            <p className="text-[11px] text-slate-500">EVA</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-slate-800">{notEvaCount}</p>
+            <p className="text-[11px] text-slate-500">Not EVA</p>
+          </div>
+        </div>
 
         <form
           method="get"
@@ -126,21 +142,21 @@ export default async function PharmacyPage({
             Go
           </button>
           <span className="text-xs text-slate-500 ml-auto">
-            {lines.length} lines · {cycleCount} patients
+            {cycleCount} patient{cycleCount === 1 ? '' : 's'} · {period}
           </span>
         </form>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href={buildHref(period, { formulary: 'EVA', status })}
-            className={`rounded-2xl border-2 p-5 shadow-sm transition ${
+            className={`rounded-2xl border-2 p-5 shadow-sm transition active:scale-[0.99] ${
               formulary === 'EVA'
                 ? 'border-teal-600 bg-teal-50 ring-2 ring-teal-200'
                 : 'border-slate-200 bg-white hover:border-teal-300'
             }`}
           >
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
-              Route 1
+              Route 1 · إيفا
             </p>
             <p className="text-lg font-bold text-slate-900 mt-1">Available at EVA</p>
             <p className="text-sm text-slate-600" dir="rtl">
@@ -150,17 +166,20 @@ export default async function PharmacyPage({
               {formulary === 'all' || formulary === 'EVA' ? evaCount : '—'}
               <span className="text-sm font-medium text-slate-500 ml-1">lines</span>
             </p>
+            {formulary === 'EVA' && (
+              <p className="mt-2 text-[11px] font-medium text-teal-800">Selected filter ✓</p>
+            )}
           </Link>
           <Link
             href={buildHref(period, { formulary: 'NOT_EVA', status })}
-            className={`rounded-2xl border-2 p-5 shadow-sm transition ${
+            className={`rounded-2xl border-2 p-5 shadow-sm transition active:scale-[0.99] ${
               formulary === 'NOT_EVA'
                 ? 'border-slate-700 bg-slate-100 ring-2 ring-slate-300'
                 : 'border-slate-200 bg-white hover:border-slate-400'
             }`}
           >
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-              Route 2
+              Route 2 · خارج إيفا
             </p>
             <p className="text-lg font-bold text-slate-900 mt-1">Not at EVA</p>
             <p className="text-sm text-slate-600" dir="rtl">
@@ -170,6 +189,9 @@ export default async function PharmacyPage({
               {formulary === 'all' || formulary === 'NOT_EVA' ? notEvaCount : '—'}
               <span className="text-sm font-medium text-slate-500 ml-1">lines</span>
             </p>
+            {formulary === 'NOT_EVA' && (
+              <p className="mt-2 text-[11px] font-medium text-slate-700">Selected filter ✓</p>
+            )}
           </Link>
         </div>
 
@@ -182,7 +204,7 @@ export default async function PharmacyPage({
                 : 'bg-white border text-slate-600'
             }`}
           >
-            Show all
+            Show all routes
           </Link>
         </div>
 
@@ -193,33 +215,33 @@ export default async function PharmacyPage({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <a
               href={`${csvBase}&formulary=EVA`}
-              className="rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white hover:bg-teal-700 shadow-sm"
+              className="rounded-xl bg-teal-600 py-3.5 text-center text-sm font-semibold text-white hover:bg-teal-700 shadow-sm"
             >
               CSV · EVA
             </a>
             <a
               href={`${csvBase}&formulary=NOT_EVA`}
-              className="rounded-xl bg-slate-700 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800 shadow-sm"
+              className="rounded-xl bg-slate-700 py-3.5 text-center text-sm font-semibold text-white hover:bg-slate-800 shadow-sm"
             >
               CSV · Not EVA
             </a>
             <a
               href={`${csvBase}&formulary=${formulary === 'all' ? 'all' : formulary}`}
-              className="rounded-xl border border-teal-400 bg-white py-3 text-center text-sm font-semibold text-teal-900 hover:bg-teal-50"
+              className="rounded-xl border border-teal-400 bg-white py-3.5 text-center text-sm font-semibold text-teal-900 hover:bg-teal-50"
             >
               CSV · current filter
             </a>
             <a
               href="/templates/pharmacy-import-template.csv"
               download="pharmacy-import-template.csv"
-              className="rounded-xl border-2 border-indigo-400 bg-indigo-50 py-3 text-center text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
+              className="rounded-xl border-2 border-indigo-400 bg-indigo-50 py-3.5 text-center text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
             >
               CSV template · قالب
             </a>
           </div>
-          <p className="text-xs text-teal-900/80">
-            Template has the import columns (fill <strong>dispensed_qty</strong>). For real
-            data, export EVA / Not EVA above, then re-upload in the import panel below.
+          <p className="text-xs text-teal-900/80 leading-relaxed">
+            1) Export EVA / Not EVA · 2) Fill dispensed qty · 3) Import below · 4) Batch
+            dispense when ready
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <PharmacyBatchButton period={period} />
@@ -266,7 +288,7 @@ export default async function PharmacyPage({
                 formulary,
                 status: s || undefined,
               })}
-              className={`min-h-[2.25rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
+              className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 (status || '') === s
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white border-slate-200 text-slate-600'
@@ -283,9 +305,24 @@ export default async function PharmacyPage({
           </div>
         )}
 
-        {!error && (
-          <PharmacySearchList lines={lines} emptyHint />
-        )}
+        {!error && <PharmacySearchList lines={lines} emptyHint />}
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/claims"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Claims
+          </Link>
+          <Link
+            href="/programs"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Programs →
+          </Link>
+        </div>
       </div>
     </main>
   );
