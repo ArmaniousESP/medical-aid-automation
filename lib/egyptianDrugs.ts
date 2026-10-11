@@ -2,6 +2,8 @@
  * Egyptian drug catalog from:
  * https://github.com/karem505/egyptian-drug-database (CC0)
  * ~25k medicines: EN/AR trade names, scientific name, manufacturer, class, route, EGP price.
+ *
+ * Search order: Neon `egyptian_drugs` (if synced) → in-memory CSV cache from GitHub.
  */
 
 export type EgDrug = {
@@ -119,9 +121,11 @@ function scoreDrug(d: EgDrug, q: string): number {
   if (en.includes(nq)) return 500 + Math.min(nq.length, 40);
   if (ar.includes(nq)) return 450;
   if (sci.includes(nq)) return 300;
-  // token match (e.g. "concor 5")
   const tokens = nq.split(/\s+/).filter(Boolean);
-  if (tokens.length > 1 && tokens.every((t) => en.includes(t) || ar.includes(t) || sci.includes(t))) {
+  if (
+    tokens.length > 1 &&
+    tokens.every((t) => en.includes(t) || ar.includes(t) || sci.includes(t))
+  ) {
     return 600;
   }
   return 0;
@@ -138,12 +142,21 @@ export type EgSearchItem = {
   source: 'egyptian-drug-database';
 };
 
-/** Ranked search over Egyptian market catalog. */
+/** Ranked search: Neon first, then CSV memory cache. */
 export async function searchEgyptianDrugs(
   q: string,
   limit = 8
 ): Promise<{ ok: boolean; items: EgSearchItem[]; error?: string; total?: number }> {
   if (!q?.trim()) return { ok: true, items: [], total: 0 };
+  try {
+    const { searchEgyptianDrugsDb } = await import('@/lib/egyptianCatalogDb');
+    const dbHit = await searchEgyptianDrugsDb(q, limit);
+    if (dbHit.items.length) {
+      return { ok: true, items: dbHit.items, total: dbHit.total };
+    }
+  } catch {
+    /* Neon table missing or empty — use CSV cache */
+  }
   try {
     const drugs = await loadEgyptianDrugs();
     const scored = drugs
@@ -175,8 +188,9 @@ export async function searchEgyptianDrugs(
   }
 }
 
-/** Best single match for cost estimate. */
-export async function matchEgyptianDrug(query: string): Promise<EgSearchItem | null> {
+export async function matchEgyptianDrug(
+  query: string
+): Promise<EgSearchItem | null> {
   const { items } = await searchEgyptianDrugs(query, 1);
   return items[0] || null;
 }
@@ -213,8 +227,13 @@ export async function estimateEgyptianCost(
     const qty = line.quantity && line.quantity > 0 ? line.quantity : 1;
     const hit = await matchEgyptianDrug(line.query);
     if (hit && catalog_size == null) {
-      const all = await loadEgyptianDrugs().catch(() => null);
-      catalog_size = all?.length;
+      try {
+        const { egyptianDrugCount } = await import('@/lib/egyptianCatalogDb');
+        const n = await egyptianDrugCount();
+        catalog_size = n > 0 ? n : (await loadEgyptianDrugs().catch(() => null))?.length;
+      } catch {
+        catalog_size = (await loadEgyptianDrugs().catch(() => null))?.length;
+      }
     }
     const unit = hit?.price_egp != null ? Number(hit.price_egp) : null;
     if (unit != null) {
