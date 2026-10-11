@@ -8,12 +8,12 @@ import { REFILL_STATUS_OPTIONS } from '@/lib/optionLists';
 export const dynamic = 'force-dynamic';
 
 function statusStyle(s: string) {
-  if (s === 'in_review') return 'bg-amber-100 text-amber-900';
+  if (s === 'in_review') return 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
   if (s === 'approved' || s === 'partially_approved')
-    return 'bg-emerald-100 text-emerald-900';
-  if (s === 'dispensed') return 'bg-teal-100 text-teal-900';
-  if (s === 'rejected') return 'bg-red-100 text-red-800';
-  return 'bg-slate-100 text-slate-700';
+    return 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200';
+  if (s === 'dispensed') return 'bg-teal-100 text-teal-900 ring-1 ring-teal-200';
+  if (s === 'rejected') return 'bg-red-100 text-red-800 ring-1 ring-red-200';
+  return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
 }
 
 const FILTERS = [
@@ -51,16 +51,20 @@ export default async function RefillsPage({
   }
 
   const inReview = rows.filter((r) => r.status === 'in_review').length;
+  const dispensed = rows.filter((r) => r.status === 'dispensed').length;
+  const approved = rows.filter(
+    (r) => r.status === 'approved' || r.status === 'partially_approved'
+  ).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={5} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 5 of 5
+                Step 5 of 5 · Refills
               </p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Refills
@@ -69,7 +73,7 @@ export default async function RefillsPage({
                 الدورات الشهرية · توليد ومراجعة
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/programs"
                 className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
@@ -86,6 +90,21 @@ export default async function RefillsPage({
           </div>
         </header>
 
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-amber-800">{inReview}</p>
+            <p className="text-[11px] text-slate-500">in review</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-emerald-800">{approved}</p>
+            <p className="text-[11px] text-slate-500">approved</p>
+          </div>
+          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <p className="text-xl font-bold text-teal-800">{dispensed}</p>
+            <p className="text-[11px] text-slate-500">dispensed</p>
+          </div>
+        </div>
+
         <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -93,13 +112,19 @@ export default async function RefillsPage({
                 Generate this month’s cycles
               </p>
               <p className="text-xs text-violet-800 mt-0.5">
-                Creates refill cycles for active programs → review → Pharmacy
+                Active programs → refill cycles → review → Pharmacy
               </p>
             </div>
-            {inReview > 0 && (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-900">
+            {inReview > 0 ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-900 ring-1 ring-amber-200">
                 {inReview} in review
               </span>
+            ) : (
+              rows.length > 0 && (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-900">
+                  Review clear ✓
+                </span>
+              )
             )}
           </div>
           <GenerateMonthButton />
@@ -157,7 +182,7 @@ export default async function RefillsPage({
                     ? `/refills?period=${encodeURIComponent(period)}`
                     : '/refills'
               }
-              className={`min-h-[2.25rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
+              className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s.id
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white border-slate-200 text-slate-600'
@@ -183,7 +208,7 @@ export default async function RefillsPage({
 
         {!error && rows.length === 0 && (
           <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
-            <p>No cycles for this filter.</p>
+            <p className="font-medium text-slate-700">No cycles for this filter</p>
             <p className="text-xs">
               Use <strong>Generate</strong> above, or enroll from the{' '}
               <Link href="/intake-ops" className="text-violet-700 font-medium underline">
@@ -199,18 +224,18 @@ export default async function RefillsPage({
             <Link
               key={r.id}
               href={`/refills/${r.id}`}
-              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300"
+              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300 active:bg-slate-50"
             >
               <div className="flex justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{r.patient_name || '—'}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{r.patient_name || '—'}</p>
                   <p className="text-xs text-slate-500">
                     {r.employee_name}
                     {r.external_employee_id ? ` · ${r.external_employee_id}` : ''}
                   </p>
                 </div>
                 <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full h-fit ${statusStyle(
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full h-fit shrink-0 ${statusStyle(
                     String(r.status)
                   )}`}
                 >
@@ -282,6 +307,32 @@ export default async function RefillsPage({
             </table>
           </div>
         )}
+
+        {!error && rows.length > 0 && inReview === 0 && (
+          <p className="text-center text-sm text-slate-500">
+            Month review clear ·{' '}
+            <Link href="/pharmacy" className="text-teal-700 font-medium hover:underline">
+              export pharmacy lists
+            </Link>
+          </p>
+        )}
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/programs"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Programs
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
+        </div>
       </div>
     </main>
   );
