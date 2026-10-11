@@ -7,7 +7,7 @@
 
 import { query } from '@/lib/db';
 import { isAiAdherenceCoachEnabled, isLlmCoachAvailable } from '@/lib/featureFlags';
-import { PNAT_DIMENSIONS, type RiskBand } from '@/lib/pnat';
+import { PNAT_DIMENSIONS } from '@/lib/pnat';
 
 export type CoachSuggestion = {
   priority: 'high' | 'medium' | 'low';
@@ -99,7 +99,6 @@ function rulesFromAssessment(input: {
     });
   }
 
-  // de-dupe by title_en
   const seen = new Set<string>();
   return out.filter((s) => {
     if (seen.has(s.title_en)) return false;
@@ -205,9 +204,7 @@ export async function runAdherenceCoach(programId: string): Promise<CoachResult>
       [programId]
     );
     med_count = meds.rows.length;
-    med_names = meds.rows.map(
-      (m) => m.matched_name || m.requested_name
-    );
+    med_names = meds.rows.map((m) => m.matched_name || m.requested_name);
 
     try {
       const a = await query<{ risk_band: string | null; scores: unknown }>(
