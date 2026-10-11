@@ -8,6 +8,7 @@ import {
 import { evaluatePnat, scoresFromChecklist } from '@/lib/pnat';
 import { authorizeRequest } from '@/lib/auth';
 import { jsonError } from '@/lib/errors';
+import { isWhoAssessmentEnabled } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
     if (sp.get('summary') === '1') {
       return NextResponse.json({ ok: true, ...(await pspSummary()) });
     }
-    // Dry-run evaluate without save
+    // Dry-run evaluate without save (allowed even if feature off — for testing)
     if (sp.get('preview') === '1') {
       const scores: Record<string, number> = {};
       for (const k of [
@@ -36,7 +37,11 @@ export async function GET(req: NextRequest) {
         const v = sp.get(k);
         if (v) scores[k] = Number(v);
       }
-      return NextResponse.json({ ok: true, preview: evaluatePnat(scores) });
+      return NextResponse.json({
+        ok: true,
+        preview: evaluatePnat(scores),
+        feature_enabled: isWhoAssessmentEnabled(),
+      });
     }
     const rows = await listPspPrograms({
       stage: sp.get('stage') || undefined,
@@ -69,7 +74,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           ok: true,
           preview: evaluatePnat(scores),
+          feature_enabled: isWhoAssessmentEnabled(),
         });
+      }
+      if (!isWhoAssessmentEnabled()) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              'WHO needs assessment is disabled until management approval. Set ENABLE_WHO_ASSESSMENT=true on Vercel after approval.',
+            code: 'feature_disabled',
+          },
+          { status: 403 }
+        );
       }
       if (!body.program_id) {
         return NextResponse.json(
