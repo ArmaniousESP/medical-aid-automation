@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { webhookRetryDefaults } from '@/lib/httpRetry';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
+import { featureFlagsStatus } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
   const retry = webhookRetryDefaults();
   const wa = whatsappConfigStatus();
+  const flags = featureFlagsStatus();
 
   checks.env_database = {
     ok: !!process.env.DATABASE_URL,
@@ -59,6 +61,20 @@ export async function GET() {
   checks.whatsapp = {
     ok: wa.mode !== 'none' || wa.dry_run_default,
     detail: `mode=${wa.mode}`,
+  };
+
+  // Feature flags — off until management approval (not required for platform health)
+  checks.who_assessment = {
+    ok: true,
+    detail: flags.who_assessment.enabled
+      ? 'ON — ENABLE_WHO_ASSESSMENT'
+      : 'OFF until management sets ENABLE_WHO_ASSESSMENT=true',
+  };
+  checks.ai_adherence_coach = {
+    ok: true,
+    detail: flags.ai_adherence_coach.enabled
+      ? `ON · ${flags.ai_adherence_coach.llm ? 'LLM key present' : 'rules engine only'}`
+      : 'OFF until ENABLE_AI_ADHERENCE_COACH=true',
   };
 
   // Neon-stored Egyptian catalog count (0 until staff runs sync)
@@ -164,6 +180,7 @@ export async function GET() {
       path: 'platform-first (sheet optional)',
       medicine_catalog:
         'Neon egyptian_drugs (if synced) → CSV cache → MSH fallback',
+      feature_flags: flags,
       guide: '/guide',
       time: new Date().toISOString(),
       checks,
