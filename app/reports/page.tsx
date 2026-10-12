@@ -34,7 +34,7 @@ export default async function ReportsPage({
   const s = monthly?.summary;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
           <FlowSteps current={5} />
@@ -48,15 +48,15 @@ export default async function ReportsPage({
                 Monthly dispense · chronic catalog · CSV · {period}
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm items-center">
-              <Link href="/refills" className="text-blue-600 hover:underline">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm items-center">
+              <Link href="/refills" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
                 ← Refills
               </Link>
-              <Link href="/pharmacy" className="text-blue-600 hover:underline">
+              <Link href="/pharmacy" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
                 Pharmacy
               </Link>
-              <Link href="/programs" className="text-blue-600 hover:underline">
-                Programs
+              <Link href="/programs" className="rounded-xl bg-violet-700 px-3 py-2 font-semibold text-white">
+                Programs →
               </Link>
             </div>
           </div>
@@ -323,6 +323,23 @@ export default async function ReportsPage({
           Report · APIs <code>/api/reports/monthly</code> ·{' '}
           <code>/api/reports/medications</code>
         </p>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/refills"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Refills
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
+        </div>
       </div>
     </main>
   );
