@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { FlowSteps } from '../FlowSteps';
 import { FormSelectPicker } from '@/components/FormSelectPicker';
 import { PROGRAM_STATUS_OPTIONS } from '@/lib/optionLists';
+import { isWhoAssessmentEnabled } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ type ProgramRow = {
   med_count?: number;
   refill_count?: number;
   doc_count?: number;
+  latest_risk?: string | null;
 };
 
 function statusStyle(s: string) {
@@ -27,6 +29,22 @@ function statusStyle(s: string) {
   if (s === 'cancelled' || s === 'expired')
     return 'bg-slate-200 text-slate-700 ring-1 ring-slate-300';
   return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
+}
+
+function riskStyle(s?: string | null) {
+  if (s === 'critical') return 'bg-red-100 text-red-900 ring-1 ring-red-200';
+  if (s === 'high') return 'bg-orange-100 text-orange-950 ring-1 ring-orange-200';
+  if (s === 'medium') return 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
+  if (s === 'low') return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100';
+  return 'bg-slate-50 text-slate-500 ring-1 ring-slate-100';
+}
+
+function riskRank(s?: string | null) {
+  if (s === 'critical') return 0;
+  if (s === 'high') return 1;
+  if (s === 'medium') return 2;
+  if (s === 'low') return 3;
+  return 4;
 }
 
 export default async function ProgramsPage({
@@ -38,6 +56,7 @@ export default async function ProgramsPage({
   let error: string | null = null;
   const q = (searchParams.q || '').trim();
   const status = (searchParams.status || '').trim();
+  const whoOn = isWhoAssessmentEnabled();
 
   try {
     const params: unknown[] = [];
@@ -75,7 +94,10 @@ export default async function ProgramsPage({
           WHERE m.program_id = cp.id AND m.is_active) AS med_count,
          (SELECT count(*)::int FROM refill_cycles rc WHERE rc.program_id = cp.id) AS refill_count,
          (SELECT count(*)::int FROM attachments a
-          WHERE a.entity_type = 'program' AND a.entity_id = cp.id) AS doc_count
+          WHERE a.entity_type = 'program' AND a.entity_id = cp.id) AS doc_count,
+         (SELECT risk_band FROM adherence_assessments aa
+          WHERE aa.program_id = cp.id
+          ORDER BY assessed_at DESC LIMIT 1) AS latest_risk
        FROM chronic_programs cp
        JOIN employees e ON e.id = cp.employee_id
        JOIN dependents d ON d.id = cp.dependent_id
@@ -84,12 +106,24 @@ export default async function ProgramsPage({
       params
     );
     rows = res.rows as ProgramRow[];
+    if (whoOn) {
+      rows = [...rows].sort((a, b) => {
+        const d = riskRank(a.latest_risk) - riskRank(b.latest_risk);
+        if (d !== 0) return d;
+        return (a.program_code || '').localeCompare(b.program_code || '');
+      });
+    }
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed to load programs';
   }
 
   const activeCount = rows.filter((r) => r.status === 'active').length;
   const suspendedCount = rows.filter((r) => r.status === 'suspended').length;
+  const highRiskCount = whoOn
+    ? rows.filter(
+        (r) => r.latest_risk === 'high' || r.latest_risk === 'critical'
+      ).length
+    : 0;
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
@@ -125,7 +159,7 @@ export default async function ProgramsPage({
           </div>
         </header>
 
-        <div className="grid grid-cols-3 gap-2 text-center">
+        <div className={`grid gap-2 text-center ${whoOn ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
             <p className="text-xl font-bold text-slate-900">{rows.length}</p>
             <p className="text-[11px] text-slate-500">shown</p>
@@ -138,13 +172,21 @@ export default async function ProgramsPage({
             <p className="text-xl font-bold text-amber-800">{suspendedCount}</p>
             <p className="text-[11px] text-slate-500">suspended</p>
           </div>
+          {whoOn && (
+            <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+              <p className="text-xl font-bold text-orange-800">{highRiskCount}</p>
+              <p className="text-[11px] text-slate-500">high risk</p>
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm">
             <p className="font-medium text-slate-800">Chronic enrollments</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tap a row to open the program file
+              {whoOn
+                ? 'Sorted by adherence risk · open a row for assessment & coach'
+                : 'Tap a row to open the program file'}
             </p>
           </div>
           <Link
@@ -247,13 +289,24 @@ export default async function ProgramsPage({
                 <p className="font-semibold text-slate-900 truncate">
                   {r.patient_name || '—'}
                 </p>
-                <span
-                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-full h-fit shrink-0 ${statusStyle(
-                    r.status
-                  )}`}
-                >
-                  {r.status}
-                </span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusStyle(
+                      r.status
+                    )}`}
+                  >
+                    {r.status}
+                  </span>
+                  {whoOn && r.latest_risk && (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${riskStyle(
+                        r.latest_risk
+                      )}`}
+                    >
+                      {r.latest_risk}
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-slate-500">
                 {r.employee_name}
@@ -277,6 +330,7 @@ export default async function ProgramsPage({
                   <th className="p-3 font-semibold">Employee</th>
                   <th className="p-3 font-semibold">Patient</th>
                   <th className="p-3 font-semibold">Status</th>
+                  {whoOn && <th className="p-3 font-semibold">Risk</th>}
                   <th className="p-3 font-semibold">Meds</th>
                   <th className="p-3 font-semibold">Docs</th>
                   <th className="p-3 font-semibold">Refills</th>
@@ -312,6 +366,21 @@ export default async function ProgramsPage({
                         {r.status}
                       </span>
                     </td>
+                    {whoOn && (
+                      <td className="p-3">
+                        {r.latest_risk ? (
+                          <span
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskStyle(
+                              r.latest_risk
+                            )}`}
+                          >
+                            {r.latest_risk}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="p-3">{r.med_count}</td>
                     <td className="p-3">
                       {(r.doc_count ?? 0) > 0 ? (
