@@ -50,12 +50,13 @@ function riskRank(s?: string | null) {
 export default async function ProgramsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string };
+  searchParams: { q?: string; status?: string; risk?: string };
 }) {
   let rows: ProgramRow[] = [];
   let error: string | null = null;
   const q = (searchParams.q || '').trim();
   const status = (searchParams.status || '').trim();
+  const risk = (searchParams.risk || '').trim();
   const whoOn = isWhoAssessmentEnabled();
 
   try {
@@ -112,6 +113,15 @@ export default async function ProgramsPage({
         if (d !== 0) return d;
         return (a.program_code || '').localeCompare(b.program_code || '');
       });
+      if (risk === 'high') {
+        rows = rows.filter(
+          (r) => r.latest_risk === 'high' || r.latest_risk === 'critical'
+        );
+      } else if (risk === 'unassessed') {
+        rows = rows.filter((r) => !r.latest_risk);
+      } else if (risk) {
+        rows = rows.filter((r) => r.latest_risk === risk);
+      }
     }
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : 'Failed to load programs';
@@ -215,6 +225,9 @@ export default async function ProgramsPage({
             placeholder="Status…"
             className="min-w-[160px]"
           />
+          {whoOn && risk ? (
+            <input type="hidden" name="risk" value={risk} />
+          ) : null}
           <button
             type="submit"
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
@@ -233,11 +246,14 @@ export default async function ProgramsPage({
           ).map(([s, label]) => (
             <Link
               key={s || 'all'}
-              href={
-                s
-                  ? `/programs?status=${s}${q ? `&q=${encodeURIComponent(q)}` : ''}`
-                  : `/programs${q ? `?q=${encodeURIComponent(q)}` : ''}`
-              }
+              href={(() => {
+                const params = new URLSearchParams();
+                if (s) params.set('status', s);
+                if (q) params.set('q', q);
+                if (whoOn && risk) params.set('risk', risk);
+                const qs = params.toString();
+                return qs ? `/programs?${qs}` : '/programs';
+              })()}
               className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s
                   ? 'bg-slate-900 text-white border-slate-900'
@@ -248,6 +264,39 @@ export default async function ProgramsPage({
             </Link>
           ))}
         </div>
+
+        {whoOn && (
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['', 'Any risk'],
+                ['high', 'High / critical'],
+                ['medium', 'Medium'],
+                ['low', 'Low'],
+                ['unassessed', 'Not assessed'],
+              ] as const
+            ).map(([rk, label]) => {
+              const params = new URLSearchParams();
+              if (status) params.set('status', status);
+              if (q) params.set('q', q);
+              if (rk) params.set('risk', rk);
+              const qs = params.toString();
+              return (
+                <Link
+                  key={rk || 'any-risk'}
+                  href={qs ? `/programs?${qs}` : '/programs'}
+                  className={`min-h-[2.25rem] rounded-full px-3 py-1 text-xs font-semibold border ${
+                    risk === rk
+                      ? 'bg-orange-700 text-white border-orange-700'
+                      : 'bg-white border-slate-200 text-slate-600'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {error && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
