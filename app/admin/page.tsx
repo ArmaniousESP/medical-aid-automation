@@ -15,15 +15,15 @@ export default function AdminPage() {
   const flags = featureFlagsStatus();
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-lg space-y-5">
         <header className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-            Staff only
+            Staff only · Admin
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin</h1>
           <p className="text-sm text-slate-600" dir="rtl">
-            لوحة التشغيل · تسجيل الدخول · الأدوار
+            لوحة التشغيل · تسجيل الدخول · الأدوار · الأعلام
           </p>
         </header>
 
@@ -103,6 +103,9 @@ export default function AdminPage() {
           <Link href="/" className="hover:text-slate-800 hover:underline">
             Home
           </Link>
+          <Link href="/inventory" className="hover:text-slate-800 hover:underline">
+            Inventory
+          </Link>
           <Link href="/status" className="hover:text-slate-800 hover:underline">
             System status
           </Link>
@@ -111,6 +114,23 @@ export default function AdminPage() {
             className="hover:text-violet-700 hover:underline"
           >
             Staff guide
+          </Link>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-lg flex gap-2">
+          <Link
+            href="/inventory"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Inventory
+          </Link>
+          <Link
+            href="/intake-ops"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Queue →
           </Link>
         </div>
       </div>
