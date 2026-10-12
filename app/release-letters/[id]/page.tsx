@@ -31,64 +31,77 @@ export default async function ReleaseLetterPrintPage({
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body { background: white; }
+          body { background: white !important; }
+          main { padding: 0 !important; background: white !important; }
         }
       `}</style>
-      <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+      <main className="min-h-screen bg-slate-100 p-4 sm:p-6 text-slate-900">
         <div className="mx-auto max-w-2xl space-y-4">
-          <div className="no-print flex flex-wrap gap-3 text-sm">
-            <Link href={`/programs/${letter.program_id}`} className="text-blue-600 hover:underline">
-              ← Program
-            </Link>
-            <button
-              type="button"
-              className="rounded bg-slate-800 px-3 py-1 text-white text-xs"
-              // @ts-expect-error server component — use client print via onClick won't work; use link
+          <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-white p-3 shadow-sm text-sm">
+            <Link
+              href={`/programs/${letter.program_id}`}
+              className="font-medium text-violet-700 hover:underline"
             >
-              Use browser Print (Ctrl+P)
-            </button>
+              ← Program · البرنامج
+            </Link>
+            <p className="text-xs text-slate-600">
+              Print with <kbd className="rounded border bg-slate-50 px-1.5 py-0.5 font-mono text-[11px]">Ctrl</kbd>
+              {' + '}
+              <kbd className="rounded border bg-slate-50 px-1.5 py-0.5 font-mono text-[11px]">P</kbd>
+              {' · '}
+              <span dir="rtl">اطبع من المتصفح</span>
+            </p>
           </div>
 
-          <article className="rounded-lg border bg-white p-8 shadow-sm print:shadow-none print:border-0">
+          <article className="rounded-2xl border bg-white p-6 sm:p-8 shadow-sm print:shadow-none print:border-0 print:rounded-none">
             <header className="border-b pb-4 mb-4">
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Medical Aid Program · Pharmacy Release
               </p>
-              <h1 className="text-xl font-semibold mt-1">{letter.letter_code}</h1>
+              <p className="text-xs text-slate-500" dir="rtl">
+                برنامج دعم العلاج · خطاب صرف صيدلية
+              </p>
+              <h1 className="text-xl font-semibold mt-2 font-mono tracking-wide">
+                {letter.letter_code}
+              </h1>
               <p className="text-sm text-slate-600 mt-1">
                 Period {letter.period} · Issued{' '}
                 {String(letter.issued_at).slice(0, 10)}
               </p>
             </header>
 
-            <dl className="grid grid-cols-2 gap-3 text-sm mb-6">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-6">
               <div>
-                <dt className="text-xs text-slate-500">Program</dt>
+                <dt className="text-xs text-slate-500">Program · البرنامج</dt>
                 <dd className="font-mono">{letter.program_code}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Status</dt>
+                <dt className="text-xs text-slate-500">Status · الحالة</dt>
                 <dd>{letter.status}</dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Employee</dt>
+                <dt className="text-xs text-slate-500">Employee · الموظف</dt>
                 <dd>
                   {letter.employee_name}
-                  <span className="text-slate-500 text-xs block">{letter.employee_id}</span>
+                  <span className="text-slate-500 text-xs block">
+                    {letter.employee_id}
+                  </span>
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">Patient</dt>
+                <dt className="text-xs text-slate-500">Patient · المريض</dt>
                 <dd>
                   {letter.patient_name}
-                  <span className="text-slate-500 text-xs block">{letter.relation}</span>
+                  <span className="text-slate-500 text-xs block">
+                    {letter.relation}
+                  </span>
                 </dd>
               </div>
             </dl>
 
             {letter.pharmacy_note && (
-              <p className="text-sm mb-4 rounded bg-amber-50 border border-amber-100 p-3">
-                <span className="font-medium">Pharmacy note: </span>
+              <p className="text-sm mb-4 rounded-xl bg-amber-50 border border-amber-100 p-3">
+                <span className="font-medium">Pharmacy note · ملاحظة: </span>
                 {letter.pharmacy_note}
               </p>
             )}
@@ -97,7 +110,7 @@ export default async function ReleaseLetterPrintPage({
               {letter.body}
             </pre>
 
-            <footer className="mt-10 pt-6 border-t text-xs text-slate-500 flex justify-between">
+            <footer className="mt-10 pt-6 border-t text-xs text-slate-500 flex flex-wrap justify-between gap-2">
               <span>Authorized for monthly chronic supply</span>
               <span>Print date: {new Date().toISOString().slice(0, 10)}</span>
             </footer>
