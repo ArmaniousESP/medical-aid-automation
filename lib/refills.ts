@@ -214,7 +214,10 @@ export async function getRefillDetail(cycleId: string) {
        e.external_employee_id,
        e.full_name AS employee_name,
        d.full_name AS patient_name,
-       d.relation
+       d.relation,
+       (SELECT risk_band FROM adherence_assessments aa
+          WHERE aa.program_id = cp.id
+          ORDER BY assessed_at DESC LIMIT 1) AS latest_risk
      FROM refill_cycles rc
      JOIN chronic_programs cp ON cp.id = rc.program_id
      JOIN employees e ON e.id = cp.employee_id
