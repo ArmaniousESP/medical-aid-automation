@@ -4,6 +4,7 @@ import { GenerateMonthButton } from './GenerateMonthButton';
 import { FlowSteps } from '../FlowSteps';
 import { FormSelectPicker } from '@/components/FormSelectPicker';
 import { REFILL_STATUS_OPTIONS } from '@/lib/optionLists';
+import { isWhoAssessmentEnabled } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,14 @@ function statusStyle(s: string) {
   if (s === 'dispensed') return 'bg-teal-100 text-teal-900 ring-1 ring-teal-200';
   if (s === 'rejected') return 'bg-red-100 text-red-800 ring-1 ring-red-200';
   return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
+}
+
+function riskStyle(s?: string | null) {
+  if (s === 'critical') return 'bg-red-100 text-red-900 ring-1 ring-red-200';
+  if (s === 'high') return 'bg-orange-100 text-orange-950 ring-1 ring-orange-200';
+  if (s === 'medium') return 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
+  if (s === 'low') return 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100';
+  return '';
 }
 
 const FILTERS = [
@@ -39,6 +48,7 @@ export default async function RefillsPage({
   let error: string | null = null;
   const status = searchParams.status || '';
   const period = searchParams.period || '';
+  const whoOn = isWhoAssessmentEnabled();
 
   try {
     rows = await listRefills({
@@ -133,7 +143,7 @@ export default async function RefillsPage({
               href="/refills/safety"
               className="font-medium text-red-700 hover:underline"
             >
-              Safety queue
+              Safety view
             </Link>
             <Link
               href="/pharmacy"
@@ -242,7 +252,18 @@ export default async function RefillsPage({
                   {r.status}
                 </span>
               </div>
-              <p className="text-xs font-mono text-slate-500">{r.program_code}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-mono text-slate-500">{r.program_code}</p>
+                {whoOn && (r as { latest_risk?: string | null }).latest_risk ? (
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${riskStyle(
+                      (r as { latest_risk?: string | null }).latest_risk
+                    )}`}
+                  >
+                    {(r as { latest_risk?: string | null }).latest_risk}
+                  </span>
+                ) : null}
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">{r.period}</span>
                 <span className="font-medium">
@@ -264,6 +285,7 @@ export default async function RefillsPage({
                   <th className="p-3 font-semibold">Patient</th>
                   <th className="p-3 font-semibold">Period</th>
                   <th className="p-3 font-semibold">Status</th>
+                  {whoOn && <th className="p-3 font-semibold">Risk</th>}
                   <th className="p-3 font-semibold">Items</th>
                   <th className="p-3 font-semibold">Est.</th>
                   <th className="p-3 font-semibold">Approved</th>
@@ -290,6 +312,21 @@ export default async function RefillsPage({
                         {r.status}
                       </span>
                     </td>
+                    {whoOn && (
+                      <td className="p-3">
+                        {(r as { latest_risk?: string | null }).latest_risk ? (
+                          <span
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${riskStyle(
+                              (r as { latest_risk?: string | null }).latest_risk
+                            )}`}
+                          >
+                            {(r as { latest_risk?: string | null }).latest_risk}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="p-3">{r.item_count}</td>
                     <td className="p-3">{r.estimated_total_egp ?? '—'}</td>
                     <td className="p-3">{r.approved_total_egp ?? '—'}</td>
