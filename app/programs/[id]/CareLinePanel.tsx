@@ -1,38 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
 
-const CHANNELS = [
-  ['phone', 'هاتف'],
-  ['whatsapp', 'واتساب'],
-  ['sms', 'SMS'],
-  ['email', 'بريد'],
-  ['in_person', 'حضوري'],
-] as const;
+const CHANNEL_OPTIONS: PickerOption[] = [
+  { value: 'phone', label: 'Phone · هاتف' },
+  { value: 'whatsapp', label: 'WhatsApp · واتساب' },
+  { value: 'sms', label: 'SMS' },
+  { value: 'email', label: 'Email · بريد' },
+  { value: 'in_person', label: 'In person · حضوري' },
+];
 
-const OUTCOMES = [
-  ['reached', 'تم الوصول'],
-  ['voicemail', 'رسالة صوتية'],
-  ['no_answer', 'لا إجابة'],
-  ['scheduled_refill', 'تم ترتيب الصرف'],
-  ['education_done', 'تثقيف'],
-  ['escalated', 'تصعيد'],
-  ['other', 'أخرى'],
-] as const;
+const OUTCOME_OPTIONS: PickerOption[] = [
+  { value: 'reached', label: 'Reached · تم الوصول' },
+  { value: 'voicemail', label: 'Voicemail · رسالة صوتية' },
+  { value: 'no_answer', label: 'No answer · لا إجابة' },
+  { value: 'scheduled_refill', label: 'Scheduled refill · تم ترتيب الصرف' },
+  { value: 'education_done', label: 'Education · تثقيف' },
+  { value: 'escalated', label: 'Escalated · تصعيد' },
+  { value: 'other', label: 'Other · أخرى' },
+];
 
-const DROPOUTS = [
-  ['cost', 'تكلفة'],
-  ['access_system', 'منظومة'],
-  ['condition_improved', 'تحسّن'],
-  ['side_effects', 'آثار جانبية'],
-  ['complex_regimen', 'تعقيد علاج'],
-  ['forgot_disengaged', 'نسيان/انقطاع'],
-  ['beliefs', 'معتقدات'],
-  ['moved_transferred', 'نقل/تأمين'],
-  ['deceased', 'وفاة'],
-  ['other', 'أخرى'],
-] as const;
+const DROPOUT_OPTIONS: PickerOption[] = [
+  { value: 'cost', label: 'Cost · تكلفة' },
+  { value: 'access_system', label: 'Access / system · منظومة' },
+  { value: 'condition_improved', label: 'Condition improved · تحسّن' },
+  { value: 'side_effects', label: 'Side effects · آثار جانبية' },
+  { value: 'complex_regimen', label: 'Complex regimen · تعقيد علاج' },
+  { value: 'forgot_disengaged', label: 'Forgot / disengaged · نسيان/انقطاع' },
+  { value: 'beliefs', label: 'Beliefs · معتقدات' },
+  { value: 'moved_transferred', label: 'Moved / transferred · نقل/تأمين' },
+  { value: 'deceased', label: 'Deceased · وفاة' },
+  { value: 'other', label: 'Other · أخرى' },
+];
 
 export function CareLinePanel({ programId }: { programId: string }) {
   const [channel, setChannel] = useState('phone');
@@ -44,6 +45,10 @@ export function CareLinePanel({ programId }: { programId: string }) {
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
 
+  const channelOpts = useMemo(() => CHANNEL_OPTIONS, []);
+  const outcomeOpts = useMemo(() => OUTCOME_OPTIONS, []);
+  const dropoutOpts = useMemo(() => DROPOUT_OPTIONS, []);
+
   async function logContact(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -51,6 +56,7 @@ export function CareLinePanel({ programId }: { programId: string }) {
     try {
       const res = await fetch('/api/care-line', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'log',
@@ -88,6 +94,7 @@ export function CareLinePanel({ programId }: { programId: string }) {
     try {
       const res = await fetch('/api/care-line', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'dropout',
@@ -109,87 +116,97 @@ export function CareLinePanel({ programId }: { programId: string }) {
 
   return (
     <div className="space-y-4 text-sm">
-      <form onSubmit={logContact} className="flex flex-wrap gap-2 items-end">
-        <div>
-          <label className="block text-xs text-slate-500 mb-1">القناة</label>
-          <select
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            className="rounded border px-2 py-1.5"
-          >
-            {CHANNELS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
+      <form onSubmit={logContact} className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Channel · القناة
+            </label>
+            <SearchablePicker
+              value={channel}
+              onChange={setChannel}
+              options={channelOpts}
+              allowCreate={false}
+              learnKey="careline_channel"
+              placeholder="Channel…"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Outcome · النتيجة
+            </label>
+            <SearchablePicker
+              value={outcome}
+              onChange={setOutcome}
+              options={outcomeOpts}
+              allowCreate={false}
+              learnKey="careline_outcome"
+              placeholder="Outcome…"
+            />
+          </div>
         </div>
+
         <div>
-          <label className="block text-xs text-slate-500 mb-1">النتيجة</label>
-          <select
-            value={outcome}
-            onChange={(e) => setOutcome(e.target.value)}
-            className="rounded border px-2 py-1.5"
-          >
-            {OUTCOMES.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex-1 min-w-[160px]">
-          <label className="block text-xs text-slate-500 mb-1">ملاحظات</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Notes · ملاحظات
+          </label>
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="rounded border px-2 py-1.5 w-full"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base"
+            placeholder="Optional note…"
           />
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-slate-600 pb-2">
-          <input
-            type="checkbox"
-            checked={sendWa}
-            onChange={(e) => setSendWa(e.target.checked)}
-          />
-          إرسال واتساب أيضاً
-        </label>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-blue-600 px-3 py-1.5 text-white disabled:opacity-50"
-        >
-          تسجيل اتصال
-        </button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={sendWa}
+              onChange={(e) => setSendWa(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            Also send WhatsApp · إرسال واتساب أيضاً
+          </label>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
+          >
+            {loading ? '…' : 'Log contact · تسجيل اتصال'}
+          </button>
+        </div>
       </form>
 
-      <div className="flex flex-wrap gap-2 items-end border-t pt-3">
+      <div className="border-t pt-4 space-y-3">
         <div>
-          <label className="block text-xs text-slate-500 mb-1">
-            سبب الانقطاع (WHO)
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Dropout reason (WHO) · سبب الانقطاع
           </label>
-          <select
+          <SearchablePicker
             value={dropout}
-            onChange={(e) => setDropout(e.target.value)}
-            className="rounded border px-2 py-1.5"
-          >
-            {DROPOUTS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
+            onChange={setDropout}
+            options={dropoutOpts}
+            allowCreate={false}
+            learnKey="careline_dropout"
+            placeholder="Reason…"
+          />
         </div>
         <button
           type="button"
           onClick={doDropout}
           disabled={loading}
-          className="rounded bg-red-600 px-3 py-1.5 text-white disabled:opacity-50"
+          className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
-          تسجيل انقطاع
+          Record dropout · تسجيل انقطاع
         </button>
       </div>
-      {msg && <p className="text-xs text-slate-600">{msg}</p>}
+
+      {msg && (
+        <p className="text-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
+          {msg}
+        </p>
+      )}
     </div>
   );
 }
