@@ -17,6 +17,7 @@ import {
   isWhoAssessmentEnabled,
   isAiAdherenceCoachEnabled,
 } from '@/lib/featureFlags';
+import { FlowSteps } from '../../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,19 +155,35 @@ export default async function ProgramDetailPage({
     allergyData?.hits?.some((h) => h.risk === 'high') ?? false;
   const whoOn = isWhoAssessmentEnabled();
   const coachOn = isAiAdherenceCoachEnabled();
+  const activePlans = plans.filter((x) => x.status === 'active');
+  const dueReview = activePlans.filter((pl) => {
+    if (!pl.next_review_at) return false;
+    const d = new Date(pl.next_review_at);
+    return !Number.isNaN(d.getTime()) && d.getTime() <= Date.now();
+  });
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Link href="/programs" className="text-blue-600 hover:underline">← Programs</Link>
-          <Link href="/combinations" className="text-blue-600 hover:underline">Combinations</Link>
-          <Link href="/ddinter" className="text-blue-600 hover:underline">DDInter</Link>
-          <Link href="/synonyms" className="text-blue-600 hover:underline">Synonyms</Link>
-          <Link href="/pms" className="text-blue-600 hover:underline">PMS</Link>
+        <FlowSteps current={4} />
+        <div className="flex flex-wrap gap-3 text-sm items-center justify-between">
+          <Link href="/programs" className="font-medium text-violet-700 hover:underline">
+            ← Programs
+          </Link>
+          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+            <Link href="/refills" className="hover:text-violet-700 hover:underline">
+              Refills
+            </Link>
+            <Link href="/pharmacy" className="hover:text-violet-700 hover:underline">
+              Pharmacy
+            </Link>
+            <Link href="/ddinter" className="hover:underline">
+              DDInter
+            </Link>
+          </div>
         </div>
 
-        <header className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <header className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
           <div className="flex flex-wrap justify-between gap-2">
             <h1 className="text-xl font-semibold font-mono">{program.program_code}</h1>
             <div className="flex flex-wrap gap-2">
@@ -209,7 +226,7 @@ export default async function ProgramDetailPage({
           <ProgramStatusActions programId={program.id} status={program.status} />
         </header>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-2">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-2">
           <h2 className="font-medium">Allergies & cross-reactivity</h2>
           <AllergyPanel
             programId={program.id}
@@ -219,7 +236,7 @@ export default async function ProgramDetailPage({
           />
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-2">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-2">
           <div className="flex flex-wrap justify-between gap-2">
             <h2 className="font-medium">Drug interactions (DDInter)</h2>
             <Link href="/ddinter" className="text-xs text-blue-600 hover:underline">
@@ -260,12 +277,12 @@ export default async function ProgramDetailPage({
           </p>
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-medium">Eligibility (PFET-style)</h2>
           <PfetForm programId={program.id} />
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-4">
           <h2 className="font-medium">WHO needs assessment · تقييم الاحتياج</h2>
           {whoOn ? (
             <>
@@ -299,13 +316,20 @@ export default async function ProgramDetailPage({
           )}
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-medium">AI adherence coach</h2>
           <AdherenceCoachPanel programId={program.id} enabled={coachOn} />
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-4">
           <h2 className="font-medium">Care Line</h2>
+          {whoOn && dueReview.length > 0 && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-950">
+              <span className="font-semibold">Due for review · مستحق للمراجعة</span>
+              {' — '}
+              {dueReview.map((pl) => String(pl.next_review_at).slice(0, 10)).join(', ')}
+            </div>
+          )}
           <CareLinePanel programId={program.id} />
           {contacts.length > 0 && (
             <ul className="text-xs space-y-1 border-t pt-2">
@@ -321,12 +345,12 @@ export default async function ProgramDetailPage({
           )}
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-medium">Pharmacy release letter</h2>
           <ReleaseLetterButton programId={program.id} />
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-medium">Adverse events</h2>
           <AdverseEventForm programId={program.id} />
           {adverse.length > 0 && (
@@ -343,7 +367,7 @@ export default async function ProgramDetailPage({
           )}
         </section>
 
-        <section className="rounded-lg border bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm">
           <h2 className="font-medium mb-3">Documents</h2>
           {attachments.length === 0 ? (
             <p className="text-sm text-slate-500">None</p>
@@ -361,7 +385,7 @@ export default async function ProgramDetailPage({
           )}
         </section>
 
-        <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+        <section className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
           <h2 className="p-3 font-medium border-b bg-slate-50">Medications</h2>
           <table className="w-full text-sm">
             <thead>
@@ -393,7 +417,7 @@ export default async function ProgramDetailPage({
           </table>
         </section>
 
-        <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+        <section className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
           <h2 className="p-3 font-medium border-b bg-slate-50">Refill cycles</h2>
           {refills.length === 0 ? (
             <p className="p-3 text-sm text-slate-500">No cycles yet</p>
@@ -424,6 +448,23 @@ export default async function ProgramDetailPage({
             </table>
           )}
         </section>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-4xl flex gap-2">
+          <Link
+            href="/programs"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← List
+          </Link>
+          <Link
+            href="/refills"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Refills →
+          </Link>
+        </div>
       </div>
     </main>
   );
