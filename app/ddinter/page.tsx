@@ -4,6 +4,7 @@ import { webhookRetryDefaults } from '@/lib/httpRetry';
 import { DdinterImportButton } from './DdinterImportButton';
 import { DdinterCheckForm } from './DdinterCheckForm';
 import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,37 +20,43 @@ export default async function DdinterPage() {
   const retry = webhookRetryDefaults();
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-3xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">DDInter 2.0</h1>
-            <p className="text-sm text-slate-600">
-              Drug–drug interaction pairs imported locally ·{' '}
-              <a
-                href="https://ddinter2.scbdd.com"
-                className="text-blue-600 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ddinter2.scbdd.com
-              </a>{' '}
-              (CC BY-NC-SA 4.0)
-            </p>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/synonyms" className="text-blue-600 hover:underline">
-              Synonyms
-            </Link>
-            <Link href="/combinations" className="text-blue-600 hover:underline">
-              Combinations
-            </Link>
-            <Link href="/refills/safety" className="text-blue-600 hover:underline">
-              Safety queue
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              Home
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={5} />
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Clinical tools · DDInter
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">DDInter 2.0</h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                تفاعلات دوائية · استيراد محلي
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Source:{' '}
+                <a
+                  href="https://ddinter2.scbdd.com"
+                  className="text-violet-700 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ddinter2.scbdd.com
+                </a>{' '}
+                (CC BY-NC-SA 4.0)
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link href="/synonyms" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
+                Synonyms
+              </Link>
+              <Link href="/combinations" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
+                Combinations
+              </Link>
+              <Link href="/safety" className="rounded-xl bg-violet-700 px-3 py-2 font-semibold text-white">
+                Safety →
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -117,6 +124,23 @@ GET /api/ddinter/check?program_id=UUID`}</pre>
         </section>
 
         <ClinicalDisclaimer compact />
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-3xl flex gap-2">
+          <Link
+            href="/synonyms"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            Synonyms
+          </Link>
+          <Link
+            href="/combinations"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Combinations →
+          </Link>
+        </div>
       </div>
     </main>
   );
