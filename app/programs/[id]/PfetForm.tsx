@@ -32,6 +32,23 @@ function localPreview(v: {
   return { tier, pct, share, residual, perCapita: Math.round(perCapita) };
 }
 
+const TIER_STYLE: Record<string, string> = {
+  full_cover: 'border-emerald-200 bg-emerald-50 text-emerald-950',
+  partial: 'border-amber-200 bg-amber-50 text-amber-950',
+  self_pay: 'border-slate-200 bg-slate-50 text-slate-800',
+  review: 'border-sky-200 bg-sky-50 text-sky-950',
+};
+
+const TIER_LABEL: Record<string, string> = {
+  full_cover: 'Full cover · تغطية كاملة',
+  partial: 'Partial · مشاركة جزئية',
+  self_pay: 'Self-pay · تحمل كامل',
+  review: 'Needs review · يحتاج مراجعة',
+};
+
+const fieldClass =
+  'mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100';
+
 export function PfetForm({ programId }: { programId: string }) {
   const [hh, setHh] = useState(4);
   const [income, setIncome] = useState(0);
@@ -53,6 +70,7 @@ export function PfetForm({ programId }: { programId: string }) {
     try {
       const res = await fetch('/api/psp/pfet', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           program_id: programId,
@@ -64,7 +82,7 @@ export function PfetForm({ programId }: { programId: string }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
-      setMsg(data.summary_ar || data.tier);
+      setMsg(data.summary_ar || data.tier || 'Saved');
       router.refresh();
     } catch (err: unknown) {
       setMsg(err instanceof Error ? err.message : 'Error');
@@ -74,64 +92,86 @@ export function PfetForm({ programId }: { programId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 text-sm">
-      <p className="text-xs text-slate-500">
-        Ability-to-pay (open policy rules — not Axios proprietary PFET).
+    <form onSubmit={submit} className="space-y-4 text-sm">
+      <p className="text-xs text-slate-500 leading-relaxed">
+        Ability-to-pay estimate (open policy rules — not a proprietary vendor
+        instrument). Live preview updates as you type.
       </p>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs">
-          Household size
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="block text-xs font-medium text-slate-600">
+          Household size · حجم الأسرة
           <input
             type="number"
             min={1}
             value={hh}
-            onChange={(e) => setHh(Number(e.target.value))}
-            className="mt-1 w-full rounded border px-2 py-1"
+            onChange={(e) => setHh(Number(e.target.value) || 1)}
+            className={fieldClass}
           />
         </label>
-        <label className="text-xs">
-          Monthly income (EGP)
+        <label className="block text-xs font-medium text-slate-600">
+          Monthly income (EGP) · الدخل الشهري
           <input
             type="number"
             min={0}
             value={income}
-            onChange={(e) => setIncome(Number(e.target.value))}
-            className="mt-1 w-full rounded border px-2 py-1"
+            onChange={(e) => setIncome(Number(e.target.value) || 0)}
+            className={fieldClass}
           />
         </label>
-        <label className="text-xs">
-          Monthly med cost (EGP)
+        <label className="block text-xs font-medium text-slate-600">
+          Monthly med cost (EGP) · تكلفة الأدوية
           <input
             type="number"
             min={0}
             value={med}
-            onChange={(e) => setMed(Number(e.target.value))}
-            className="mt-1 w-full rounded border px-2 py-1"
+            onChange={(e) => setMed(Number(e.target.value) || 0)}
+            className={fieldClass}
           />
         </label>
-        <label className="text-xs">
-          Other burden (EGP)
+        <label className="block text-xs font-medium text-slate-600">
+          Other burden (EGP) · أعباء أخرى
           <input
             type="number"
             min={0}
             value={other}
-            onChange={(e) => setOther(Number(e.target.value))}
-            className="mt-1 w-full rounded border px-2 py-1"
+            onChange={(e) => setOther(Number(e.target.value) || 0)}
+            className={fieldClass}
           />
         </label>
       </div>
-      <div className="rounded border bg-slate-50 p-2 text-xs">
-        Preview: <strong>{preview.tier}</strong> · patient share {preview.pct}% ≈{' '}
-        {preview.share} EGP · residual/capita {preview.perCapita}
+
+      <div
+        className={`rounded-xl border p-3 text-xs space-y-1 ${
+          TIER_STYLE[preview.tier] || TIER_STYLE.review
+        }`}
+      >
+        <p className="font-semibold text-sm">
+          {TIER_LABEL[preview.tier] || preview.tier}
+        </p>
+        <p>
+          Patient share <strong>{preview.pct}%</strong> ≈{' '}
+          <strong>{preview.share}</strong> EGP / month
+        </p>
+        <p className="opacity-80">
+          Residual / capita ≈ {preview.perCapita} EGP · residual total{' '}
+          {Math.round(preview.residual)}
+        </p>
       </div>
+
       <button
         type="submit"
         disabled={loading}
-        className="rounded bg-teal-600 px-3 py-1.5 text-white disabled:opacity-50"
+        className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
       >
-        {loading ? 'Saving…' : 'Save eligibility (PFET-style)'}
+        {loading ? 'Saving…' : 'Save eligibility · حفظ الأهلية'}
       </button>
-      {msg && <p className="text-xs text-slate-600">{msg}</p>}
+
+      {msg && (
+        <p className="text-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
+          {msg}
+        </p>
+      )}
     </form>
   );
 }
