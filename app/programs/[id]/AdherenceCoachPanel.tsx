@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Suggestion = {
   priority: 'high' | 'medium' | 'low';
@@ -24,8 +25,11 @@ export function AdherenceCoachPanel({
   programId: string;
   enabled: boolean;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loggingIdx, setLoggingIdx] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [mode, setMode] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -50,6 +54,7 @@ export function AdherenceCoachPanel({
   async function run() {
     setLoading(true);
     setError(null);
+    setFlash(null);
     try {
       const res = await fetch('/api/adherence-coach', {
         method: 'POST',
@@ -71,6 +76,36 @@ export function AdherenceCoachPanel({
       setError(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function logToCareLine(s: Suggestion, idx: number) {
+    setLoggingIdx(idx);
+    setFlash(null);
+    setError(null);
+    try {
+      const note = `[coach/${s.priority}] ${s.title_en}: ${s.action_en}`;
+      const res = await fetch('/api/care-line', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'log',
+          program_id: programId,
+          channel: 'phone',
+          outcome: 'other',
+          notes: note,
+          actor: 'adherence-coach',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Care-line log failed');
+      setFlash('Logged to care-line · سُجّل في خط الرعاية');
+      router.refresh();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Log failed');
+    } finally {
+      setLoggingIdx(null);
     }
   }
 
@@ -98,6 +133,11 @@ export function AdherenceCoachPanel({
           {error}
         </p>
       )}
+      {flash && (
+        <p className="text-xs rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+          {flash}
+        </p>
+      )}
 
       {summary && (
         <p className="text-xs text-slate-600">
@@ -108,7 +148,7 @@ export function AdherenceCoachPanel({
 
       <ul className="space-y-2">
         {suggestions.map((s, i) => (
-          <li key={i} className="rounded-xl border bg-white p-3 space-y-1">
+          <li key={i} className="rounded-xl border bg-white p-3 space-y-2">
             <div className="flex flex-wrap gap-2 items-center">
               <span
                 className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${PRI[s.priority] || 'bg-slate-100'}`}
@@ -126,6 +166,14 @@ export function AdherenceCoachPanel({
                 {s.action_ar}
               </p>
             )}
+            <button
+              type="button"
+              onClick={() => logToCareLine(s, i)}
+              disabled={loggingIdx === i}
+              className="text-[11px] font-semibold text-violet-700 hover:underline disabled:opacity-50"
+            >
+              {loggingIdx === i ? 'Saving…' : 'Log to care-line · سجّل في خط الرعاية'}
+            </button>
           </li>
         ))}
       </ul>
