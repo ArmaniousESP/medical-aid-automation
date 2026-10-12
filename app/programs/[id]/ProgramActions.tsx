@@ -20,6 +20,7 @@ export function ProgramStatusActions({
     try {
       const res = await fetch(`/api/programs/${programId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: next, actor: 'ui' }),
       });
@@ -40,28 +41,30 @@ export function ProgramStatusActions({
           type="button"
           disabled={loading}
           onClick={() => setStatus('suspended')}
-          className="rounded bg-amber-600 px-3 py-1 text-xs text-white disabled:opacity-50"
+          className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
         >
-          إيقاف مؤقت
+          Suspend · إيقاف مؤقت
         </button>
       ) : (
         <button
           type="button"
           disabled={loading}
           onClick={() => setStatus('active')}
-          className="rounded bg-emerald-600 px-3 py-1 text-xs text-white disabled:opacity-50"
+          className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          تفعيل
+          Activate · تفعيل
         </button>
       )}
       {status !== 'cancelled' && (
         <button
           type="button"
           disabled={loading}
-          onClick={() => setStatus('cancelled')}
-          className="rounded bg-red-700 px-3 py-1 text-xs text-white disabled:opacity-50"
+          onClick={() => {
+            if (confirm('Cancel this program permanently?')) setStatus('cancelled');
+          }}
+          className="rounded-xl bg-red-700 px-3.5 py-2 text-xs font-semibold text-white hover:bg-red-800 disabled:opacity-50"
         >
-          إلغاء البرنامج
+          Cancel · إلغاء البرنامج
         </button>
       )}
       {err && <span className="text-xs text-red-600">{err}</span>}
@@ -86,6 +89,7 @@ export function MedLineToggle({
     try {
       const res = await fetch(`/api/programs/${programId}/meds/${lineId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !isActive }),
       });
@@ -106,11 +110,11 @@ export function MedLineToggle({
       type="button"
       disabled={loading}
       onClick={toggle}
-      className={`text-xs underline disabled:opacity-50 ${
+      className={`text-xs font-medium underline disabled:opacity-50 ${
         isActive ? 'text-amber-700' : 'text-emerald-700'
       }`}
     >
-      {loading ? '…' : isActive ? 'إيقاف البند' : 'تفعيل البند'}
+      {loading ? '…' : isActive ? 'Pause line · إيقاف البند' : 'Activate line · تفعيل البند'}
     </button>
   );
 }
