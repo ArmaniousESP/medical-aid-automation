@@ -19,34 +19,48 @@ export default function NotificationsPage() {
   const dry = status.dry_run_mode;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="space-y-3">
           <FlowSteps current={5} />
           <div className="flex flex-wrap justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
                 More tools · Notifications
               </p>
-              <h1 className="text-2xl font-semibold">WhatsApp Business & alerts</h1>
-              <p className="text-sm text-slate-600">
-                Meta · Twilio · dry-run toggle · refill due
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                WhatsApp & alerts
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                واتساب · ميتا / تويليو · تجريبي · تنبيهات الصرف
               </p>
             </div>
-            <div className="flex gap-3 text-sm">
-              <Link href="/refills" className="text-blue-600 hover:underline">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/refills"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
                 ← Refills
               </Link>
-              <Link href="/dry-run" className="text-amber-800 hover:underline">
-                Dry-run script
+              <Link
+                href="/safety"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                Safety
+              </Link>
+              <Link
+                href="/dry-run"
+                className="rounded-xl bg-amber-100 px-3 py-2 font-medium text-amber-950 hover:bg-amber-200"
+              >
+                Dry-run
               </Link>
             </div>
           </div>
         </header>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm flex flex-wrap items-center gap-3 text-sm">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center gap-3 text-sm">
           <span className="text-xs uppercase tracking-wide text-slate-400">
-            Active channel
+            Active channel · القناة
           </span>
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -100,6 +114,23 @@ export default function NotificationsPage() {
         <NotifyDueButton />
 
         <ReplayFailedButton />
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-3xl flex gap-2">
+          <Link
+            href="/refills"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Refills
+          </Link>
+          <Link
+            href="/safety"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Safety →
+          </Link>
+        </div>
       </div>
     </main>
   );
