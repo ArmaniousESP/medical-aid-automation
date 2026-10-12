@@ -5,6 +5,7 @@ import {
 } from '@/lib/drugSynonyms';
 import { SynonymForm } from './SynonymForm';
 import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +19,30 @@ export default async function SynonymsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-3xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Ingredient synonyms</h1>
-            <p className="text-sm text-slate-600">
-              Trade / Egypt brands → generic names for DDInter & allergy matching
-            </p>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/ddinter" className="text-blue-600 hover:underline">
-              DDInter
-            </Link>
-            <Link href="/combinations" className="text-blue-600 hover:underline">
-              Combinations
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={5} />
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Clinical tools · Synonyms
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Ingredient synonyms
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                أسماء تجارية ← مواد فعّالة · للتفاعلات والحساسية
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link href="/ddinter" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
+                DDInter
+              </Link>
+              <Link href="/combinations" className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50">
+                Combinations
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -103,6 +112,23 @@ export default async function SynonymsPage() {
         </section>
 
         <ClinicalDisclaimer compact />
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-3xl flex gap-2">
+          <Link
+            href="/ddinter"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← DDInter
+          </Link>
+          <Link
+            href="/combinations"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Combinations →
+          </Link>
+        </div>
       </div>
     </main>
   );
