@@ -107,8 +107,10 @@ const STAFF_STEPS: Step[] = [
     id: 'staff-4',
     titleEn: 'Programs',
     titleAr: 'البرامج',
-    bodyEn: 'Search chronic enrollments by name or code. Open a program for meds and history.',
-    bodyAr: 'ابحث عن البرامج بالاسم أو الكود. افتح البرنامج لرؤية الأدوية.',
+    bodyEn:
+      'Search enrollments by name or code. Open a program for meds, care-line, and (if enabled by management) WHO needs assessment + AI coach. High-risk rows sort first when assessment is on.',
+    bodyAr:
+      'ابحث بالاسم أو الكود. افتح البرنامج للأدوية وخط الرعاية، وتقييم الاحتياج ومدرب الالتزام إن فعّلتهما الإدارة.',
     href: '/programs',
     cta: 'Open Programs',
     mock: 'none',
@@ -163,7 +165,7 @@ const MORE_TOOLS = [
     href: '/status',
     title: 'System status',
     titleAr: 'حالة النظام',
-    body: 'Database and env checks.',
+    body: 'Database, env, and feature-flag checks.',
   },
 ];
 
@@ -266,6 +268,12 @@ export default function GuidePage() {
               Staff · للتشغيل
             </a>
             <a
+              href="#management"
+              className="rounded-full bg-amber-100 text-amber-950 px-3.5 py-1.5 text-xs font-semibold"
+            >
+              Management · الإدارة
+            </a>
+            <a
               href="#more-tools"
               className="rounded-full bg-slate-100 text-slate-700 px-3.5 py-1.5 text-xs font-semibold"
             >
@@ -329,6 +337,35 @@ export default function GuidePage() {
               <StepCard key={s.id} s={s} accent="violet" />
             ))}
           </ol>
+        </section>
+
+        <section id="management" className="space-y-4 scroll-mt-28">
+          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 space-y-3">
+            <h2 className="font-bold text-amber-950 text-lg">
+              Management approval · موافقة الإدارة
+            </h2>
+            <p className="text-sm text-amber-950/90">
+              Advanced adherence tools ship <strong>off</strong> until approved. Check status on{' '}
+              <Link href="/admin" className="font-semibold underline">
+                Admin
+              </Link>{' '}
+              or <code className="text-xs bg-white px-1 rounded border">/api/health</code>.
+            </p>
+            <ul className="text-sm text-amber-950 space-y-2 list-disc pl-5">
+              <li>
+                <code className="text-xs bg-white px-1 rounded border">ENABLE_WHO_ASSESSMENT=true</code>{' '}
+                — WHO five-dimension needs checklist on program files; risk badges on Programs list.
+              </li>
+              <li>
+                <code className="text-xs bg-white px-1 rounded border">ENABLE_AI_ADHERENCE_COACH=true</code>{' '}
+                — staff coach tips; optional{' '}
+                <code className="text-xs bg-white px-1 rounded border">XAI_API_KEY</code> for richer wording.
+              </li>
+            </ul>
+            <p className="text-xs text-amber-900/80" dir="rtl">
+              بعد الموافقة: أضف المتغيرات في Vercel → Environment Variables ثم أعد النشر.
+            </p>
+          </div>
         </section>
 
         <section id="more-tools" className="space-y-4 scroll-mt-28">
