@@ -2,6 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
+
+const SEVERITY_OPTIONS: PickerOption[] = [
+  { value: 'unknown', label: 'Unknown' },
+  { value: 'mild', label: 'Mild' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'severe', label: 'Severe' },
+  { value: 'anaphylaxis', label: 'Anaphylaxis' },
+];
 
 export function AllergyPanel({
   programId,
@@ -28,6 +37,7 @@ export function AllergyPanel({
     try {
       const res = await fetch('/api/allergies', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dependent_id: dependentId,
@@ -54,6 +64,7 @@ export function AllergyPanel({
     try {
       await fetch('/api/allergies', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'deactivate', id }),
       });
@@ -70,7 +81,7 @@ export function AllergyPanel({
           {initialHits.map((h, i) => (
             <li
               key={i}
-              className={`rounded border p-2 text-xs ${
+              className={`rounded-xl border p-2 text-xs ${
                 h.risk === 'high'
                   ? 'border-red-300 bg-red-50'
                   : h.risk === 'moderate'
@@ -79,7 +90,7 @@ export function AllergyPanel({
               }`}
             >
               <span className="font-semibold uppercase">{h.risk}</span>
-              {' · '}
+              {' \u00b7 '}
               Allergy <strong>{h.allergy_label}</strong> vs med{' '}
               <strong>{h.med_name}</strong>
               {h.med_ingredient ? ` (${h.med_ingredient})` : ''}
@@ -115,52 +126,59 @@ export function AllergyPanel({
         </ul>
       )}
 
-      <form onSubmit={add} className="flex flex-wrap gap-2 items-end border-t pt-3">
-        <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-slate-500">Allergen</span>
+      <form onSubmit={add} className="space-y-3 border-t pt-3">
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Allergen
+          </label>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            className="rounded border px-2 py-1 text-xs"
-            placeholder="Penicillin / Sulfa / NSAID…"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base"
+            placeholder="Penicillin / Sulfa / NSAID\u2026"
             required
           />
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-slate-500">Severity</span>
-          <select
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Severity
+          </label>
+          <SearchablePicker
             value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-            className="rounded border px-2 py-1 text-xs"
-          >
-            <option value="unknown">Unknown</option>
-            <option value="mild">Mild</option>
-            <option value="moderate">Moderate</option>
-            <option value="severe">Severe</option>
-            <option value="anaphylaxis">Anaphylaxis</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-[10px] text-slate-500">Note</span>
+            onChange={setSeverity}
+            options={SEVERITY_OPTIONS}
+            allowCreate={false}
+            learnKey="allergy_severity"
+            placeholder="Severity\u2026"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Note (optional)
+          </label>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="rounded border px-2 py-1 text-xs"
-            placeholder="Rash / SOB…"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base"
+            placeholder="Rash / SOB\u2026"
           />
-        </label>
+        </div>
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-slate-800 px-3 py-1 text-xs text-white disabled:opacity-50"
+          className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         >
           Add allergy
         </button>
       </form>
-      {msg && <p className="text-xs text-slate-600">{msg}</p>}
+      {msg && (
+        <p className="text-xs rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
+          {msg}
+        </p>
+      )}
       <p className="text-[10px] text-slate-400">
         Cross-reactivity rules are triage heuristics (side-chain aware beta-lactams,
-        sulfa, NSAID, …). Not clinical decision support.
+        sulfa, NSAID, \u2026). Not clinical decision support.
       </p>
     </div>
   );
