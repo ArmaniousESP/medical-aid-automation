@@ -24,36 +24,38 @@ export default async function FormularyPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="space-y-3">
           <FlowSteps current={1} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-violet-600 font-medium">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
                 More tools · Formulary
               </p>
-              <h1 className="text-2xl font-semibold">Medicine formulary</h1>
-              <p className="text-sm text-slate-600">
-                Matching catalog · {total} rows · used when you Process intake
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Medicine formulary
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                كتالوج المطابقة · {total} صف · يُستخدم عند معالجة الطابور
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-sm">
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/intake-ops"
-                className="rounded-lg bg-violet-700 text-white px-3 py-1.5 hover:bg-violet-800"
+                className="rounded-xl bg-violet-700 text-white px-3 py-2 font-semibold hover:bg-violet-800"
               >
                 ← Queue
               </Link>
               <Link
                 href="/pharmacy"
-                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
               >
                 Pharmacy
               </Link>
               <Link
                 href="/eva-split"
-                className="rounded-lg border bg-white px-3 py-1.5 hover:bg-slate-50"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
               >
                 EVA split
               </Link>
@@ -61,7 +63,7 @@ export default async function FormularyPage({
           </div>
         </header>
 
-        <div className="rounded-xl border border-violet-100 bg-violet-50/80 p-4 text-sm space-y-3">
+        <div className="rounded-2xl border border-violet-100 bg-violet-50/80 p-4 text-sm space-y-3">
           <p className="font-medium text-violet-900">How to use</p>
           <ol className="list-decimal list-inside text-xs sm:text-sm text-violet-900 space-y-1">
             <li>
@@ -79,27 +81,30 @@ export default async function FormularyPage({
           <FormularySyncButton />
         </div>
 
-        <form className="flex flex-wrap gap-2 items-center" method="get">
+        <form
+          className="flex flex-wrap gap-2 items-center rounded-2xl border bg-white p-3 shadow-sm"
+          method="get"
+        >
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search name…"
-            className="rounded border px-3 py-2 text-sm min-w-[200px] flex-1"
+            placeholder="Search name… · بحث"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-base min-w-[200px] flex-1"
           />
-          <label className="flex items-center gap-1.5 text-sm">
+          <label className="flex items-center gap-1.5 text-sm px-2">
             <input type="checkbox" name="eva" value="1" defaultChecked={evaOnly} />
             EVA only
           </label>
           <button
             type="submit"
-            className="rounded bg-slate-800 px-4 py-2 text-sm text-white"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
           >
             Search
           </button>
         </form>
 
         {error && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
             <p className="text-xs mt-1">
               Unlock on Home if needed ·{' '}
@@ -118,9 +123,9 @@ export default async function FormularyPage({
         )}
 
         {rows.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border bg-white shadow-sm">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-100 text-slate-700">
+              <thead className="bg-slate-50 text-slate-700">
                 <tr>
                   <th className="p-3">Name</th>
                   <th className="p-3">AR</th>
@@ -153,6 +158,23 @@ export default async function FormularyPage({
             </table>
           </div>
         )}
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/intake-ops"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Queue
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
+        </div>
       </div>
     </main>
   );
