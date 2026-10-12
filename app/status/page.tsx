@@ -187,17 +187,22 @@ export default async function StatusPage() {
   const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-lg space-y-6">
         <header className="space-y-1">
-          <h1 className="text-xl font-semibold">System status</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+            Platform · Status
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            System status
+          </h1>
           <p className="text-sm text-slate-600" dir="rtl">
             حالة النظام · هل المنصة جاهزة؟
           </p>
         </header>
 
         <div
-          className={`rounded-xl border p-4 ${
+          className={`rounded-2xl border p-4 ${
             health.ok
               ? 'bg-emerald-50 border-emerald-200'
               : 'bg-amber-50 border-amber-300'
@@ -209,12 +214,13 @@ export default async function StatusPage() {
               : 'Setup needed — add DATABASE_URL on Vercel'}
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Medicine search uses the open Egyptian drug database first; MSH is fallback only.
+            Medicine search uses the open Egyptian drug database first; MSH is
+            fallback only.
           </p>
         </div>
 
         {health.ok && (
-          <div className="rounded-xl border border-violet-200 bg-violet-50/80 p-4 space-y-3 text-sm">
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/80 p-4 space-y-3 text-sm">
             <h2 className="font-semibold text-violet-950">
               This month ops path · {period}
             </h2>
@@ -266,7 +272,7 @@ export default async function StatusPage() {
           </div>
         )}
 
-        <ul className="rounded-xl border bg-white divide-y shadow-sm">
+        <ul className="rounded-2xl border bg-white divide-y shadow-sm">
           {Object.entries(health.checks).map(([key, val]) => (
             <li key={key} className="flex justify-between gap-3 p-3 text-sm">
               <div>
@@ -279,7 +285,9 @@ export default async function StatusPage() {
                 )}
               </div>
               <span
-                className={`text-right text-xs max-w-[60%] ${val.ok ? 'text-emerald-700' : 'text-amber-700'}`}
+                className={`text-right text-xs max-w-[60%] ${
+                  val.ok ? 'text-emerald-700' : 'text-amber-700'
+                }`}
               >
                 {val.ok ? 'OK' : 'Missing'} {val.detail ? `· ${val.detail}` : ''}
               </span>
@@ -287,9 +295,12 @@ export default async function StatusPage() {
           ))}
         </ul>
 
-        <div className="flex flex-wrap gap-3 text-sm justify-center pb-6">
+        <div className="flex flex-wrap gap-3 text-sm justify-center">
           <Link href="/guide" className="text-violet-700 hover:underline font-medium">
             How to use
+          </Link>
+          <Link href="/admin" className="text-slate-700 hover:underline font-medium">
+            Admin
           </Link>
           <Link href="/intake" className="text-emerald-700 hover:underline font-medium">
             Intake
@@ -299,6 +310,23 @@ export default async function StatusPage() {
           </Link>
           <Link href="/api/health" className="text-slate-500 hover:underline text-xs">
             JSON health
+          </Link>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-lg flex gap-2">
+          <Link
+            href="/"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Home
+          </Link>
+          <Link
+            href="/intake-ops"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Queue →
           </Link>
         </div>
       </div>
