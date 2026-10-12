@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { inventorySummary, listMoves, listStock } from '@/lib/inventory';
 import { ReceiveStockForm } from './ReceiveStockForm';
 import { InventoryActions } from './InventoryActions';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,30 +28,36 @@ export default async function InventoryPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-16">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Inventory
-            </h1>
-            <p className="text-sm text-slate-600" dir="rtl">
-              إدارة المخزون · استلام · تسوية · حد أدنى
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Link
-              href="/pharmacy"
-              className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
-            >
-              Pharmacy
-            </Link>
-            <Link
-              href="/admin"
-              className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
-            >
-              Admin
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={3} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                More tools · Inventory
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Inventory
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                إدارة المخزون · استلام · تسوية · حد أدنى
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/pharmacy"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                ← Pharmacy
+              </Link>
+              <Link
+                href="/admin"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                Admin
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -102,10 +109,14 @@ export default async function InventoryPage({
             type="submit"
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
           >
-            Search
+            Search · بحث
           </button>
           <Link
-            href={lowOnly ? `/inventory${q ? `?q=${encodeURIComponent(q)}` : ''}` : `/inventory?low=1${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+            href={
+              lowOnly
+                ? `/inventory${q ? `?q=${encodeURIComponent(q)}` : ''}`
+                : `/inventory?low=1${q ? `&q=${encodeURIComponent(q)}` : ''}`
+            }
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
               lowOnly
                 ? 'bg-amber-500 text-white border-amber-500'
@@ -209,6 +220,23 @@ export default async function InventoryPage({
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/pharmacy"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Pharmacy
+          </Link>
+          <Link
+            href="/admin"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Admin →
+          </Link>
         </div>
       </div>
     </main>
