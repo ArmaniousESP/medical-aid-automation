@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { UnlockPanel } from './UnlockPanel';
 import { GetAppButton } from './GetAppButton';
+import { HomeContinuity } from './HomeContinuity';
 
 export default function Home() {
   return (
@@ -23,7 +24,12 @@ export default function Home() {
           <p className="text-base text-slate-600" dir="rtl">
             اختر خطوة واحدة فقط
           </p>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            No account needed · بدون حساب — submit, then track with your Request ID.
+          </p>
         </header>
+
+        <HomeContinuity />
 
         <section className="space-y-3" aria-label="For beneficiaries">
           <Link
@@ -43,6 +49,8 @@ export default function Home() {
                   <span>About 3–5 min</span>
                   <span aria-hidden>·</span>
                   <span dir="rtl">~٣–٥ دقائق</span>
+                  <span aria-hidden>·</span>
+                  <span>Auto-saves as you type</span>
                 </div>
               </div>
               <span
@@ -69,6 +77,9 @@ export default function Home() {
                 <div className="text-sm text-slate-500 mt-0.5" dir="rtl">
                   تابع طلبك برقم الطلب
                 </div>
+                <div className="text-xs text-slate-400 mt-2">
+                  Paste your Request ID · or open from the banner above
+                </div>
               </div>
               <span
                 className="text-2xl text-slate-300 group-hover:text-emerald-500 transition"
@@ -86,7 +97,7 @@ export default function Home() {
 
         <div className="grid grid-cols-3 gap-2 text-center text-[11px] sm:text-xs text-slate-600">
           {[
-            { en: 'Private', ar: 'خاص' },
+            { en: 'No login', ar: 'بدون تسجيل' },
             { en: 'Save your ID', ar: 'احفظ الرقم' },
             { en: 'Egypt prices', ar: 'أسعار مصر' },
           ].map((chip) => (
@@ -104,24 +115,24 @@ export default function Home() {
 
         <section className="rounded-2xl border border-white/80 bg-white/75 p-5 space-y-3 shadow-sm backdrop-blur">
           <h2 className="text-sm font-semibold text-center text-slate-800">
-            Simple path · المسار بسيط
+            Three steps · ثلاث خطوات
           </h2>
           <ol className="space-y-3">
             {[
               {
                 n: '1',
-                en: 'Submit — get a Request ID',
-                ar: 'قدّم الطلب واحفظ رقم الطلب',
+                en: 'Submit — copy your Request ID',
+                ar: 'قدّم الطلب وانسخ رقم الطلب',
               },
               {
                 n: '2',
-                en: 'Staff reviews your medicines',
-                ar: 'الفريق يراجع الأدوية',
+                en: 'Staff reviews medicines & pharmacy',
+                ar: 'الفريق يراجع الأدوية والصيدلية',
               },
               {
                 n: '3',
                 en: 'Check status anytime with that ID',
-                ar: 'تابع الحالة بنفس الرقم',
+                ar: 'تابع الحالة بنفس الرقم متى شئت',
               },
             ].map((step) => (
               <li key={step.n} className="flex gap-3 text-sm">
@@ -137,12 +148,20 @@ export default function Home() {
               </li>
             ))}
           </ol>
-          <p className="text-center pt-1">
+          <p className="text-center pt-1 space-x-2">
             <Link
               href="/guide"
               className="text-sm font-medium text-violet-700 hover:underline"
             >
-              Full guide / الدليل الكامل
+              Full guide
+            </Link>
+            <span className="text-slate-300">·</span>
+            <Link
+              href="/guide#for-you"
+              className="text-sm font-medium text-emerald-700 hover:underline"
+              dir="rtl"
+            >
+              للمستفيد
             </Link>
           </p>
         </section>
@@ -162,7 +181,11 @@ export default function Home() {
             <p className="text-xs text-slate-500 text-center">
               Queue → Claims → Pharmacy → Programs → Refills
             </p>
-            <Suspense fallback={<p className="text-xs text-slate-400">Loading…</p>}>
+            <Suspense
+              fallback={
+                <p className="text-xs text-slate-400 text-center py-2">Loading staff tools…</p>
+              }
+            >
               <UnlockPanel />
             </Suspense>
           </div>
