@@ -75,7 +75,7 @@ export function ProcessIntakeButton({ onDone }: Props) {
         type="button"
         disabled={loading}
         onClick={() => run(false)}
-        className="w-full sm:w-auto rounded-2xl bg-violet-700 px-6 py-3.5 text-base font-semibold text-white shadow-md hover:bg-violet-800 disabled:opacity-50"
+        className="aid-cta-violet w-full sm:w-auto px-6 py-3.5 text-base"
       >
         {loading ? 'Processing… · جاري المعالجة…' : 'Process queue · معالجة الطابور'}
       </button>
@@ -88,12 +88,12 @@ export function ProcessIntakeButton({ onDone }: Props) {
         Dry run only (no changes)
       </button>
       {msg && (
-        <p className="text-sm text-slate-700 rounded-xl bg-white/80 border border-violet-100 px-3 py-2">
+        <p className="text-sm text-slate-700 rounded-xl bg-white/90 border border-violet-100 px-3 py-2 backdrop-blur">
           {msg}
         </p>
       )}
       {errors.length > 0 && (
-        <ul className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 max-w-lg">
+        <ul className="text-xs text-amber-900 bg-amber-50/95 border border-amber-200 rounded-xl p-3 space-y-1 max-w-lg">
           {errors.slice(0, 8).map((e, i) => (
             <li key={i}>
               <span className="font-mono">{e.step}</span>
@@ -104,7 +104,7 @@ export function ProcessIntakeButton({ onDone }: Props) {
         </ul>
       )}
       {done && (
-        <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 space-y-3">
+        <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/95 p-4 space-y-3 backdrop-blur">
           <p className="text-sm font-semibold text-emerald-900">
             Done
             {summary?.enrolled != null ? ` · enrolled ${summary.enrolled}` : ''}
@@ -112,7 +112,7 @@ export function ProcessIntakeButton({ onDone }: Props) {
           </p>
           <Link
             href="/claims"
-            className="block w-full rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white hover:bg-violet-800"
+            className="aid-cta-violet block w-full py-3 text-center text-sm"
           >
             Next: Claims → · المطالبات
           </Link>
