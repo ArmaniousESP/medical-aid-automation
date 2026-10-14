@@ -26,6 +26,7 @@ export const CITY_OPTIONS: PickerOption[] = labels([
 export const COMPANY_OPTIONS: PickerOption[] = labels([
   'Armanious Foundation',
   'EVA Pharma',
+  'تجميل',
   'Other / أخرى',
 ]);
 
@@ -36,54 +37,4 @@ export const RELATION_OPTIONS: PickerOption[] = labels([
   ['parent', 'Parent · والد/والدة'],
   ['sibling', 'Sibling · أخ/أخت'],
   ['other', 'Other · أخرى'],
-]);
-
-export const STAFF_ROLE_OPTIONS: PickerOption[] = labels([
-  ['admin', 'admin — full access'],
-  ['operator', 'operator — day-to-day ops'],
-  ['viewer', 'viewer — read-only'],
-]);
-
-export const INVENTORY_MODE_OPTIONS: PickerOption[] = labels([
-  ['receive', 'استلام (+) · Receive'],
-  ['adjust', 'تسوية (+/−) · Adjust'],
-  ['write_off', 'إهلاك (−) · Write-off'],
-]);
-
-export const DOC_TYPE_OPTIONS: PickerOption[] = labels([
-  ['roshetta', 'روشتة · Roshetta'],
-  ['invoice', 'فاتورة · Invoice'],
-  ['id', 'هوية · ID'],
-  ['lab', 'تحاليل · Lab'],
-  ['other', 'أخرى · Other'],
-]);
-
-export const PROGRAM_STATUS_OPTIONS: PickerOption[] = labels([
-  ['', 'All statuses'],
-  ['active', 'Active'],
-  ['suspended', 'Suspended'],
-  ['cancelled', 'Cancelled'],
-  ['expired', 'Expired'],
-]);
-
-export const EVA_BUCKET_OPTIONS: PickerOption[] = labels([
-  ['all', 'الكل · All'],
-  ['EVA', 'Available in EVA'],
-  ['NOT_EVA', 'NOT IN EVA'],
-]);
-
-export const PHARMACY_FORMULARY_OPTIONS: PickerOption[] = labels([
-  ['all', 'All routes'],
-  ['EVA', 'Available at EVA'],
-  ['NOT_EVA', 'Not at EVA'],
-]);
-
-export const REFILL_STATUS_OPTIONS: PickerOption[] = labels([
-  ['', 'All statuses'],
-  ['in_review', 'In review'],
-  ['approved', 'Approved'],
-  ['partially_approved', 'Partially approved'],
-  ['dispensing', 'Dispensing'],
-  ['dispensed', 'Dispensed'],
-  ['rejected', 'Rejected'],
 ]);
