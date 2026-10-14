@@ -149,7 +149,7 @@ export default function IntakeOpsPage() {
   const waiting = status === 'submitted' ? rows.length : 0;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={1} />
@@ -169,14 +169,14 @@ export default function IntakeOpsPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50 backdrop-blur"
             >
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </header>
 
-        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-violet-950">
@@ -203,20 +203,20 @@ export default function IntakeOpsPage() {
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
               href="/claims"
-              className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 shadow-sm"
+              className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 shadow-md shadow-violet-700/25"
             >
               Next: Claims →
             </Link>
             <Link
               href="/pharmacy"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-white/80 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-white backdrop-blur"
             >
               Pharmacy
             </Link>
           </div>
         </div>
 
-        <div className="rounded-2xl border bg-white p-3 shadow-sm space-y-3">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm space-y-3 backdrop-blur">
           <div>
             <label className="text-xs font-semibold text-slate-600">
               Status · الحالة
@@ -242,7 +242,7 @@ export default function IntakeOpsPage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Name, emp ID, patient, drug…"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-10 text-base outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                className="w-full rounded-xl border border-slate-200 bg-white/80 py-3 pl-9 pr-10 text-base outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
                 dir="auto"
               />
               {q && (
@@ -271,7 +271,7 @@ export default function IntakeOpsPage() {
               className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                 status === s.id
                   ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  : 'bg-white/90 border border-slate-200 text-slate-600 hover:bg-white'
               }`}
             >
               {s.label}
@@ -298,7 +298,6 @@ export default function IntakeOpsPage() {
           </p>
         )}
 
-        {/* Mobile cards */}
         <div className="space-y-3 md:hidden">
           {filtered.map((r) => {
             const names = medList(r.meds);
@@ -306,7 +305,7 @@ export default function IntakeOpsPage() {
             return (
               <article
                 key={r.id}
-                className="rounded-2xl border bg-white p-4 shadow-sm space-y-2.5 active:bg-slate-50"
+                className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2.5 backdrop-blur active:bg-white"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -366,7 +365,7 @@ export default function IntakeOpsPage() {
             );
           })}
           {!filtered.length && !loading && !error && (
-            <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-slate-500 text-sm space-y-2">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-8 text-center text-slate-500 text-sm space-y-2 backdrop-blur">
               {q ? (
                 <>
                   <p>No matches for “{q}”.</p>
@@ -407,10 +406,9 @@ export default function IntakeOpsPage() {
           )}
         </div>
 
-        {/* Desktop table */}
-        <div className="hidden md:block rounded-2xl border bg-white shadow-sm overflow-x-auto">
+        <div className="hidden md:block rounded-2xl border border-white/80 bg-white/90 shadow-sm overflow-x-auto backdrop-blur">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-500">
+            <thead className="bg-slate-50/80 text-left text-xs text-slate-500">
               <tr>
                 <th className="p-3 font-semibold">Status</th>
                 <th className="p-3 font-semibold">Employee</th>
@@ -524,20 +522,19 @@ export default function IntakeOpsPage() {
         )}
       </div>
 
-      {/* Mobile sticky next step */}
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden safe-area-pb">
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl p-3 md:hidden">
         <div className="mx-auto max-w-5xl flex gap-2">
+          <Link
+            href="/admin"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            Admin
+          </Link>
           <Link
             href="/claims"
             className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
           >
             Claims →
-          </Link>
-          <Link
-            href="/pharmacy"
-            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
-          >
-            Pharmacy
           </Link>
         </div>
       </div>
