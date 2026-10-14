@@ -61,7 +61,7 @@ export function SearchablePicker({
   name,
   id: idProp,
   className = '',
-  emptyHint = 'No matches',
+  emptyHint = 'No matches · لا نتائج — type another spelling or add new',
   minQueryLength = 0,
 }: Props) {
   const autoId = useId();
@@ -361,7 +361,7 @@ export function SearchablePicker({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-slate-200/90 bg-white/95 py-1 shadow-xl backdrop-blur"
         >
           {learnKey && popularCount > 0 && normalize(query).length < 2 && (
             <li className="sticky top-0 z-10 border-b border-violet-100 bg-violet-50/95 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800">
@@ -372,7 +372,9 @@ export function SearchablePicker({
             </li>
           )}
           {loading && (
-            <li className="px-4 py-2 text-xs text-slate-500">Searching…</li>
+            <li className="px-4 py-3 text-xs text-slate-500 animate-pulse">
+              Searching catalog… · جاري البحث
+            </li>
           )}
           {!loading && items.length === 0 && (
             <li className="px-4 py-2 text-xs text-slate-500">{emptyHint}</li>
