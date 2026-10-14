@@ -88,13 +88,13 @@ export function UnlockPanel() {
     setErr(null);
     try {
       const res = await fetch('/api/auth/unlock', {
-        ...cred,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ secret }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Unlock failed');
       setUnlocked(true);
       setSecret('');
       if (nextPath && nextPath.startsWith('/')) {
@@ -108,23 +108,27 @@ export function UnlockPanel() {
   }
 
   async function lock() {
-    await Promise.all([
-      fetch('/api/auth/unlock', { ...cred, method: 'DELETE' }),
-      fetch('/api/auth/staff-session', { ...cred, method: 'DELETE' }),
-    ]);
+    await fetch('/api/auth/unlock', { method: 'DELETE', credentials: 'include' });
+    try {
+      await fetch('/api/auth/staff-session', { method: 'DELETE', credentials: 'include' });
+    } catch {
+      /* optional */
+    }
     setUnlocked(false);
     setStaffEmail(null);
   }
 
-  if (unlocked === null) return null;
+  if (unlocked === null) {
+    return <p className="text-xs text-slate-400 text-center py-2">Checking access…</p>;
+  }
 
   if (unlocked) {
     return (
       <div className="space-y-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/90 p-3 space-y-2 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-emerald-700 font-medium">
-              Admin unlocked
+              Unlocked
               {staffEmail ? ` · Google · ${staffEmail}` : ' · secret'}
             </span>
             <button
@@ -132,33 +136,29 @@ export function UnlockPanel() {
               onClick={lock}
               className="text-xs text-slate-500 hover:text-slate-800 underline"
             >
-              Lock
+              Lock · قفل
             </button>
           </div>
           <AdminGoogleAuth nextPath={nextPath} onStaffChange={onStaffChange} />
         </div>
 
-        <LiveDryRunButton />
-
         <p className="text-[10px] text-center text-slate-500 font-mono">
-          Queue → Claims → Pharmacy → Programs → Refills
+          Daily path · المسار اليومي
         </p>
-
         <ol className="space-y-1.5">
           {OPS_CHECKLIST.map((s) => (
             <li key={s.n}>
               <Link
                 href={s.href}
-                className="flex items-start gap-2 rounded-lg border border-violet-100 bg-white px-3 py-2 hover:border-violet-300 hover:bg-violet-50 transition"
+                className="flex items-start gap-2 rounded-lg border border-violet-100 bg-white/90 px-3 py-2 hover:border-violet-300 hover:bg-violet-50 transition backdrop-blur"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-700 text-[11px] font-bold text-white">
                   {s.n}
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-slate-800">
-                    {s.title}
+                    {s.title}{' '}
                     <span className="text-slate-400 font-normal" dir="rtl">
-                      {' '}
                       · {s.titleAr}
                     </span>
                   </span>
@@ -170,16 +170,20 @@ export function UnlockPanel() {
         </ol>
 
         <Link
-          href="/notifications"
+          href="/refills/safety"
           className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50/80 px-3 py-2 hover:border-red-300 hover:bg-red-50 transition"
         >
-          <span className="text-sm font-medium text-red-900">WhatsApp</span>
-          <span className="text-[11px] text-red-700/80">Notifications</span>
+          <span className="text-red-700 text-xs font-semibold">Safety queue</span>
+          <span className="text-[11px] text-red-600/80">DDInter / allergy flags</span>
         </Link>
 
-        <div className="flex flex-wrap gap-2 text-[11px] justify-center pt-1">
-          <Link href="/dry-run" className="text-amber-800 font-medium hover:underline">
-            Dry-run script
+        <div className="pt-1">
+          <LiveDryRunButton />
+        </div>
+
+        <div className="flex flex-wrap gap-2 justify-center text-[11px]">
+          <Link href="/admin" className="text-violet-700 hover:underline">
+            Admin
           </Link>
           <span className="text-slate-300">·</span>
           <Link href="/sign-in" className="text-violet-700 hover:underline">
@@ -196,8 +200,8 @@ export function UnlockPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Admin panel</h2>
+      <div className="rounded-2xl border border-white/80 bg-white/90 p-4 space-y-3 shadow-sm backdrop-blur">
+        <h2 className="text-sm font-semibold text-slate-900">Staff access · دخول التشغيل</h2>
         <p className="text-xs text-slate-600" dir="rtl">
           لوحة التشغيل · Google أو كلمة السر
         </p>
@@ -228,14 +232,14 @@ export function UnlockPanel() {
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
             placeholder="PROCESS_SECRET"
-            className="rounded border px-2 py-1.5 text-sm min-w-[12rem] flex-1"
+            className="aid-input min-w-[12rem] flex-1 py-2.5 text-sm"
             autoComplete="current-password"
             autoFocus={showPrompt}
           />
           <button
             type="submit"
             disabled={loading}
-            className="rounded bg-slate-800 px-3 py-1.5 text-white text-sm disabled:opacity-50"
+            className="aid-cta-violet px-4 py-2.5 text-sm disabled:opacity-50"
           >
             {loading ? '…' : 'Unlock'}
           </button>
