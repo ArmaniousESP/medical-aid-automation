@@ -5,10 +5,16 @@
 :root {
   --aid-emerald: #059669;
   --aid-emerald-deep: #047857;
+  --aid-teal: #0d9488;
   --aid-violet: #6d28d9;
-  --aid-surface: rgba(255, 255, 255, 0.82);
+  --aid-violet-deep: #5b21b6;
+  --aid-surface: rgba(255, 255, 255, 0.88);
+  --aid-surface-strong: rgba(255, 255, 255, 0.94);
+  --aid-border: rgba(226, 232, 240, 0.9);
   --aid-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.12);
+  --aid-shadow-lg: 0 18px 48px -16px rgba(15, 23, 42, 0.18);
   --aid-ring: rgba(5, 150, 105, 0.35);
+  --aid-ring-violet: rgba(109, 40, 217, 0.3);
 }
 
 html {
@@ -70,7 +76,7 @@ body {
     background: var(--aid-surface);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    border: 1px solid var(--aid-border);
     box-shadow: var(--aid-shadow);
   }
 
@@ -79,8 +85,17 @@ body {
     box-shadow: var(--aid-shadow);
   }
 
+  .aid-card-hover {
+    @apply aid-card transition;
+  }
+
+  .aid-card-hover:hover {
+    box-shadow: var(--aid-shadow-lg);
+    border-color: rgba(203, 213, 225, 0.95);
+  }
+
   .aid-cta-primary {
-    @apply rounded-2xl font-semibold text-white transition;
+    @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
     background: linear-gradient(135deg, #059669 0%, #0d9488 55%, #047857 100%);
     box-shadow: 0 12px 28px -10px rgba(5, 150, 105, 0.55);
   }
@@ -90,16 +105,78 @@ body {
     box-shadow: 0 16px 32px -10px rgba(5, 150, 105, 0.6);
   }
 
+  .aid-cta-primary:disabled {
+    opacity: 0.5;
+    filter: none;
+    box-shadow: none;
+  }
+
+  .aid-cta-violet {
+    @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
+    box-shadow: 0 12px 28px -10px rgba(109, 40, 217, 0.5);
+  }
+
+  .aid-cta-violet:hover {
+    filter: brightness(1.05);
+  }
+
+  .aid-cta-violet:disabled {
+    opacity: 0.5;
+    filter: none;
+    box-shadow: none;
+  }
+
+  .aid-cta-teal {
+    @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%);
+    box-shadow: 0 12px 28px -10px rgba(13, 148, 136, 0.5);
+  }
+
+  .aid-cta-teal:hover {
+    filter: brightness(1.05);
+  }
+
   .aid-pill-active {
     @apply rounded-full bg-emerald-600 text-white shadow-sm;
+  }
+
+  .aid-pill-ops {
+    @apply rounded-full bg-violet-700 text-white shadow-sm;
   }
 
   .aid-nav {
     background: rgba(255, 255, 255, 0.86);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    border-bottom: 1px solid var(--aid-border);
     box-shadow: 0 4px 24px -12px rgba(15, 23, 42, 0.12);
+  }
+
+  .aid-sticky-bar {
+    @apply fixed bottom-0 inset-x-0 z-20 border-t p-3 md:hidden;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: rgba(226, 232, 240, 0.75);
+    box-shadow: 0 -8px 30px -12px rgba(15, 23, 42, 0.12);
+  }
+
+  .aid-input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none;
+  }
+
+  .aid-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px var(--aid-ring);
+  }
+
+  .aid-section-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-violet-600;
+  }
+
+  .aid-kpi {
+    @apply rounded-xl border border-white/80 bg-white/90 px-2 py-3 text-center shadow-sm backdrop-blur;
   }
 }
 
@@ -107,7 +184,6 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Gentle entrance for key home blocks */
 @keyframes aid-rise {
   from {
     opacity: 0;
@@ -131,4 +207,23 @@ body {
 }
 .aid-rise-delay-3 {
   animation-delay: 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .aid-rise,
+  .aid-rise-delay-1,
+  .aid-rise-delay-2,
+  .aid-rise-delay-3 {
+    animation: none;
+  }
+
+  .aid-cta-primary:hover,
+  .aid-cta-violet:hover,
+  .aid-cta-teal:hover {
+    filter: none;
+  }
 }
