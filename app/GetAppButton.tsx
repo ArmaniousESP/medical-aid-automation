@@ -78,10 +78,10 @@ export function GetAppButton({
     variant === 'tab'
       ? 'flex min-h-[3.5rem] min-w-[3.5rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-slate-500'
       : variant === 'nav'
-        ? 'rounded-full border px-2.5 py-1 text-xs font-semibold text-emerald-800 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+        ? 'rounded-full border px-2.5 py-1 text-xs font-semibold text-emerald-800 border-emerald-200/80 bg-emerald-50/90 hover:bg-emerald-100 shadow-sm'
         : variant === 'outline'
-          ? 'w-full rounded-2xl border-2 border-emerald-600 bg-white py-3.5 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
-          : 'w-full rounded-2xl bg-slate-900 py-3.5 text-center text-sm font-semibold text-white hover:bg-slate-800';
+          ? 'w-full rounded-2xl border-2 border-emerald-600/80 bg-white/90 py-3.5 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-50 backdrop-blur shadow-sm'
+          : 'aid-cta-primary w-full py-3.5 text-center text-sm';
 
   const label =
     variant === 'tab'
@@ -97,7 +97,7 @@ export function GetAppButton({
       <button type="button" onClick={onClick} className={`${base} ${className}`}>
         {variant === 'tab' ? (
           <>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-800">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-800 shadow-sm">
               +
             </span>
             <span className="text-[10px] font-semibold leading-tight">{label}</span>
@@ -112,14 +112,14 @@ export function GetAppButton({
 
       {open && (
         <div
-          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="get-app-title"
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl space-y-3"
+            className="w-full max-w-sm rounded-2xl border border-white/80 bg-white/95 p-5 shadow-2xl space-y-3 backdrop-blur"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="get-app-title" className="text-lg font-bold text-slate-900">
@@ -160,14 +160,14 @@ export function GetAppButton({
                 href="/splash"
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 rounded-xl border py-2.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="flex-1 rounded-xl border border-slate-200 bg-white/80 py-2.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Preview splash
               </a>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="aid-cta-primary flex-1 py-2.5 text-xs"
               >
                 Done · تم
               </button>
