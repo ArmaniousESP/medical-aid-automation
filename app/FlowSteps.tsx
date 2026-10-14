@@ -17,7 +17,7 @@ export function FlowSteps({
   return (
     <nav
       aria-label="Staff workflow"
-      className="rounded-2xl border border-violet-100 bg-white/90 px-3 py-2.5 shadow-sm"
+      className="rounded-2xl border border-violet-100/80 bg-white/90 px-3 py-2.5 shadow-sm backdrop-blur"
     >
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] font-bold uppercase tracking-wide text-violet-600 mr-1">
@@ -41,10 +41,10 @@ export function FlowSteps({
                 aria-current={active ? 'step' : undefined}
                 className={`inline-flex min-h-[2rem] items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
                   active
-                    ? 'bg-violet-700 text-white shadow-sm'
+                    ? 'bg-violet-700 text-white shadow-md shadow-violet-700/30'
                     : done
                       ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      : 'bg-slate-100/90 text-slate-500 hover:bg-slate-200'
                 }`}
               >
                 <span
