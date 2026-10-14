@@ -285,7 +285,7 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 pb-28 md:pb-12">
+    <main className="min-h-screen text-slate-900 pb-28 md:pb-12">
       <div className="mx-auto max-w-lg px-4 pt-6 space-y-5">
         <PublicStepsBar active="submit" />
         <header className="space-y-1 text-center sm:text-left">
@@ -297,7 +297,7 @@ export default function IntakePage() {
         </header>
 
         {!resultId && (draftHint || draftSavedAt) && (
-          <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 space-y-2">
+          <div className="rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 space-y-2 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">{draftHint || 'Draft auto-saved · مسودة محفوظة'}</span>
               {draftSavedAt && <span className="text-xs text-sky-700">{formatDraftAge(draftSavedAt)}</span>}
@@ -316,16 +316,16 @@ export default function IntakePage() {
         )}
 
         {lastId && !resultId && (
-          <Link href={`/request-status?id=${encodeURIComponent(lastId)}`} className="block rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 hover:bg-emerald-100">
+          <Link href={`/request-status?id=${encodeURIComponent(lastId)}`} className="block rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900 hover:bg-emerald-100 backdrop-blur">
             Last request · آخر طلب: <span className="font-mono font-semibold">{lastId.slice(0, 8)}…</span>
           </Link>
         )}
 
         {resultId && (
-          <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 space-y-3 shadow-sm">
+          <div className="rounded-2xl border-2 border-emerald-300/80 bg-emerald-50/95 p-5 space-y-3 shadow-lg shadow-emerald-600/10 backdrop-blur">
             <p className="font-semibold text-emerald-950">Request received · تم الاستلام</p>
             <p className="font-mono text-lg font-bold select-all">{resultId}</p>
-            <button type="button" onClick={copyId} className="w-full rounded-xl bg-emerald-700 py-3 text-white font-semibold">{copied ? 'Copied ✓' : 'Copy Request ID'}</button>
+            <button type="button" onClick={copyId} className="aid-cta-primary w-full py-3">{copied ? 'Copied ✓' : 'Copy Request ID'}</button>
             <button type="button" onClick={shareStatus} className="w-full rounded-xl border-2 border-emerald-600 bg-white py-3 font-semibold text-emerald-800">
               Share status link · مشاركة الرابط
             </button>
@@ -339,7 +339,7 @@ export default function IntakePage() {
 
         {!resultId && (
           <form onSubmit={submit} className="space-y-5">
-            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
               <h2 className="text-sm font-semibold">A · About you · بيانات الموظف</h2>
               <label className="block"><span className={label}>Employee name *</span><input required value={emp_name} onChange={(e) => setEmpName(e.target.value)} className={field} /></label>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -350,7 +350,7 @@ export default function IntakePage() {
                 <SearchablePicker value={company} onChange={setCompany} options={COMPANY_OPTIONS} learnKey="company" allowCreate placeholder="Search or add company…" />
               </label>
             </section>
-            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
               <h2 className="text-sm font-semibold">B · Patient · المريض</h2>
               <label className="block"><span className={label}>Patient name</span><input value={patient_name} onChange={(e) => setPatient(e.target.value)} className={field} /></label>
               <label className="block"><span className={label}>Relation</span>
@@ -360,7 +360,7 @@ export default function IntakePage() {
                 <SearchablePicker value={city} onChange={setCity} options={CITY_OPTIONS} learnKey="city" allowCreate placeholder="City…" />
               </label>
             </section>
-            <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
               <div className="flex justify-between items-center">
                 <h2 className="text-sm font-semibold">C · Medicines *</h2>
                 <button type="button" onClick={() => setMeds((m) => [...m, { name: '', qty: 1 }])} className="text-xs font-semibold text-emerald-800">+ Add</button>
@@ -423,46 +423,55 @@ export default function IntakePage() {
                     <button
                       type="button"
                       onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
-                      className="w-8 shrink-0 rounded-lg py-3 text-sm text-red-600 hover:bg-red-50"
-                      aria-label="Remove medicine"
+                      className="w-8 shrink-0 text-slate-400 hover:text-red-600"
+                      aria-label="Remove line"
                     >
-                      ✕
+                      ×
                     </button>
                   ) : (
-                    <span className="w-8 shrink-0" aria-hidden />
+                    <span className="w-8 shrink-0" />
                   )}
                 </div>
               ))}
-              <button type="button" onClick={runEstimate} className="text-sm text-violet-700 font-medium">Estimate cost · تقدير التكلفة</button>
-              {estimate && (
-                <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-1.5 text-xs text-slate-700">
-                  <p className="font-semibold text-slate-900">{estimate}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={runEstimate} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
+                  Estimate cost · تقدير
+                </button>
+                {estimate && <span className="text-xs text-slate-600 self-center">{estimate}</span>}
+              </div>
+              {estimateLines.length > 0 && (
+                <div className="rounded-lg bg-slate-50/80 border border-slate-100 p-3 space-y-1.5 text-xs text-slate-700">
                   {estimateLines.map((ln, i) => (
                     <div key={i} className="flex justify-between gap-2">
                       <span className="truncate">{ln.matched || ln.query}</span>
-                      <span className="shrink-0 font-mono">
-                        {ln.line_total != null ? `${ln.line_total} EGP` : '—'}
-                      </span>
+                      <span className="shrink-0 font-mono">{ln.line_total != null ? `${ln.line_total} EGP` : '—'}</span>
                     </div>
                   ))}
-                  <p className="text-[10px] text-slate-400 pt-1">
-                    Source: egyptian-drug-database (CC0) · indicative only
-                  </p>
                 </div>
               )}
             </section>
-            <details className="rounded-2xl border bg-white p-4">
-              <summary className="cursor-pointer text-sm font-semibold">Optional notes / links</summary>
-              <textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} rows={2} className={field + ' mt-2 text-sm'} placeholder="Roshetta URLs" />
-              <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={2} className={field + ' mt-2'} placeholder="Notes" />
+
+            <details className="rounded-2xl border border-white/80 bg-white/90 p-4 backdrop-blur">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700">More · ملاحظات / روشتة</summary>
+              <div className="mt-3 space-y-3">
+                <label className="block"><span className={label}>Comments</span><textarea value={comments} onChange={(e) => setComments(e.target.value)} className={field} rows={2} /></label>
+                <label className="block"><span className={label}>Roshetta / invoice links</span><textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} className={field} rows={2} placeholder="Drive links, one per line" /></label>
+              </div>
             </details>
-            {error && <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-xl p-4">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full rounded-2xl bg-emerald-600 py-4 text-lg font-semibold text-white disabled:opacity-50">{loading ? 'Sending…' : 'Submit request · إرسال'}</button>
+
+            {error && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{error}</div>
+            )}
+
+            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-4 text-lg disabled:opacity-50">
+              {loading ? 'Sending…' : 'Submit request · إرسال'}
+            </button>
           </form>
         )}
-        <p className="text-center text-sm text-slate-500">
-          <Link href="/request-status" className="text-emerald-700 font-medium hover:underline">Check status</Link>
-          {' · '}
+
+        <p className="text-center text-sm text-slate-500 space-x-2 pb-4">
+          <Link href="/request-status" className="text-emerald-700 font-medium hover:underline">My status</Link>
+          <span>·</span>
           <Link href="/" className="hover:underline">Home</Link>
         </p>
       </div>
