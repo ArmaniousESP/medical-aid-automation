@@ -3,6 +3,7 @@ import { hasOcrProvider } from '@/lib/prescriptionOcr';
 import { ClinicalDisclaimer } from '@/components/ClinicalDisclaimer';
 import { OcrForm } from './OcrForm';
 import { FormPreviewButton } from './FormPreviewButton';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,25 +15,42 @@ export default function OcrPage() {
     'https://docs.google.com/forms';
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-3xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Roshetta & invoice OCR</h1>
-            <p className="text-sm text-slate-600">
-              Upload or Drive link → form fields · invoice validation
-            </p>
-          </div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/submit" className="text-blue-600 hover:underline">
-              Beneficiary guide
-            </Link>
-            <Link href="/documents" className="text-blue-600 hover:underline">
-              Documents
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              Home
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={1} />
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Related to Queue · OCR
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Roshetta & invoice OCR
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                مسح الروشتة والفاتورة · تعبئة الحقول · التحقق من المجموع
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/documents"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                Documents
+              </Link>
+              <Link
+                href="/review"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                Review
+              </Link>
+              <Link
+                href="/intake-ops"
+                className="rounded-xl bg-violet-700 px-3 py-2 font-semibold text-white"
+              >
+                Queue →
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -40,7 +58,7 @@ export default function OcrPage() {
           extra="OCR and invoice totals must be verified against the original images before enroll or approve."
         />
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm text-sm space-y-1">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm text-sm space-y-1">
           <div>
             Google Vision:{' '}
             <strong className={providers.google ? 'text-emerald-700' : 'text-amber-700'}>
@@ -66,11 +84,11 @@ export default function OcrPage() {
 
         <FormPreviewButton />
 
-        <section className="rounded-xl border bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border bg-white p-5 shadow-sm">
           <OcrForm />
         </section>
 
-        <section className="rounded-xl border bg-white p-4 shadow-sm text-xs text-slate-600 space-y-2">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm text-xs text-slate-600 space-y-2">
           <h2 className="font-medium text-sm text-slate-900">API</h2>
           <pre className="bg-slate-50 border rounded p-2 overflow-x-auto text-[11px]">{`POST /api/ocr
 POST /api/ocr/form-preview  { "limit": 5, "emptyMedsOnly": true }
@@ -79,12 +97,33 @@ POST /api/ocr  { "action": "validate_invoice", "text": "…" }`}</pre>
 
         <p className="text-xs text-center text-slate-500">
           Beneficiaries:{' '}
-          <a href={formUrl} className="text-blue-600 hover:underline" target="_blank" rel="noreferrer">
+          <a href={formUrl} className="text-violet-700 hover:underline" target="_blank" rel="noreferrer">
             Google Form
           </a>
+          {' · '}
+          <Link href="/submit" className="text-violet-700 hover:underline">
+            Guide
+          </Link>
         </p>
 
         <ClinicalDisclaimer compact />
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-3xl flex gap-2">
+          <Link
+            href="/review"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            Review
+          </Link>
+          <Link
+            href="/intake-ops"
+            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+          >
+            Queue →
+          </Link>
+        </div>
       </div>
     </main>
   );
