@@ -147,9 +147,7 @@ export default function ClaimsPage() {
           <FlowSteps current={2} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 2 of 5 · Claims
-              </p>
+              <p className="aid-section-label">Step 2 of 5 · Claims</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Claims</h1>
               <p className="text-sm text-slate-600" dir="rtl">
                 المطالبات · راجع المسودات ثم Submit
@@ -194,7 +192,7 @@ export default function ClaimsPage() {
               type="button"
               disabled={batchBusy}
               onClick={submitAllDrafts}
-              className="w-full sm:w-auto rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50 shadow-md shadow-violet-700/25"
+              className="aid-cta-violet w-full sm:w-auto px-5 py-2.5 text-sm"
             >
               {batchBusy
                 ? 'Submitting all…'
@@ -208,10 +206,7 @@ export default function ClaimsPage() {
             >
               ← Queue
             </Link>
-            <Link
-              href="/pharmacy"
-              className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 shadow-md shadow-teal-600/25"
-            >
+            <Link href="/pharmacy" className="aid-cta-teal px-4 py-2.5 text-sm">
               Next: Pharmacy →
             </Link>
           </div>
@@ -298,7 +293,7 @@ export default function ClaimsPage() {
                   type="button"
                   disabled={busyId === c.id || batchBusy}
                   onClick={() => submitClaim(c.id)}
-                  className="w-full rounded-xl bg-violet-700 py-2.5 text-sm font-semibold text-white disabled:opacity-50 shadow-md shadow-violet-700/25"
+                  className="aid-cta-violet w-full py-2.5 text-sm"
                 >
                   {busyId === c.id ? 'Submitting…' : 'Submit claim'}
                 </button>
@@ -408,7 +403,7 @@ export default function ClaimsPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-4xl flex gap-2">
           <Link
             href="/intake-ops"
@@ -416,10 +411,7 @@ export default function ClaimsPage() {
           >
             ← Queue
           </Link>
-          <Link
-            href="/pharmacy"
-            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/pharmacy" className="aid-cta-teal flex-1 py-3 text-center text-sm">
             Pharmacy →
           </Link>
         </div>
