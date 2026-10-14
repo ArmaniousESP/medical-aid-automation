@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { expandRosterSeed } from '@/lib/rosterSeed';
 
 export type RosterRow = {
   company: string;
@@ -100,21 +101,21 @@ export async function upsertEmployeeRoster(
   return { inserted, updated };
 }
 
-/** Load bundled seed once if the table is empty (first deploy / empty DB). */
+/** Load bundled seed once if the table has few rows. */
 export async function ensureRosterSeeded(): Promise<void> {
   if (seedAttempted) return;
   seedAttempted = true;
   await ensureEmployeeRosterTable();
   const n = await rosterCount();
-  if (n >= 50) return;
+  // Always ensure seed is applied when under-populated (e.g. partial import)
+  if (n >= 200) return;
   try {
-    const seed = await import('@/data/employee_roster_seed.json');
-    const rows = (seed.default || seed) as RosterRow[];
-    if (Array.isArray(rows) && rows.length) {
+    const rows = expandRosterSeed();
+    if (rows.length) {
       await upsertEmployeeRoster(rows, 'bundled_seed');
     }
-  } catch {
-    // Seed file missing or import failed — ignore
+  } catch (e) {
+    console.error('roster seed failed', e);
   }
 }
 
@@ -151,7 +152,6 @@ export async function findRosterEmployee(input: {
   );
 
   if (!res.rows.length) {
-    // Try phone-only within company (ID typo recovery)
     const byPhone = await query<{
       emp_name: string;
       emp_id: string | null;
@@ -162,7 +162,7 @@ export async function findRosterEmployee(input: {
        WHERE lower(trim(company)) = lower(trim($1))
          AND status = 'active'
          AND phone IS NOT NULL
-       LIMIT 80`,
+       LIMIT 120`,
       [company]
     );
     const m = byPhone.rows.find(
@@ -179,7 +179,6 @@ export async function findRosterEmployee(input: {
 
   const match =
     res.rows.find((r) => phonesMatch(r.phone, phone)) ||
-    // If HR phone missing, still allow when ID+company unique
     (res.rows.length === 1 && !res.rows[0].phone ? res.rows[0] : undefined);
 
   if (!match) return null;
