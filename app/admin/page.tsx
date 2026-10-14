@@ -23,20 +23,17 @@ export default function AdminPage() {
   const flags = featureFlagsStatus();
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-xl space-y-5">
         <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-            Staff only · Admin
-          </p>
+          <p className="aid-section-label">Staff only · Admin</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin</h1>
           <p className="text-sm text-slate-600" dir="rtl">
             لوحة التشغيل · تسجيل الدخول · الأدوار · الأعلام
           </p>
         </header>
 
-        {/* Ops path chips */}
-        <div className="rounded-2xl border bg-white p-3 shadow-sm">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm backdrop-blur">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-2 px-1">
             Monthly path · المسار الشهري
           </p>
@@ -45,7 +42,7 @@ export default function AdminPage() {
               <Link
                 key={s.href}
                 href={s.href}
-                className="flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50 px-1 py-2.5 text-center hover:border-violet-300 hover:bg-violet-50 transition"
+                className="flex flex-col items-center rounded-xl border border-slate-100 bg-white/80 px-1 py-2.5 text-center hover:border-violet-300 hover:bg-violet-50 transition shadow-sm"
               >
                 <span className="text-[10px] font-bold text-violet-700">{s.n}</span>
                 <span className="text-[10px] sm:text-xs font-semibold text-slate-800 leading-tight">
@@ -59,7 +56,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm space-y-2 text-sm">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2 text-sm backdrop-blur">
           <p className="font-semibold text-slate-800">Access status</p>
           <ul className="text-xs text-slate-600 space-y-1.5">
             <li className="flex justify-between gap-2">
@@ -81,14 +78,14 @@ export default function AdminPage() {
           </ul>
           <Link
             href="/admin/roles"
-            className="mt-2 flex items-center justify-between rounded-xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-xs font-semibold text-violet-900 hover:bg-violet-100"
+            className="mt-2 flex items-center justify-between rounded-xl border border-violet-200 bg-violet-50/90 px-3 py-2.5 text-xs font-semibold text-violet-900 hover:bg-violet-100"
           >
             <span>Role management · إدارة الأدوار</span>
             <span aria-hidden>→</span>
           </Link>
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm space-y-2 text-sm">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2 text-sm backdrop-blur">
           <p className="font-semibold text-slate-800">Management feature flags</p>
           <p className="text-[11px] text-slate-500">
             Off by default until approved. Toggle in Vercel → Environment Variables.
@@ -130,7 +127,13 @@ export default function AdminPage() {
           </ul>
         </div>
 
-        <Suspense fallback={<p className="text-sm text-slate-500">Loading sign-in…</p>}>
+        <Suspense
+          fallback={
+            <p className="text-sm text-slate-500 text-center py-4 animate-pulse">
+              Loading sign-in…
+            </p>
+          }
+        >
           <AdminPanelClient />
         </Suspense>
 
@@ -157,7 +160,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-xl flex gap-2">
           <Link
             href="/admin/roles"
@@ -165,10 +168,7 @@ export default function AdminPage() {
           >
             Roles
           </Link>
-          <Link
-            href="/intake-ops"
-            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/intake-ops" className="aid-cta-violet flex-1 py-3 text-center text-sm">
             Queue →
           </Link>
         </div>
