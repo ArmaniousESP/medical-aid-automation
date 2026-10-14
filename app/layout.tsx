@@ -68,12 +68,12 @@ export default function RootLayout({
           />
         ))}
       </head>
-      <body className="min-h-screen bg-slate-50 antialiased">
+      <body className="min-h-screen antialiased text-slate-900">
         <RegisterSW />
         <SplashScreen />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-white"
         >
           Skip to content
         </a>
@@ -81,7 +81,7 @@ export default function RootLayout({
         <div className="mx-auto max-w-6xl px-4 pt-3">
           <SetupBanner />
         </div>
-        <div id="main-content" className="pb-24 md:pb-6">
+        <div id="main-content" className="pb-24 md:pb-8">
           {children}
         </div>
         <MobilePublicNav />
