@@ -25,7 +25,7 @@ export default function Home() {
             اختر خطوة واحدة فقط
           </p>
           <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            No account needed · بدون حساب — submit, then track with your Request ID.
+            No account needed · بدون حساب — submit, track, or open your employee profile.
           </p>
         </header>
 
@@ -90,7 +90,35 @@ export default function Home() {
             </div>
           </Link>
 
-          <div className="aid-rise aid-rise-delay-3">
+          <Link
+            href="/me"
+            className="aid-rise aid-rise-delay-3 group block rounded-2xl border border-violet-200/90 bg-gradient-to-br from-violet-50/90 to-white/90 p-6 shadow-sm backdrop-blur hover:border-violet-300 hover:shadow-lg hover:shadow-violet-600/10 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-200 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-2xl font-bold text-violet-800 ring-1 ring-violet-200">
+                3
+              </span>
+              <div className="text-left flex-1 min-w-0">
+                <div className="text-xl font-semibold text-slate-900">
+                  My employee profile
+                </div>
+                <div className="text-sm text-slate-500 mt-0.5" dir="rtl">
+                  الشركة + الرقم الوظيفي · طلباتك والرد على المراجعين
+                </div>
+                <div className="text-xs text-slate-400 mt-2">
+                  New request · history · reply to staff questions
+                </div>
+              </div>
+              <span
+                className="text-2xl text-violet-300 group-hover:text-violet-600 transition"
+                aria-hidden
+              >
+                →
+              </span>
+            </div>
+          </Link>
+
+          <div className="aid-rise">
             <GetAppButton variant="outline" />
           </div>
         </section>
@@ -131,8 +159,8 @@ export default function Home() {
               },
               {
                 n: '3',
-                en: 'Check status anytime with that ID',
-                ar: 'تابع الحالة بنفس الرقم متى شئت',
+                en: 'Check status or open My profile anytime',
+                ar: 'تابع الحالة أو افتح ملفك متى شئت',
               },
             ].map((step) => (
               <li key={step.n} className="flex gap-3 text-sm">
@@ -157,11 +185,10 @@ export default function Home() {
             </Link>
             <span className="text-slate-300">·</span>
             <Link
-              href="/guide#for-you"
+              href="/me"
               className="text-sm font-medium text-emerald-700 hover:underline"
-              dir="rtl"
             >
-              للمستفيد
+              My profile
             </Link>
           </p>
         </section>
@@ -192,8 +219,8 @@ export default function Home() {
         </details>
 
         <footer className="text-center text-xs text-slate-400 pb-4 space-y-1">
-          <p>Your data is private. Only submit & status are public.</p>
-          <p dir="rtl">بياناتك خاصة — التقديم والحالة فقط للعامة.</p>
+          <p>Your data is private. Only submit, status & profile lookup are public.</p>
+          <p dir="rtl">بياناتك خاصة — التقديم والحالة وملف الموظف فقط للعامة.</p>
         </footer>
       </div>
     </main>
