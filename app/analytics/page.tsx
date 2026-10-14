@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getMedicalAnalytics } from '@/lib/analytics';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,54 +31,71 @@ export default async function AnalyticsPage({
   const k = data?.kpis;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">أدوات تحليل البيانات الطبية</h1>
-            <p className="text-sm text-slate-600">
-              مؤشرات · توزيع EVA · أعلى الأدوية · موظفون · سلسلة زمنية
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link href="/reports" className="text-blue-600 hover:underline">
-              التقارير
-            </Link>
-            <Link href="/eva-split" className="text-blue-600 hover:underline">
-              تقسيم EVA
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={5} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                More tools · Analytics
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Medical analytics · تحليلات
+              </h1>
+              <p className="text-sm text-slate-600" dir="rtl">
+                مؤشرات · توزيع EVA · أعلى الأدوية · موظفون · سلسلة زمنية
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/reports"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                Reports
+              </Link>
+              <Link
+                href="/eva-split"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                EVA split
+              </Link>
+              <Link
+                href="/pharmacy"
+                className="rounded-xl bg-teal-600 px-3 py-2 font-semibold text-white"
+              >
+                Pharmacy →
+              </Link>
+            </div>
           </div>
         </header>
 
-        <form className="flex flex-wrap gap-2 items-end text-sm">
+        <form className="flex flex-wrap gap-2 items-end text-sm rounded-2xl border bg-white p-3 shadow-sm">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">الشهر</label>
+            <label className="block text-xs text-slate-500 mb-1">Month · الشهر</label>
             <input
               type="month"
               name="period"
               defaultValue={period}
-              className="rounded border px-2 py-1.5"
+              className="rounded-xl border border-slate-200 px-3 py-2"
             />
           </div>
           <button
             type="submit"
-            className="rounded bg-slate-800 px-3 py-1.5 text-white"
+            className="rounded-xl bg-slate-900 px-4 py-2 text-white font-semibold"
           >
-            تحديث
+            Refresh · تحديث
           </button>
           <a
             href={`/api/analytics?period=${period}&format=csv`}
-            className="rounded bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700"
+            className="rounded-xl bg-emerald-600 px-3 py-2 text-white font-semibold hover:bg-emerald-700"
           >
-            تصدير CSV
+            CSV export
           </a>
         </form>
 
         {error && (
-          <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
           </div>
         )}
@@ -85,29 +103,29 @@ export default async function AnalyticsPage({
         {k && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Kpi label="برامج نشطة" value={fmt(k.active_programs)} />
-              <Kpi label="مرضى" value={fmt(k.unique_patients)} />
-              <Kpi label="موظفون" value={fmt(k.unique_employees)} />
-              <Kpi label="بنود دوائية" value={fmt(k.active_med_lines)} />
+              <Kpi label="Active programs" value={fmt(k.active_programs)} />
+              <Kpi label="Patients" value={fmt(k.unique_patients)} />
+              <Kpi label="Employees" value={fmt(k.unique_employees)} />
+              <Kpi label="Med lines" value={fmt(k.active_med_lines)} />
               <Kpi
-                label="نسبة EVA"
+                label="EVA %"
                 value={`${k.eva_pct}%`}
                 sub={`${fmt(k.eva_lines)} / ${fmt(k.eva_lines + k.not_eva_lines)}`}
               />
-              <Kpi label="برامج بمستندات" value={fmt(k.programs_with_docs)} />
-              <Kpi label={`دورات ${period}`} value={fmt(k.refill_cycles_period)} />
-              <Kpi label="مصروف" value={fmt(k.dispensed_period)} />
-              <Kpi label="قيد المراجعة" value={fmt(k.in_review_period)} />
+              <Kpi label="With documents" value={fmt(k.programs_with_docs)} />
+              <Kpi label={`Cycles ${period}`} value={fmt(k.refill_cycles_period)} />
+              <Kpi label="Dispensed" value={fmt(k.dispensed_period)} />
+              <Kpi label="In review" value={fmt(k.in_review_period)} />
               <Kpi
-                label="تكلفة تقديرية"
+                label="Est. cost"
                 value={`${fmt(Math.round(k.est_cost_period_egp))} EGP`}
               />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <section className="rounded-lg border bg-white shadow-sm overflow-hidden">
+              <section className="rounded-2xl border bg-white shadow-sm overflow-hidden">
                 <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                  توزيع Formulary
+                  Formulary mix
                 </h2>
                 <ul className="p-3 space-y-2 text-sm">
                   {data!.formulary_mix.map((f) => {
@@ -138,9 +156,9 @@ export default async function AnalyticsPage({
                 </ul>
               </section>
 
-              <section className="rounded-lg border bg-white shadow-sm overflow-hidden">
+              <section className="rounded-2xl border bg-white shadow-sm overflow-hidden">
                 <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                  صلة القرابة
+                  Relation mix
                 </h2>
                 <ul className="p-3 space-y-1 text-sm">
                   {data!.relation_mix.map((r) => (
@@ -153,88 +171,88 @@ export default async function AnalyticsPage({
               </section>
             </div>
 
-            <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+            <section className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
               <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                أعلى 25 دواء (تكرار في البرامج)
+                Top 25 drugs (program frequency)
               </h2>
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 text-left">
+                <thead className="bg-slate-50 text-left">
                   <tr>
-                    <th className="p-2">الدواء</th>
-                    <th className="p-2">بنود</th>
-                    <th className="p-2">برامج</th>
-                    <th className="p-2">كمية شهرية</th>
-                    <th className="p-2">منها EVA</th>
+                    <th className="p-3">Drug</th>
+                    <th className="p-3">Lines</th>
+                    <th className="p-3">Programs</th>
+                    <th className="p-3">Monthly qty</th>
+                    <th className="p-3">EVA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data!.top_drugs.map((d) => (
                     <tr key={d.drug_name} className="border-t">
-                      <td className="p-2 font-medium">{d.drug_name}</td>
-                      <td className="p-2">{d.line_count}</td>
-                      <td className="p-2">{d.program_count}</td>
-                      <td className="p-2">{d.total_qty}</td>
-                      <td className="p-2 text-emerald-700">{d.eva_count}</td>
+                      <td className="p-3 font-medium">{d.drug_name}</td>
+                      <td className="p-3">{d.line_count}</td>
+                      <td className="p-3">{d.program_count}</td>
+                      <td className="p-3">{d.total_qty}</td>
+                      <td className="p-3 text-emerald-700">{d.eva_count}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </section>
 
-            <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+            <section className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
               <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                أعلى موظفين بعدد الأدوية
+                Top employees by med count
               </h2>
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 text-left">
+                <thead className="bg-slate-50 text-left">
                   <tr>
-                    <th className="p-2">الموظف</th>
-                    <th className="p-2">ID</th>
-                    <th className="p-2">برامج</th>
-                    <th className="p-2">أدوية</th>
+                    <th className="p-3">Employee</th>
+                    <th className="p-3">ID</th>
+                    <th className="p-3">Programs</th>
+                    <th className="p-3">Meds</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data!.top_employees_by_meds.map((e) => (
                     <tr key={e.employee_id} className="border-t">
-                      <td className="p-2">{e.employee_name}</td>
-                      <td className="p-2 font-mono text-xs">{e.employee_id}</td>
-                      <td className="p-2">{e.program_count}</td>
-                      <td className="p-2 font-medium">{e.med_count}</td>
+                      <td className="p-3">{e.employee_name}</td>
+                      <td className="p-3 font-mono text-xs">{e.employee_id}</td>
+                      <td className="p-3">{e.program_count}</td>
+                      <td className="p-3 font-medium">{e.med_count}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </section>
 
-            <section className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+            <section className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
               <h2 className="p-3 font-medium border-b bg-slate-50 text-sm">
-                الصرف الشهري (آخر 12)
+                Monthly dispense (last 12)
               </h2>
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 text-left">
+                <thead className="bg-slate-50 text-left">
                   <tr>
-                    <th className="p-2">الشهر</th>
-                    <th className="p-2">دورات</th>
-                    <th className="p-2">مصروف</th>
-                    <th className="p-2">تقديري EGP</th>
-                    <th className="p-2">معتمد EGP</th>
+                    <th className="p-3">Month</th>
+                    <th className="p-3">Cycles</th>
+                    <th className="p-3">Dispensed</th>
+                    <th className="p-3">Est. EGP</th>
+                    <th className="p-3">Approved EGP</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data!.monthly_refills.map((m) => (
                     <tr key={m.period} className="border-t">
-                      <td className="p-2 font-mono">{m.period}</td>
-                      <td className="p-2">{m.cycles}</td>
-                      <td className="p-2">{m.dispensed}</td>
-                      <td className="p-2">{fmt(Math.round(m.est_egp))}</td>
-                      <td className="p-2">{fmt(Math.round(m.approved_egp))}</td>
+                      <td className="p-3 font-mono">{m.period}</td>
+                      <td className="p-3">{m.cycles}</td>
+                      <td className="p-3">{m.dispensed}</td>
+                      <td className="p-3">{fmt(Math.round(m.est_egp))}</td>
+                      <td className="p-3">{fmt(Math.round(m.approved_egp))}</td>
                     </tr>
                   ))}
                   {data!.monthly_refills.length === 0 && (
                     <tr>
                       <td colSpan={5} className="p-4 text-center text-slate-500">
-                        لا دورات صرف بعد — ولّد الشهر الحالي
+                        No refill cycles yet — generate the current month
                       </td>
                     </tr>
                   )}
@@ -245,6 +263,23 @@ export default async function AnalyticsPage({
         )}
 
         <p className="text-xs text-slate-400">API: /api/analytics?period={period}</p>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-6xl flex gap-2">
+          <Link
+            href="/reports"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Reports
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
+        </div>
       </div>
     </main>
   );
@@ -260,7 +295,7 @@ function Kpi({
   sub?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-white p-3 shadow-sm">
+    <div className="rounded-2xl border bg-white p-3 shadow-sm">
       <div className="text-xs text-slate-500">{label}</div>
       <div className="text-xl font-semibold mt-0.5">{value}</div>
       {sub && <div className="text-[10px] text-slate-400">{sub}</div>}
