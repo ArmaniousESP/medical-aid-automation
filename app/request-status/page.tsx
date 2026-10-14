@@ -163,7 +163,7 @@ function StatusForm() {
   return (
     <div className="space-y-4">
       {fromDevice && id && (
-        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 flex gap-2 items-start">
+        <div className="rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 flex gap-2 items-start backdrop-blur">
           <span className="text-lg leading-none" aria-hidden>
             📱
           </span>
@@ -176,7 +176,7 @@ function StatusForm() {
         </div>
       )}
 
-      <form onSubmit={(e) => lookup(e)} className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+      <form onSubmit={(e) => lookup(e)} className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
         <label className="block">
           <span className="block text-sm font-medium text-slate-700 mb-1.5">
             Request ID · رقم الطلب
@@ -199,7 +199,7 @@ function StatusForm() {
             <button
               type="button"
               onClick={pasteId}
-              className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="shrink-0 rounded-xl border border-slate-200 bg-white/80 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
               {pasted ? '✓' : 'Paste'}
             </button>
@@ -237,14 +237,14 @@ function StatusForm() {
         <button
           type="submit"
           disabled={loading || !id.trim()}
-          className="w-full rounded-2xl bg-emerald-600 py-3.5 text-base font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-md active:scale-[0.99] transition"
+          className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50 active:scale-[0.99]"
         >
           {loading ? 'Looking up… · جاري البحث' : 'Check status · عرض الحالة'}
         </button>
       </form>
 
       {error && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950 space-y-3">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/95 p-5 text-sm text-amber-950 space-y-3 backdrop-blur">
           <p className="font-semibold">We couldn't find that request</p>
           <p className="text-xs text-amber-900/80" dir="rtl">
             لم نعثر على الطلب — تأكد من رقم الطلب أو قدّم طلباً جديداً
@@ -256,7 +256,7 @@ function StatusForm() {
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
               href="/intake"
-              className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white"
+              className="aid-cta-primary px-4 py-2.5 text-xs"
             >
               Submit a new request
             </Link>
@@ -268,7 +268,7 @@ function StatusForm() {
       )}
 
       {data && (
-        <div className="rounded-2xl border-2 border-emerald-200 bg-white p-5 shadow-sm space-y-5">
+        <div className="rounded-2xl border-2 border-emerald-200/80 bg-white/95 p-5 shadow-lg shadow-emerald-600/10 space-y-5 backdrop-blur">
           <div className="text-center space-y-1">
             <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">
               Current status · الحالة الحالية
@@ -289,7 +289,7 @@ function StatusForm() {
             </p>
           )}
 
-          <dl className="divide-y divide-slate-100 text-sm rounded-xl border border-slate-100 overflow-hidden">
+          <dl className="divide-y divide-slate-100 text-sm rounded-xl border border-slate-100 overflow-hidden bg-white/70">
             <div className="flex justify-between gap-3 px-3 py-2.5 bg-slate-50/50">
               <dt className="text-slate-500">Employee</dt>
               <dd className="font-medium text-right">{String(data.emp_name_masked || '—')}</dd>
@@ -328,14 +328,14 @@ function StatusForm() {
       )}
 
       {!data && !error && !loading && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-5 text-center space-y-2">
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-5 text-center space-y-2 backdrop-blur">
           <p className="text-sm font-medium text-slate-700">No ID yet?</p>
           <p className="text-xs text-slate-500" dir="rtl">
             ابدأ بتقديم طلب جديد واحفظ رقم الطلب
           </p>
           <Link
             href="/intake"
-            className="inline-flex mt-1 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white"
+            className="aid-cta-primary inline-flex mt-1 px-5 py-2.5 text-sm"
           >
             Submit a request →
           </Link>
@@ -347,7 +347,7 @@ function StatusForm() {
 
 export default function RequestStatusPage() {
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-24 md:pb-10">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-24 md:pb-10">
       <div className="mx-auto max-w-md space-y-5">
         <PublicStepsBar active="status" />
         <header className="space-y-1 text-center sm:text-left">
