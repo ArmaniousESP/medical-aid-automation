@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PublicStepsBar } from '../PublicStepsBar';
+import { IntakeSuccess } from '../IntakeSuccess';
 import { SearchablePicker, type PickerOption } from '@/components/SearchablePicker';
 import {
   CITY_OPTIONS,
@@ -322,19 +323,21 @@ export default function IntakePage() {
         )}
 
         {resultId && (
-          <div className="rounded-2xl border-2 border-emerald-300/80 bg-emerald-50/95 p-5 space-y-3 shadow-lg shadow-emerald-600/10 backdrop-blur">
-            <p className="font-semibold text-emerald-950">Request received · تم الاستلام</p>
-            <p className="font-mono text-lg font-bold select-all">{resultId}</p>
-            <button type="button" onClick={copyId} className="aid-cta-primary w-full py-3">{copied ? 'Copied ✓' : 'Copy Request ID'}</button>
-            <button type="button" onClick={shareStatus} className="w-full rounded-xl border-2 border-emerald-600 bg-white py-3 font-semibold text-emerald-800">
-              Share status link · مشاركة الرابط
-            </button>
-            <button type="button" onClick={copyStatusLink} className="w-full text-sm text-emerald-800 font-medium hover:underline">
-              {linkCopied ? 'Link copied ✓' : 'Copy status link only'}
-            </button>
-            <Link href={`/request-status?id=${encodeURIComponent(resultId)}`} className="block w-full rounded-xl bg-emerald-100 py-3 text-center font-semibold text-emerald-900">Check status →</Link>
-            <button type="button" onClick={() => { setResultId(null); setMeds([{ name: '', qty: 1 }]); setComments(''); setRoshetta(''); setPatient(''); }} className="w-full text-sm text-slate-500 underline">Submit another</button>
-          </div>
+          <IntakeSuccess
+            resultId={resultId}
+            copied={copied}
+            linkCopied={linkCopied}
+            onCopyId={copyId}
+            onShare={shareStatus}
+            onCopyLink={copyStatusLink}
+            onAnother={() => {
+              setResultId(null);
+              setMeds([{ name: '', qty: 1 }]);
+              setComments('');
+              setRoshetta('');
+              setPatient('');
+            }}
+          />
         )}
 
         {!resultId && (
@@ -419,61 +422,56 @@ export default function IntakePage() {
                     aria-label={`Quantity for medicine ${i + 1}`}
                     className="w-16 shrink-0 rounded-xl border border-slate-200 bg-white px-2 py-3 text-center text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                   />
-                  {meds.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setMeds((prev) => prev.filter((_, j) => j !== i))}
-                      className="w-8 shrink-0 text-slate-400 hover:text-red-600"
-                      aria-label="Remove line"
-                    >
-                      ×
-                    </button>
-                  ) : (
-                    <span className="w-8 shrink-0" />
-                  )}
+                  <button
+                    type="button"
+                    disabled={meds.length <= 1}
+                    onClick={() => setMeds((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="w-8 shrink-0 text-slate-400 hover:text-red-600 disabled:opacity-30"
+                    aria-label="Remove line"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={runEstimate} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button type="button" onClick={runEstimate} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700">
                   Estimate cost · تقدير
                 </button>
-                {estimate && <span className="text-xs text-slate-600 self-center">{estimate}</span>}
+                {estimate && <span className="text-sm text-slate-600 self-center">{estimate}</span>}
               </div>
               {estimateLines.length > 0 && (
-                <div className="rounded-lg bg-slate-50/80 border border-slate-100 p-3 space-y-1.5 text-xs text-slate-700">
+                <ul className="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2">
                   {estimateLines.map((ln, i) => (
-                    <div key={i} className="flex justify-between gap-2">
-                      <span className="truncate">{ln.matched || ln.query}</span>
-                      <span className="shrink-0 font-mono">{ln.line_total != null ? `${ln.line_total} EGP` : '—'}</span>
-                    </div>
+                    <li key={i}>
+                      {ln.query}
+                      {ln.matched ? ` → ${ln.matched}` : ''}
+                      {ln.line_total != null ? ` · ${ln.line_total} EGP` : ''}
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
+              <label className="block">
+                <span className={label}>Roshetta / invoice links (optional)</span>
+                <textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} rows={2} className={field} placeholder="Paste URLs…" />
+              </label>
+              <label className="block">
+                <span className={label}>Comments</span>
+                <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={2} className={field} />
+              </label>
             </section>
 
-            <details className="rounded-2xl border border-white/80 bg-white/90 p-4 backdrop-blur">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">More · ملاحظات / روشتة</summary>
-              <div className="mt-3 space-y-3">
-                <label className="block"><span className={label}>Comments</span><textarea value={comments} onChange={(e) => setComments(e.target.value)} className={field} rows={2} /></label>
-                <label className="block"><span className={label}>Roshetta / invoice links</span><textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} className={field} rows={2} placeholder="Drive links, one per line" /></label>
-              </div>
-            </details>
-
             {error && (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">{error}</div>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>
             )}
 
-            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-4 text-lg disabled:opacity-50">
-              {loading ? 'Sending…' : 'Submit request · إرسال'}
+            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-4 text-base disabled:opacity-50">
+              {loading ? 'Submitting… · جاري الإرسال' : 'Submit request · إرسال الطلب'}
             </button>
+            <p className="text-center text-xs text-slate-500">
+              You will get a Request ID to track status · ستحصل على رقم طلب
+            </p>
           </form>
         )}
-
-        <p className="text-center text-sm text-slate-500 space-x-2 pb-4">
-          <Link href="/request-status" className="text-emerald-700 font-medium hover:underline">My status</Link>
-          <span>·</span>
-          <Link href="/" className="hover:underline">Home</Link>
-        </p>
       </div>
     </main>
   );
