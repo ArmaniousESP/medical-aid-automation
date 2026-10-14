@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { ensureIntakeTables } from '@/lib/intake';
+import { findRosterEmployee } from '@/lib/employeeRoster';
 
 export type EmployeeRequestSummary = {
   id: string;
@@ -39,7 +40,6 @@ function phonesMatch(stored: string | null | undefined, given: string): boolean 
   const b = normalizePhone(given);
   if (!a || !b) return false;
   if (a === b) return true;
-  // allow match on last 8 digits (local vs +20)
   if (a.length >= 8 && b.length >= 8) {
     return a.slice(-8) === b.slice(-8);
   }
@@ -66,8 +66,8 @@ export async function ensureEmployeePortalTables() {
 }
 
 /**
- * Public lookup: company + emp_id + phone must match a prior request.
- * Returns limited history only — no attachment URLs, no full med lists.
+ * Public lookup: company + emp_id + phone.
+ * Prefer prior aid_requests; otherwise HR employee_roster for first-time profile.
  */
 export async function lookupEmployeeProfile(input: {
   company: string;
@@ -105,13 +105,23 @@ export async function lookupEmployeeProfile(input: {
     [company, empId]
   );
 
-  if (!rows.rows.length) return null;
+  if (!rows.rows.length) {
+    const roster = await findRosterEmployee({ company, emp_id: empId, phone });
+    if (!roster) return null;
+    return {
+      emp_name: roster.emp_name,
+      emp_id: empId,
+      company,
+      phone_masked: maskPhone(roster.phone),
+      city: null,
+      request_count: 0,
+      requests: [],
+    };
+  }
 
-  // At least one row must match the phone (privacy gate)
   const verified = rows.rows.some((r) => phonesMatch(r.phone, phone));
   if (!verified) return null;
 
-  // Open inquiries: staff message after last employee message, or match_notes present
   const ids = rows.rows.map((r) => r.id);
   const msgCounts = await query<{
     request_id: string;
