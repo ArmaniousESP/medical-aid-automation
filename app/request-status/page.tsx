@@ -7,81 +7,7 @@ import { PublicStepsBar } from '../PublicStepsBar';
 import { loadLastRequestId, saveLastRequestId } from '@/lib/intakeDraft';
 
 const field =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none';
-
-/** Map backend status → timeline step 0..3 */
-function stageIndex(status: string | undefined): number {
-  const s = (status || '').toLowerCase();
-  if (!s) return 0;
-  if (/dispens|complet|deliver|done|closed/.test(s)) return 3;
-  if (/pharmac|claim|approv|program|refill/.test(s)) return 2;
-  if (/triage|review|process|match|queue/.test(s)) return 1;
-  if (/submit|receiv|pending|new/.test(s)) return 0;
-  return 1;
-}
-
-function StatusTimeline({ status }: { status?: string }) {
-  const active = stageIndex(status);
-  const steps = [
-    { label: 'Received', ar: 'تم الاستلام' },
-    { label: 'Under review', ar: 'قيد المراجعة' },
-    { label: 'Pharmacy', ar: 'الصيدلية' },
-    { label: 'Ready / done', ar: 'جاهز / تم' },
-  ];
-  return (
-    <div className="px-1 pt-1 pb-2">
-      <div className="flex items-center justify-between gap-1">
-        {steps.map((st, i) => {
-          const done = i < active;
-          const cur = i === active;
-          return (
-            <div key={st.label} className="flex flex-1 flex-col items-center gap-1.5 min-w-0">
-              <div className="flex w-full items-center">
-                {i > 0 && (
-                  <div
-                    className={`h-1 flex-1 rounded-full ${
-                      i <= active ? 'bg-emerald-400' : 'bg-slate-200'
-                    }`}
-                  />
-                )}
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    done
-                      ? 'bg-emerald-600 text-white'
-                      : cur
-                        ? 'bg-emerald-100 text-emerald-900 ring-2 ring-emerald-500'
-                        : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  {done ? '✓' : i + 1}
-                </div>
-                {i < steps.length - 1 && (
-                  <div
-                    className={`h-1 flex-1 rounded-full ${
-                      i < active ? 'bg-emerald-400' : 'bg-slate-200'
-                    }`}
-                  />
-                )}
-              </div>
-              <div className="text-center px-0.5">
-                <div
-                  className={`text-[10px] sm:text-xs font-medium leading-tight ${
-                    cur ? 'text-emerald-900' : done ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  {st.label}
-                </div>
-                <div className="text-[9px] text-slate-400 leading-tight" dir="rtl">
-                  {st.ar}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+  'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200';
 
 function StatusForm() {
   const search = useSearchParams();
@@ -169,53 +95,50 @@ function StatusForm() {
           </span>
           <div>
             <p className="font-medium">Last request on this device</p>
-            <p className="text-xs mt-0.5" dir="rtl">
-              آخر طلب محفوظ على هذا الجهاز — جاهز للعرض
+            <p className="text-xs text-sky-800 mt-0.5" dir="rtl">
+              آخر طلب محفوظ على هذا الجهاز — يُملأ تلقائياً
             </p>
           </div>
         </div>
       )}
 
-      <form onSubmit={(e) => lookup(e)} className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
-        <label className="block">
-          <span className="block text-sm font-medium text-slate-700 mb-1.5">
+      <form
+        onSubmit={(e) => lookup(e)}
+        className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur"
+      >
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-slate-700">
             Request ID · رقم الطلب
           </span>
           <div className="flex gap-2">
             <input
-              required
               value={id}
               onChange={(e) => {
                 setId(e.target.value);
                 setFromDevice(false);
               }}
-              className={field + ' font-mono text-sm'}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className={field + ' font-mono text-sm'}
               autoComplete="off"
-              autoCapitalize="off"
               spellCheck={false}
-              inputMode="text"
             />
             <button
               type="button"
               onClick={pasteId}
-              className="shrink-0 rounded-xl border border-slate-200 bg-white/80 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             >
-              {pasted ? '✓' : 'Paste'}
+              {pasted ? 'Pasted' : 'Paste'}
             </button>
           </div>
-          <p className="mt-1.5 text-[11px] text-slate-400">
-            You received this ID after submitting · يصلك بعد تقديم الطلب
-          </p>
         </label>
 
-        <details className="text-sm text-slate-500">
-          <summary className="cursor-pointer hover:text-slate-700 font-medium">
+        <details className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-slate-600">
             Optional verification · تحقق اختياري
           </summary>
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-3 pb-1">
             <label className="block">
-              <span className="text-xs">Phone · الموبايل</span>
+              <span className="text-xs">Phone · الهاتف</span>
               <input
                 type="tel"
                 value={phone}
@@ -254,13 +177,13 @@ function StatusForm() {
             <li>Try optional phone / employee ID verification</li>
           </ul>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Link
-              href="/intake"
-              className="aid-cta-primary px-4 py-2.5 text-xs"
-            >
+            <Link href="/intake" className="aid-cta-primary px-4 py-2.5 text-xs">
               Submit a new request
             </Link>
-            <Link href="/guide" className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold">
+            <Link
+              href="/guide"
+              className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold"
+            >
               Help guide
             </Link>
           </div>
@@ -281,42 +204,47 @@ function StatusForm() {
             </p>
           </div>
 
-          <StatusTimeline status={String(data.status || data.status_code || '')} />
-
-          {data.stage_hint != null && (
-            <p className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-900 text-center leading-relaxed">
-              {String(data.stage_hint)}
-            </p>
-          )}
-
-          <dl className="divide-y divide-slate-100 text-sm rounded-xl border border-slate-100 overflow-hidden bg-white/70">
-            <div className="flex justify-between gap-3 px-3 py-2.5 bg-slate-50/50">
-              <dt className="text-slate-500">Employee</dt>
-              <dd className="font-medium text-right">{String(data.emp_name_masked || '—')}</dd>
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl bg-slate-50 p-3">
+              <dt className="text-slate-500 text-xs">Patient</dt>
+              <dd className="font-medium mt-0.5">{String(data.patient_name || '—')}</dd>
             </div>
-            <div className="flex justify-between gap-3 px-3 py-2.5">
-              <dt className="text-slate-500">Patient</dt>
-              <dd className="font-medium text-right">{String(data.patient_name_masked || '—')}</dd>
+            <div className="rounded-xl bg-slate-50 p-3">
+              <dt className="text-slate-500 text-xs">Employee</dt>
+              <dd className="font-medium mt-0.5">{String(data.emp_name || '—')}</dd>
             </div>
-            <div className="flex justify-between gap-3 px-3 py-2.5 bg-slate-50/50">
-              <dt className="text-slate-500">Medicines</dt>
-              <dd className="font-medium">{String(data.med_count ?? '—')}</dd>
-            </div>
-            <div className="flex justify-between gap-3 px-3 py-2.5">
-              <dt className="text-slate-500">Submitted</dt>
-              <dd className="font-mono text-xs">
+            <div className="rounded-xl bg-slate-50 p-3 col-span-2">
+              <dt className="text-slate-500 text-xs">Submitted</dt>
+              <dd className="font-medium mt-0.5">
                 {data.created_at
-                  ? String(data.created_at).slice(0, 16).replace('T', ' ')
+                  ? new Date(String(data.created_at)).toLocaleString()
                   : '—'}
               </dd>
             </div>
           </dl>
 
-          <div className="flex flex-col gap-2">
+          {Array.isArray(data.meds) && (data.meds as unknown[]).length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-2">Medicines</p>
+              <ul className="space-y-1.5">
+                {(data.meds as { name?: string; qty?: number }[]).map((m, i) => (
+                  <li
+                    key={i}
+                    className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm flex justify-between gap-2"
+                  >
+                    <span>{m.name || '—'}</span>
+                    <span className="text-slate-500 shrink-0">×{m.qty ?? 1}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="space-y-2 pt-1">
             <button
               type="button"
               onClick={copyLink}
-              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-semibold text-emerald-900"
             >
               {copied ? 'Link copied ✓' : 'Copy status link · نسخ الرابط'}
             </button>
@@ -328,17 +256,28 @@ function StatusForm() {
       )}
 
       {!data && !error && !loading && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-5 text-center space-y-2 backdrop-blur">
-          <p className="text-sm font-medium text-slate-700">No ID yet?</p>
-          <p className="text-xs text-slate-500" dir="rtl">
-            ابدأ بتقديم طلب جديد واحفظ رقم الطلب
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-5 text-center space-y-3 backdrop-blur">
+          <p className="text-2xl" aria-hidden>
+            🔎
           </p>
-          <Link
-            href="/intake"
-            className="aid-cta-primary inline-flex mt-1 px-5 py-2.5 text-sm"
-          >
-            Submit a request →
-          </Link>
+          <p className="text-sm font-medium text-slate-700">Looking for a request?</p>
+          <p className="text-xs text-slate-500">
+            Paste your Request ID above, or start a new submission.
+          </p>
+          <p className="text-xs text-slate-500" dir="rtl">
+            الصق رقم الطلب أعلاه، أو ابدأ طلباً جديداً
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 pt-1">
+            <Link href="/intake" className="aid-cta-primary inline-flex px-5 py-2.5 text-sm">
+              Submit a request →
+            </Link>
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
+            >
+              Home
+            </Link>
+          </div>
         </div>
       )}
     </div>
@@ -358,7 +297,13 @@ export default function RequestStatusPage() {
             حالة الطلب
           </p>
         </header>
-        <Suspense fallback={<p className="text-sm text-slate-500 text-center py-8">Loading…</p>}>
+        <Suspense
+          fallback={
+            <p className="text-sm text-slate-500 text-center py-8 animate-pulse">
+              Loading status… · جاري التحميل
+            </p>
+          }
+        >
           <StatusForm />
         </Suspense>
         <p className="text-center text-sm text-slate-500 space-x-2">
