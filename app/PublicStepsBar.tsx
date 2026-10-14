@@ -24,7 +24,7 @@ export function PublicStepsBar({
   ];
 
   return (
-    <div className="rounded-2xl border bg-white p-3.5 shadow-sm">
+    <div className="rounded-2xl border border-white/80 bg-white/90 p-3.5 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-1 items-center gap-1.5 sm:gap-2">
           {steps.map((s, i) => {
@@ -45,10 +45,10 @@ export function PublicStepsBar({
                   aria-current={isActive ? 'step' : undefined}
                   className={`flex min-h-[2.5rem] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition ${
                     isActive
-                      ? 'bg-emerald-600 text-white shadow-sm'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                       : isDone
                         ? 'bg-emerald-100 text-emerald-900'
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                        : 'bg-slate-100/90 text-slate-500 hover:bg-slate-200'
                   }`}
                 >
                   <span
