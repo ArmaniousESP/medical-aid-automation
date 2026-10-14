@@ -155,12 +155,8 @@ export default function IntakeOpsPage() {
           <FlowSteps current={1} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 1 of 5 · Queue
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                Queue
-              </h1>
+              <p className="aid-section-label">Step 1 of 5 · Queue</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Queue</h1>
               <p className="text-sm text-slate-600 mt-0.5" dir="rtl">
                 طابور الطلبات · عالج ثم انتقل للمطالبات
               </p>
@@ -179,9 +175,7 @@ export default function IntakeOpsPage() {
         <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-violet-950">
-                Process waiting requests
-              </p>
+              <p className="text-sm font-semibold text-violet-950">Process waiting requests</p>
               <p className="text-xs text-violet-800 mt-0.5">
                 Matches meds · enrolls programs · creates claim drafts
               </p>
@@ -201,10 +195,7 @@ export default function IntakeOpsPage() {
           </div>
           <ProcessIntakeButton onDone={load} />
           <div className="flex flex-wrap gap-2 pt-1">
-            <Link
-              href="/claims"
-              className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 shadow-md shadow-violet-700/25"
-            >
+            <Link href="/claims" className="aid-cta-violet px-4 py-2.5 text-sm">
               Next: Claims →
             </Link>
             <Link
@@ -218,9 +209,7 @@ export default function IntakeOpsPage() {
 
         <div className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm space-y-3 backdrop-blur">
           <div>
-            <label className="text-xs font-semibold text-slate-600">
-              Status · الحالة
-            </label>
+            <label className="text-xs font-semibold text-slate-600">Status · الحالة</label>
             <SearchablePicker
               value={status}
               onChange={setStatus}
@@ -230,9 +219,7 @@ export default function IntakeOpsPage() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-600">
-              Search rows · بحث
-            </label>
+            <label className="text-xs font-semibold text-slate-600">Search rows · بحث</label>
             <div className="relative mt-1">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
                 ⌕
@@ -293,9 +280,7 @@ export default function IntakeOpsPage() {
         )}
 
         {loading && (
-          <p className="text-sm text-slate-500 animate-pulse text-center py-4">
-            Loading queue…
-          </p>
+          <p className="text-sm text-slate-500 animate-pulse text-center py-4">Loading queue…</p>
         )}
 
         <div className="space-y-3 md:hidden">
@@ -309,12 +294,8 @@ export default function IntakeOpsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900 truncate">
-                      {r.emp_name || '—'}
-                    </p>
-                    <p className="text-xs text-slate-500 font-mono">
-                      {r.emp_id || 'no emp ID'}
-                    </p>
+                    <p className="font-semibold text-slate-900 truncate">{r.emp_name || '—'}</p>
+                    <p className="text-xs text-slate-500 font-mono">{r.emp_id || 'no emp ID'}</p>
                   </div>
                   <div className="text-right shrink-0 space-y-1">
                     <span
@@ -324,14 +305,11 @@ export default function IntakeOpsPage() {
                     >
                       {r.status}
                     </span>
-                    {age && (
-                      <p className="text-[10px] text-slate-400">{age}</p>
-                    )}
+                    {age && <p className="text-[10px] text-slate-400">{age}</p>}
                   </div>
                 </div>
                 <p className="text-sm text-slate-600">
-                  <span className="text-slate-400">Patient</span>{' '}
-                  {r.patient_name || '—'}
+                  <span className="text-slate-400">Patient</span> {r.patient_name || '—'}
                 </p>
                 {names.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -344,9 +322,7 @@ export default function IntakeOpsPage() {
                       </span>
                     ))}
                     {names.length > 4 && (
-                      <span className="text-[11px] text-slate-400">
-                        +{names.length - 4}
-                      </span>
+                      <span className="text-[11px] text-slate-400">+{names.length - 4}</span>
                     )}
                   </div>
                 )}
@@ -384,19 +360,13 @@ export default function IntakeOpsPage() {
                   </p>
                   <p className="font-medium text-slate-700">Queue is clear</p>
                   <p className="text-xs">Nothing waiting to process</p>
-                  <Link
-                    href="/claims"
-                    className="inline-block mt-2 text-violet-700 font-semibold"
-                  >
+                  <Link href="/claims" className="inline-block mt-2 text-violet-700 font-semibold">
                     Continue to Claims →
                   </Link>
                 </>
               ) : (
                 <>
-                  <p>
-                    No “{FILTERS.find((f) => f.id === status)?.label || status}”
-                    rows.
-                  </p>
+                  <p>No “{FILTERS.find((f) => f.id === status)?.label || status}” rows.</p>
                   <Link href="/intake" className="text-emerald-700 font-medium underline">
                     Submit a test request
                   </Link>
@@ -435,9 +405,7 @@ export default function IntakeOpsPage() {
                     </td>
                     <td className="p-3">
                       <div className="font-medium">{r.emp_name}</div>
-                      <div className="text-xs font-mono text-slate-500">
-                        {r.emp_id || '—'}
-                      </div>
+                      <div className="text-xs font-mono text-slate-500">{r.emp_id || '—'}</div>
                     </td>
                     <td className="p-3">{r.patient_name || '—'}</td>
                     <td className="p-3 text-xs max-w-[240px] text-slate-600">
@@ -515,14 +483,14 @@ export default function IntakeOpsPage() {
         {waiting === 0 && status === 'submitted' && !loading && !error && (
           <p className="text-center text-sm text-slate-500">
             Nothing waiting ·{' '}
-            <Link href="/claims" className="text-violet-700 font-medium hover:underline">
+            <Link href="/claims" className="text-violet-700 font-medium underline">
               go to Claims
             </Link>
           </p>
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-5xl flex gap-2">
           <Link
             href="/admin"
@@ -530,10 +498,7 @@ export default function IntakeOpsPage() {
           >
             Admin
           </Link>
-          <Link
-            href="/claims"
-            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/claims" className="aid-cta-violet flex-1 py-3 text-center text-sm">
             Claims →
           </Link>
         </div>
