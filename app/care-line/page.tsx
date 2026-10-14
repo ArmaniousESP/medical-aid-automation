@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getReleaseCalendar } from '@/lib/careLine';
+import { FlowSteps } from '../FlowSteps';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,98 +30,115 @@ export default async function CareLinePage({
   const dueCount = (cal?.rows || []).filter((r) => r.due).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">Care Line · تقويم الصرف</h1>
-            <p className="text-sm text-slate-600">
-              اتصال هاتفي · استحقاق الصرف الشهري · متابعة الالتزام (نمط PSP)
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link href="/psp" className="text-blue-600 hover:underline">
-              PSP
-            </Link>
-            <Link href="/pharmacy" className="text-blue-600 hover:underline">
-              الصيدلية
-            </Link>
-            <Link href="/" className="text-blue-600 hover:underline">
-              الرئيسية
-            </Link>
+        <header className="space-y-3">
+          <FlowSteps current={4} />
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Related to Programs · Care line
+              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Care Line · تقويم الصرف
+              </h1>
+              <p className="text-sm text-slate-600">
+                Phone contact · monthly release window · adherence follow-up
+              </p>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2 text-sm">
+              <Link
+                href="/programs"
+                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+              >
+                ← Programs
+              </Link>
+              <Link
+                href="/pharmacy"
+                className="rounded-xl bg-teal-600 px-3 py-2 font-semibold text-white"
+              >
+                Pharmacy →
+              </Link>
+            </div>
           </div>
         </header>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-lg border bg-white p-3 shadow-sm">
-            <div className="text-xs text-slate-500">الفترة</div>
+          <div className="rounded-2xl border bg-white p-3 shadow-sm">
+            <div className="text-xs text-slate-500">Period · الفترة</div>
             <div className="text-xl font-semibold">{period}</div>
           </div>
-          <div className="rounded-lg border bg-white p-3 shadow-sm">
-            <div className="text-xs text-slate-500">نافذة الصرف المقترحة</div>
+          <div className="rounded-2xl border bg-white p-3 shadow-sm">
+            <div className="text-xs text-slate-500">Release window</div>
             <div className="text-sm font-medium">
               {cal?.release_window.from} → {cal?.release_window.to}
             </div>
           </div>
-          <div className="rounded-lg border bg-white p-3 shadow-sm">
-            <div className="text-xs text-slate-500">مستحقون (غير مصروف)</div>
+          <div className="rounded-2xl border bg-white p-3 shadow-sm">
+            <div className="text-xs text-slate-500">Due (not dispensed)</div>
             <div className="text-xl font-semibold text-amber-700">{dueCount}</div>
           </div>
-          <div className="rounded-lg border bg-white p-3 shadow-sm">
-            <div className="text-xs text-slate-500">المعروض</div>
+          <div className="rounded-2xl border bg-white p-3 shadow-sm">
+            <div className="text-xs text-slate-500">Shown · المعروض</div>
             <div className="text-xl font-semibold">{rows.length}</div>
           </div>
         </div>
 
-        <form className="flex flex-wrap gap-2 text-sm items-end">
+        <form className="flex flex-wrap gap-2 text-sm items-end rounded-2xl border bg-white p-3 shadow-sm">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">الشهر</label>
+            <label className="block text-xs text-slate-500 mb-1">Month · الشهر</label>
             <input
               type="month"
               name="period"
               defaultValue={period}
-              className="rounded border px-2 py-1.5"
+              className="rounded-xl border border-slate-200 px-3 py-2"
             />
           </div>
           <button
             type="submit"
-            className="rounded bg-slate-800 px-3 py-1.5 text-white"
+            className="rounded-xl bg-slate-900 px-4 py-2 text-white font-semibold"
           >
-            عرض
+            Show · عرض
           </button>
           <Link
             href={`/care-line?period=${period}&due=1`}
-            className={`rounded-full px-3 py-1 border ${
-              dueOnly ? 'bg-amber-500 text-white border-amber-500' : 'bg-white'
+            className={`rounded-full px-3 py-1.5 border text-xs font-semibold ${
+              dueOnly
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-white border-slate-200'
             }`}
           >
-            مستحقون فقط
+            Due only
           </Link>
           <Link
             href={`/care-line?period=${period}&due=0`}
-            className={`rounded-full px-3 py-1 border ${!dueOnly ? 'bg-blue-600 text-white border-blue-600' : 'bg-white'}`}
+            className={`rounded-full px-3 py-1.5 border text-xs font-semibold ${
+              !dueOnly
+                ? 'bg-violet-700 text-white border-violet-700'
+                : 'bg-white border-slate-200'
+            }`}
           >
-            الكل
+            All
           </Link>
         </form>
 
         {error && (
-          <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
             {error}
           </div>
         )}
 
-        <div className="rounded-lg border bg-white shadow-sm overflow-x-auto">
+        <div className="rounded-2xl border bg-white shadow-sm overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-100 text-left">
+            <thead className="bg-slate-50 text-left">
               <tr>
-                <th className="p-2">استحقاق</th>
-                <th className="p-2">المريض</th>
-                <th className="p-2">الموظف / هاتف</th>
-                <th className="p-2">دورة {period}</th>
-                <th className="p-2">PNAT</th>
-                <th className="p-2">آخر اتصال</th>
-                <th className="p-2">برنامج</th>
+                <th className="p-3">Due</th>
+                <th className="p-3">Patient</th>
+                <th className="p-3">Employee / phone</th>
+                <th className="p-3">Cycle {period}</th>
+                <th className="p-3">Risk</th>
+                <th className="p-3">Last contact</th>
+                <th className="p-3">Program</th>
               </tr>
             </thead>
             <tbody>
@@ -129,37 +147,37 @@ export default async function CareLinePage({
                   key={r.program_id}
                   className={`border-t ${r.due ? 'bg-amber-50/40' : ''}`}
                 >
-                  <td className="p-2 text-xs">
+                  <td className="p-3 text-xs">
                     {r.due ? (
-                      <span className="text-amber-700 font-medium">مستحق</span>
+                      <span className="text-amber-700 font-medium">Due</span>
                     ) : (
-                      <span className="text-emerald-700">تم</span>
+                      <span className="text-emerald-700">Done</span>
                     )}
                   </td>
-                  <td className="p-2 font-medium">{r.patient_name}</td>
-                  <td className="p-2">
+                  <td className="p-3 font-medium">{r.patient_name}</td>
+                  <td className="p-3">
                     <div>{r.employee_name}</div>
                     <div className="text-xs text-slate-500">
                       {r.employee_id}
                       {r.phone ? ` · ${r.phone}` : ''}
                     </div>
                   </td>
-                  <td className="p-2 text-xs">
-                    {r.cycle_status || '— لا دورة'}
+                  <td className="p-3 text-xs">
+                    {r.cycle_status || '— no cycle'}
                     {r.claim_id && (
                       <div className="font-mono text-[10px]">{r.claim_id}</div>
                     )}
                   </td>
-                  <td className="p-2 text-xs">{r.latest_risk || '—'}</td>
-                  <td className="p-2 text-xs text-slate-500">
+                  <td className="p-3 text-xs">{r.latest_risk || '—'}</td>
+                  <td className="p-3 text-xs text-slate-500">
                     {r.last_contact_at
                       ? String(r.last_contact_at).slice(0, 16).replace('T', ' ')
                       : '—'}
                   </td>
-                  <td className="p-2 font-mono text-xs">
+                  <td className="p-3 font-mono text-xs">
                     <Link
                       href={`/programs/${r.program_id}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-violet-700 hover:underline"
                     >
                       {r.program_code}
                     </Link>
@@ -169,7 +187,7 @@ export default async function CareLinePage({
               {rows.length === 0 && !error && (
                 <tr>
                   <td colSpan={7} className="p-6 text-center text-slate-500">
-                    لا صفوف — ولّد دورات الشهر أو ألغِ فلتر المستحقين
+                    No rows — generate monthly cycles or clear the due filter
                   </td>
                 </tr>
               )}
@@ -178,9 +196,26 @@ export default async function CareLinePage({
         </div>
 
         <p className="text-xs text-slate-400">
-          API: /api/care-line?calendar=1&period={period} · سجّل الاتصال من صفحة
-          البرنامج
+          API: /api/care-line?calendar=1&period={period} · log contact from program
+          file
         </p>
+      </div>
+
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+        <div className="mx-auto max-w-6xl flex gap-2">
+          <Link
+            href="/programs"
+            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            ← Programs
+          </Link>
+          <Link
+            href="/pharmacy"
+            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+          >
+            Pharmacy →
+          </Link>
+        </div>
       </div>
     </main>
   );
