@@ -77,9 +77,7 @@ export default async function PharmacyPage({
           <FlowSteps current={3} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 3 of 5 · Pharmacy
-              </p>
+              <p className="aid-section-label">Step 3 of 5 · Pharmacy</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Pharmacy
               </h1>
@@ -94,10 +92,7 @@ export default async function PharmacyPage({
               >
                 ← Claims
               </Link>
-              <Link
-                href="/programs"
-                className="rounded-xl bg-violet-700 px-3 py-2 font-semibold text-white hover:bg-violet-800 shadow-md shadow-violet-700/25"
-              >
+              <Link href="/programs" className="aid-cta-violet px-3 py-2 text-sm">
                 Next: Programs →
               </Link>
             </div>
@@ -105,15 +100,15 @@ export default async function PharmacyPage({
         </header>
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl border border-white/80 bg-white/90 px-2 py-3 shadow-sm backdrop-blur">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-slate-900">{lines.length}</p>
             <p className="text-[11px] text-slate-500">lines</p>
           </div>
-          <div className="rounded-xl border border-white/80 bg-white/90 px-2 py-3 shadow-sm backdrop-blur">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-teal-800">{evaCount}</p>
             <p className="text-[11px] text-slate-500">EVA</p>
           </div>
-          <div className="rounded-xl border border-white/80 bg-white/90 px-2 py-3 shadow-sm backdrop-blur">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-slate-800">{notEvaCount}</p>
             <p className="text-[11px] text-slate-500">Not EVA</p>
           </div>
@@ -214,7 +209,7 @@ export default async function PharmacyPage({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <a
               href={`${csvBase}&formulary=EVA`}
-              className="rounded-xl bg-teal-600 py-3.5 text-center text-sm font-semibold text-white hover:bg-teal-700 shadow-md shadow-teal-600/25"
+              className="aid-cta-teal py-3.5 text-center text-sm"
             >
               CSV · EVA
             </a>
@@ -307,7 +302,7 @@ export default async function PharmacyPage({
         {!error && <PharmacySearchList lines={lines} emptyHint />}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-5xl flex gap-2">
           <Link
             href="/claims"
@@ -315,10 +310,7 @@ export default async function PharmacyPage({
           >
             ← Claims
           </Link>
-          <Link
-            href="/programs"
-            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/programs" className="aid-cta-violet flex-1 py-3 text-center text-sm">
             Programs →
           </Link>
         </div>
