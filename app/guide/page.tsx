@@ -199,14 +199,14 @@ function StepCard({
   const badge = accent === 'emerald' ? 'bg-emerald-600' : 'bg-violet-700';
   const btn =
     accent === 'emerald'
-      ? 'bg-emerald-600 hover:bg-emerald-700'
-      : 'bg-violet-700 hover:bg-violet-800';
+      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25'
+      : 'bg-violet-700 hover:bg-violet-800 shadow-md shadow-violet-700/25';
   const label = s.n === 0 ? '○' : String(s.n);
 
   return (
     <li
       id={s.id}
-      className="rounded-2xl border bg-white p-5 shadow-sm space-y-4 scroll-mt-28"
+      className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 scroll-mt-28 backdrop-blur"
     >
       <div className="flex gap-4">
         <div
@@ -238,7 +238,7 @@ function StepCard({
 
 export default function GuidePage() {
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 pb-24 md:pb-10">
+    <main className="min-h-screen text-slate-900 pb-24 md:pb-10">
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
         <header className="space-y-2 text-center sm:text-left">
           <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
@@ -252,7 +252,7 @@ export default function GuidePage() {
 
         <nav
           aria-label="Guide sections"
-          className="sticky top-14 z-30 rounded-2xl border bg-white/95 backdrop-blur p-3 shadow-sm"
+          className="sticky top-14 z-30 rounded-2xl border border-white/80 bg-white/90 backdrop-blur-xl p-3 shadow-sm"
         >
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
             <a
@@ -289,7 +289,7 @@ export default function GuidePage() {
         </nav>
 
         <section id="for-you" className="space-y-4 scroll-mt-28">
-          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-5">
+          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/90 p-5 backdrop-blur">
             <h2 className="font-bold text-emerald-950 text-lg">For you</h2>
             <p className="text-sm text-emerald-800 mt-1" dir="rtl">
               للمستفيدين — بدون تسجيل دخول
@@ -306,15 +306,12 @@ export default function GuidePage() {
           </ol>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            <Link
-              href="/intake"
-              className="rounded-2xl bg-emerald-600 py-3.5 text-center text-sm font-semibold text-white hover:bg-emerald-700"
-            >
+            <Link href="/intake" className="aid-cta-primary py-3.5 text-center text-sm">
               Submit a request
             </Link>
             <Link
               href="/request-status"
-              className="rounded-2xl border-2 border-emerald-200 bg-white py-3.5 text-center text-sm font-semibold text-emerald-900 hover:bg-emerald-50"
+              className="rounded-2xl border-2 border-emerald-200 bg-white/90 py-3.5 text-center text-sm font-semibold text-emerald-900 hover:bg-emerald-50 backdrop-blur"
             >
               Check my status
             </Link>
@@ -322,7 +319,7 @@ export default function GuidePage() {
         </section>
 
         <section id="for-staff" className="space-y-4 scroll-mt-28">
-          <div className="rounded-2xl border-2 border-violet-200 bg-violet-50 p-5">
+          <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/90 p-5 backdrop-blur">
             <h2 className="font-bold text-violet-950 text-lg">For staff</h2>
             <p className="text-sm text-violet-800 mt-1" dir="rtl">
               لفريق التشغيل — نفس الشريط المرقّم في الصفحات
@@ -340,7 +337,7 @@ export default function GuidePage() {
         </section>
 
         <section id="management" className="space-y-4 scroll-mt-28">
-          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 space-y-3">
+          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-5 space-y-3 backdrop-blur">
             <h2 className="font-bold text-amber-950 text-lg">
               Management approval · موافقة الإدارة
             </h2>
@@ -377,7 +374,7 @@ export default function GuidePage() {
             {MORE_TOOLS.map((t) => (
               <li
                 key={t.href}
-                className="rounded-2xl border bg-white p-4 shadow-sm space-y-2"
+                className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2 backdrop-blur"
               >
                 <h3 className="font-semibold text-sm">
                   {t.title}
@@ -399,7 +396,7 @@ export default function GuidePage() {
 
         <section
           id="privacy"
-          className="rounded-2xl border bg-white p-5 shadow-sm space-y-3 text-sm scroll-mt-28"
+          className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-3 text-sm scroll-mt-28 backdrop-blur"
         >
           <h2 className="font-bold text-lg">Privacy</h2>
           <ul className="space-y-2 text-slate-600">
@@ -416,13 +413,13 @@ export default function GuidePage() {
         <div className="flex flex-wrap gap-3 justify-center pb-4">
           <Link
             href="/"
-            className="rounded-2xl border bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50"
+            className="rounded-2xl border border-white/80 bg-white/90 px-5 py-3 text-sm font-semibold hover:bg-white backdrop-blur"
           >
             Home
           </Link>
           <Link
             href="/admin"
-            className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white hover:bg-violet-800"
+            className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white hover:bg-violet-800 shadow-md shadow-violet-700/25"
           >
             Staff Admin
           </Link>
