@@ -64,17 +64,25 @@ export function AppNav() {
   }
 
   return (
-    <nav
-      className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur shadow-sm"
-      aria-label="Site"
-    >
-      <div className="mx-auto max-w-6xl px-3 py-2 space-y-1.5">
+    <nav className="aid-nav sticky top-0 z-40" aria-label="Site">
+      <div className="mx-auto max-w-6xl px-3 py-2.5 space-y-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <Link
             href="/"
-            className="mr-1 text-base font-bold text-slate-900 whitespace-nowrap tracking-tight"
+            className="mr-1.5 inline-flex items-center gap-2 whitespace-nowrap"
           >
-            Medical Aid
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md"
+              style={{
+                background: 'linear-gradient(135deg, #059669, #0d9488 55%, #6d28d9)',
+              }}
+              aria-hidden
+            >
+              M
+            </span>
+            <span className="text-base font-bold tracking-tight text-slate-900">
+              Medical Aid
+            </span>
           </Link>
           {PUBLIC.map((item) => (
             <Link
@@ -82,8 +90,8 @@ export function AppNav() {
               href={item.href}
               className={`rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium transition whitespace-nowrap min-h-[2.25rem] inline-flex items-center ${
                 active(item.href)
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
+                  : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
               }`}
               title={item.labelAr}
             >
@@ -95,11 +103,11 @@ export function AppNav() {
           </span>
         </div>
 
-        <div className="border-t border-slate-100 pt-1.5">
+        <div className="border-t border-slate-200/70 pt-1.5">
           <button
             type="button"
             onClick={() => setStaffOpen((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-violet-700 hover:bg-violet-50"
+            className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-violet-700 hover:bg-violet-50/80"
             aria-expanded={staffOpen}
           >
             <span>{staffOpen ? '▾' : '▸'} Staff tools</span>
@@ -107,7 +115,7 @@ export function AppNav() {
               أدوات التشغيل
             </span>
             {!staffOpen && onStaff && (
-              <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[10px] normal-case font-medium">
+              <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[10px] normal-case font-medium text-violet-800">
                 You are in ops
               </span>
             )}
@@ -122,18 +130,18 @@ export function AppNav() {
                   title={item.hint}
                   className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition whitespace-nowrap min-h-[2rem] inline-flex items-center ${
                     active(item.href)
-                      ? 'bg-violet-700 text-white'
-                      : 'bg-violet-50 text-violet-800 hover:bg-violet-100'
+                      ? 'bg-violet-700 text-white shadow-sm shadow-violet-700/30'
+                      : 'bg-violet-50/90 text-violet-800 hover:bg-violet-100'
                   }`}
                 >
                   {item.label}
                 </Link>
               ))}
               <details className="relative">
-                <summary className="cursor-pointer list-none rounded-full px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100">
+                <summary className="cursor-pointer list-none rounded-full px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-white/80">
                   More ▾
                 </summary>
-                <div className="absolute left-0 mt-1 w-48 rounded-lg border bg-white py-1 shadow-lg z-50">
+                <div className="absolute left-0 mt-1 w-48 rounded-2xl border border-slate-200 bg-white/95 py-1 shadow-xl backdrop-blur z-50">
                   {OPS_MORE.map((item) => (
                     <Link
                       key={item.href}
