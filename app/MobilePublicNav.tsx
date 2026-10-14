@@ -45,11 +45,6 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-/**
- * Fixed bottom bar on phones:
- * - Beneficiaries: Home · Submit · Status · Get app · Help
- * - Staff ops: 1–5 path
- */
 export function MobilePublicNav() {
   const pathname = usePathname() || '/';
   const staff = isStaffPath(pathname);
@@ -57,7 +52,7 @@ export function MobilePublicNav() {
   if (staff) {
     return (
       <nav
-        className="fixed bottom-0 inset-x-0 z-50 border-t border-violet-100 bg-white/95 backdrop-blur md:hidden"
+        className="fixed bottom-0 inset-x-0 z-50 border-t border-violet-100/80 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.15)] backdrop-blur-xl md:hidden"
         aria-label="Staff path"
         style={{
           paddingBottom: 'max(0.35rem, env(safe-area-inset-bottom))',
@@ -76,7 +71,9 @@ export function MobilePublicNav() {
               >
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                    active ? 'bg-violet-700 text-white' : 'bg-violet-50 text-violet-800'
+                    active
+                      ? 'bg-violet-700 text-white shadow-md shadow-violet-700/30'
+                      : 'bg-violet-50 text-violet-800'
                   }`}
                 >
                   {item.icon}
@@ -94,7 +91,7 @@ export function MobilePublicNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t bg-white/95 backdrop-blur md:hidden"
+      className="fixed bottom-0 inset-x-0 z-50 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl md:hidden"
       aria-label="Main"
       style={{
         paddingBottom: 'max(0.35rem, env(safe-area-inset-bottom))',
@@ -114,7 +111,7 @@ export function MobilePublicNav() {
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                   active
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                     : 'bg-slate-100 text-slate-600'
                 }`}
               >
@@ -143,7 +140,7 @@ export function MobilePublicNav() {
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                   active
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                     : 'bg-slate-100 text-slate-600'
                 }`}
               >
