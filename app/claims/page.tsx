@@ -141,7 +141,7 @@ export default function ClaimsPage() {
       : claims.filter((c) => c.status === 'draft').length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-4xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={2} />
@@ -159,14 +159,14 @@ export default function ClaimsPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50 backdrop-blur"
             >
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </header>
 
-        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-3">
+        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white/90 p-5 shadow-sm space-y-3 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-semibold text-violet-950">
@@ -194,7 +194,7 @@ export default function ClaimsPage() {
               type="button"
               disabled={batchBusy}
               onClick={submitAllDrafts}
-              className="w-full sm:w-auto rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50 shadow-sm"
+              className="w-full sm:w-auto rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50 shadow-md shadow-violet-700/25"
             >
               {batchBusy
                 ? 'Submitting all…'
@@ -204,20 +204,20 @@ export default function ClaimsPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/intake-ops"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-white/80 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-white backdrop-blur"
             >
               ← Queue
             </Link>
             <Link
               href="/pharmacy"
-              className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 shadow-sm"
+              className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 shadow-md shadow-teal-600/25"
             >
               Next: Pharmacy →
             </Link>
           </div>
         </div>
 
-        <div className="rounded-2xl border bg-white p-3 shadow-sm space-y-2">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm space-y-2 backdrop-blur">
           <label className="text-xs font-semibold text-slate-600">
             Status filter · حالة المطالبة
           </label>
@@ -239,7 +239,7 @@ export default function ClaimsPage() {
               className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                 status === s.id
                   ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  : 'bg-white/90 border border-slate-200 text-slate-600 hover:bg-white'
               }`}
             >
               {s.label}
@@ -269,7 +269,7 @@ export default function ClaimsPage() {
           {claims.map((c) => (
             <article
               key={c.id}
-              className="rounded-2xl border bg-white p-4 shadow-sm space-y-3"
+              className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-3 backdrop-blur"
             >
               <div className="flex justify-between gap-2">
                 <div className="min-w-0">
@@ -298,7 +298,7 @@ export default function ClaimsPage() {
                   type="button"
                   disabled={busyId === c.id || batchBusy}
                   onClick={() => submitClaim(c.id)}
-                  className="w-full rounded-xl bg-violet-700 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  className="w-full rounded-xl bg-violet-700 py-2.5 text-sm font-semibold text-white disabled:opacity-50 shadow-md shadow-violet-700/25"
                 >
                   {busyId === c.id ? 'Submitting…' : 'Submit claim'}
                 </button>
@@ -306,7 +306,7 @@ export default function ClaimsPage() {
             </article>
           ))}
           {!claims.length && !loading && (
-            <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-8 text-center text-sm text-slate-500 space-y-2 backdrop-blur">
               {status === 'draft' ? (
                 <>
                   <p className="text-2xl" aria-hidden>
@@ -332,9 +332,9 @@ export default function ClaimsPage() {
           )}
         </div>
 
-        <div className="hidden md:block rounded-2xl border bg-white shadow-sm overflow-hidden">
+        <div className="hidden md:block rounded-2xl border border-white/80 bg-white/90 shadow-sm overflow-hidden backdrop-blur">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs text-slate-500">
+            <thead className="bg-slate-50/80 text-left text-xs text-slate-500">
               <tr>
                 <th className="p-3 font-semibold">Code</th>
                 <th className="p-3 font-semibold">Patient</th>
@@ -408,7 +408,7 @@ export default function ClaimsPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200/70 bg-white/90 shadow-[0_-8px_30px_-12px_rgba(15,23,42,0.12)] backdrop-blur-xl p-3 md:hidden">
         <div className="mx-auto max-w-4xl flex gap-2">
           <Link
             href="/intake-ops"
