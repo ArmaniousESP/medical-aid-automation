@@ -67,15 +67,13 @@ export default async function RefillsPage({
   ).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={5} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 5 of 5 · Refills
-              </p>
+              <p className="aid-section-label">Step 5 of 5 · Refills</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Refills
               </h1>
@@ -86,14 +84,11 @@ export default async function RefillsPage({
             <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/programs"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 ← Programs
               </Link>
-              <Link
-                href="/pharmacy"
-                className="rounded-xl bg-teal-600 px-3 py-2 font-semibold text-white hover:bg-teal-700"
-              >
+              <Link href="/pharmacy" className="aid-cta-teal px-3 py-2 text-sm">
                 Pharmacy CSV
               </Link>
             </div>
@@ -101,21 +96,21 @@ export default async function RefillsPage({
         </header>
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-amber-800">{inReview}</p>
             <p className="text-[11px] text-slate-500">in review</p>
           </div>
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-emerald-800">{approved}</p>
             <p className="text-[11px] text-slate-500">approved</p>
           </div>
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-teal-800">{dispensed}</p>
             <p className="text-[11px] text-slate-500">dispensed</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-violet-950">
@@ -156,7 +151,7 @@ export default async function RefillsPage({
 
         <form
           method="get"
-          className="rounded-2xl border bg-white p-3 shadow-sm flex flex-wrap gap-2 items-center"
+          className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm flex flex-wrap gap-2 items-center backdrop-blur"
         >
           <label className="text-sm font-medium text-slate-700">Period</label>
           <input
@@ -195,7 +190,7 @@ export default async function RefillsPage({
               className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s.id
                   ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white border-slate-200 text-slate-600'
+                  : 'bg-white/90 border-slate-200 text-slate-600'
               }`}
             >
               {s.label}
@@ -217,7 +212,7 @@ export default async function RefillsPage({
         )}
 
         {!error && rows.length === 0 && (
-          <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-8 text-center text-sm text-slate-500 space-y-2 backdrop-blur">
             <p className="font-medium text-slate-700">No cycles for this filter</p>
             <p className="text-xs">
               Use <strong>Generate</strong> above, or enroll from the{' '}
@@ -234,7 +229,7 @@ export default async function RefillsPage({
             <Link
               key={r.id}
               href={`/refills/${r.id}`}
-              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300 active:bg-slate-50"
+              className="block rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2 hover:border-violet-300 backdrop-blur active:bg-white"
             >
               <div className="flex justify-between gap-2">
                 <div className="min-w-0">
@@ -277,9 +272,9 @@ export default async function RefillsPage({
         </div>
 
         {rows.length > 0 && (
-          <div className="hidden md:block overflow-x-auto rounded-2xl border bg-white shadow-sm">
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/80 bg-white/90 shadow-sm backdrop-blur">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-xs text-slate-500">
+              <thead className="bg-slate-50/80 text-xs text-slate-500">
                 <tr>
                   <th className="p-3 font-semibold">Program</th>
                   <th className="p-3 font-semibold">Patient</th>
@@ -355,7 +350,7 @@ export default async function RefillsPage({
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-5xl flex gap-2">
           <Link
             href="/programs"
@@ -365,7 +360,7 @@ export default async function RefillsPage({
           </Link>
           <Link
             href="/pharmacy"
-            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
+            className="aid-cta-teal flex-1 py-3 text-center text-sm"
           >
             Pharmacy →
           </Link>
