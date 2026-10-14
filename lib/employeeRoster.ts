@@ -7,6 +7,8 @@ export type RosterRow = {
   phone?: string | null;
 };
 
+let seedAttempted = false;
+
 export async function ensureEmployeeRosterTable() {
   await query(`
     CREATE TABLE IF NOT EXISTS employee_roster (
@@ -34,7 +36,10 @@ export async function ensureEmployeeRosterTable() {
 }
 
 function normPhone(p: string): string {
-  return p.replace(/\D/g, '');
+  let d = p.replace(/\D/g, '');
+  if (d.startsWith('20') && d.length > 10) d = d.slice(2);
+  if (d && !d.startsWith('0') && (d.length === 10 || d.length === 9)) d = '0' + d;
+  return d;
 }
 
 function phonesMatch(a?: string | null, b?: string | null): boolean {
@@ -47,7 +52,6 @@ function phonesMatch(a?: string | null, b?: string | null): boolean {
   return false;
 }
 
-/** Upsert roster rows. Unique on company + emp_id when emp_id present. */
 export async function upsertEmployeeRoster(
   rows: RosterRow[],
   source = 'import'
@@ -74,7 +78,7 @@ export async function upsertEmployeeRoster(
         await query(
           `UPDATE employee_roster SET
              emp_name = $2,
-             phone = COALESCE($3, phone),
+             phone = COALESCE(NULLIF($3, ''), phone),
              status = 'active',
              source = $4,
              updated_at = now()
@@ -96,6 +100,24 @@ export async function upsertEmployeeRoster(
   return { inserted, updated };
 }
 
+/** Load bundled seed once if the table is empty (first deploy / empty DB). */
+export async function ensureRosterSeeded(): Promise<void> {
+  if (seedAttempted) return;
+  seedAttempted = true;
+  await ensureEmployeeRosterTable();
+  const n = await rosterCount();
+  if (n >= 50) return;
+  try {
+    const seed = await import('@/data/employee_roster_seed.json');
+    const rows = (seed.default || seed) as RosterRow[];
+    if (Array.isArray(rows) && rows.length) {
+      await upsertEmployeeRoster(rows, 'bundled_seed');
+    }
+  } catch {
+    // Seed file missing or import failed — ignore
+  }
+}
+
 export async function findRosterEmployee(input: {
   company: string;
   emp_id: string;
@@ -107,6 +129,8 @@ export async function findRosterEmployee(input: {
   phone: string | null;
 } | null> {
   await ensureEmployeeRosterTable();
+  await ensureRosterSeeded();
+
   const company = input.company.trim();
   const emp_id = input.emp_id.trim();
   const phone = input.phone.trim();
@@ -125,7 +149,39 @@ export async function findRosterEmployee(input: {
      LIMIT 5`,
     [company, emp_id]
   );
-  const match = res.rows.find((r) => phonesMatch(r.phone, phone));
+
+  if (!res.rows.length) {
+    // Try phone-only within company (ID typo recovery)
+    const byPhone = await query<{
+      emp_name: string;
+      emp_id: string | null;
+      company: string;
+      phone: string | null;
+    }>(
+      `SELECT emp_name, emp_id, company, phone FROM employee_roster
+       WHERE lower(trim(company)) = lower(trim($1))
+         AND status = 'active'
+         AND phone IS NOT NULL
+       LIMIT 80`,
+      [company]
+    );
+    const m = byPhone.rows.find(
+      (r) => phonesMatch(r.phone, phone) && (r.emp_id || '').trim() === emp_id
+    );
+    if (!m) return null;
+    return {
+      emp_name: m.emp_name,
+      emp_id: m.emp_id || emp_id,
+      company: m.company,
+      phone: m.phone,
+    };
+  }
+
+  const match =
+    res.rows.find((r) => phonesMatch(r.phone, phone)) ||
+    // If HR phone missing, still allow when ID+company unique
+    (res.rows.length === 1 && !res.rows[0].phone ? res.rows[0] : undefined);
+
   if (!match) return null;
   return {
     emp_name: match.emp_name,
@@ -137,6 +193,7 @@ export async function findRosterEmployee(input: {
 
 export async function listRosterCompanies(): Promise<string[]> {
   await ensureEmployeeRosterTable();
+  await ensureRosterSeeded();
   const res = await query<{ company: string }>(
     `SELECT DISTINCT company FROM employee_roster
      WHERE status = 'active' ORDER BY company`
