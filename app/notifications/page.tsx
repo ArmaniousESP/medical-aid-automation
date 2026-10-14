@@ -19,15 +19,13 @@ export default function NotificationsPage() {
   const dry = status.dry_run_mode;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="space-y-3">
           <FlowSteps current={5} />
           <div className="flex flex-wrap justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                More tools · Notifications
-              </p>
+              <p className="aid-section-label">More tools · Notifications</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 WhatsApp & alerts
               </h1>
@@ -38,13 +36,13 @@ export default function NotificationsPage() {
             <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/refills"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 ← Refills
               </Link>
               <Link
                 href="/safety"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 Safety
               </Link>
@@ -58,7 +56,7 @@ export default function NotificationsPage() {
           </div>
         </header>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center gap-3 text-sm">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm flex flex-wrap items-center gap-3 text-sm backdrop-blur">
           <span className="text-xs uppercase tracking-wide text-slate-400">
             Active channel · القناة
           </span>
@@ -116,7 +114,7 @@ export default function NotificationsPage() {
         <ReplayFailedButton />
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-3xl flex gap-2">
           <Link
             href="/refills"
@@ -124,10 +122,7 @@ export default function NotificationsPage() {
           >
             ← Refills
           </Link>
-          <Link
-            href="/safety"
-            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/safety" className="aid-cta-violet flex-1 py-3 text-center text-sm">
             Safety →
           </Link>
         </div>

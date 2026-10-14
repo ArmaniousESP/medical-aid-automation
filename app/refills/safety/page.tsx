@@ -18,15 +18,13 @@ export default async function RefillSafetyQueuePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-4xl space-y-6">
         <header className="space-y-3">
           <FlowSteps current={5} />
           <div className="flex flex-wrap justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Clinical tools · Safety queue
-              </p>
+              <p className="aid-section-label">Clinical tools · Safety queue</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Refill safety queue
               </h1>
@@ -37,20 +35,17 @@ export default async function RefillSafetyQueuePage() {
             <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/refills"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 ← Refills
               </Link>
               <Link
                 href="/safety"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 Checklist
               </Link>
-              <Link
-                href="/pharmacy"
-                className="rounded-xl bg-teal-600 px-3 py-2 font-semibold text-white hover:bg-teal-700"
-              >
+              <Link href="/pharmacy" className="aid-cta-teal px-3 py-2 text-sm">
                 Pharmacy →
               </Link>
             </div>
@@ -70,25 +65,25 @@ export default async function RefillSafetyQueuePage() {
         {report && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border bg-white p-4 shadow-sm">
+              <div className="aid-kpi">
                 <div className="text-xs text-slate-500">Cycles scanned</div>
                 <div className="text-3xl font-bold">{report.scanned}</div>
               </div>
-              <div className="rounded-2xl border bg-white p-4 shadow-sm">
+              <div className="aid-kpi">
                 <div className="text-xs text-slate-500">With high flags</div>
                 <div className="text-3xl font-bold text-red-700">{report.flagged}</div>
               </div>
             </div>
 
             {report.rows.length === 0 ? (
-              <p className="text-sm text-slate-500 rounded-2xl border bg-white p-6 text-center">
+              <p className="text-sm text-slate-500 rounded-2xl border border-white/80 bg-white/90 p-6 text-center backdrop-blur">
                 No high-priority safety flags in the scanned set.
               </p>
             ) : (
-              <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+              <div className="rounded-2xl border border-white/80 bg-white/90 shadow-sm overflow-hidden backdrop-blur">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs text-slate-500 border-b bg-slate-50">
+                    <tr className="text-left text-xs text-slate-500 border-b bg-slate-50/80">
                       <th className="p-3">Program</th>
                       <th className="p-3">Patient</th>
                       <th className="p-3">Period</th>
@@ -132,7 +127,7 @@ export default async function RefillSafetyQueuePage() {
         </p>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-4xl flex gap-2">
           <Link
             href="/safety"
@@ -140,10 +135,7 @@ export default async function RefillSafetyQueuePage() {
           >
             ← Checklist
           </Link>
-          <Link
-            href="/pharmacy"
-            className="flex-1 rounded-xl bg-teal-600 py-3 text-center text-sm font-semibold text-white"
-          >
+          <Link href="/pharmacy" className="aid-cta-teal flex-1 py-3 text-center text-sm">
             Pharmacy →
           </Link>
         </div>

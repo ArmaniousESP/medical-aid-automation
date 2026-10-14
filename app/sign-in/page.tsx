@@ -18,17 +18,18 @@ export default function SignInPage({
       : '/';
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+    <main className="min-h-screen p-6 text-slate-900">
       <div className="mx-auto max-w-md space-y-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold">Staff sign-in</h1>
+        <header className="space-y-1 text-center sm:text-left">
+          <p className="aid-section-label">Staff only</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Staff sign-in</h1>
           <p className="text-sm text-slate-600" dir="rtl">
             دخول التشغيل عبر Google (Neon Auth)
           </p>
         </header>
 
         {!neonOk && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm space-y-2">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50/95 p-4 text-sm space-y-2 backdrop-blur">
             <p className="font-medium text-amber-950">Neon Auth not configured</p>
             <ol className="list-decimal list-inside text-xs text-amber-900 space-y-1">
               <li>Neon Console → your branch → <strong>Auth</strong> → Enable</li>
@@ -57,7 +58,7 @@ export default function SignInPage({
         )}
 
         {neonOk && allowlist.length === 0 && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50/95 p-4 text-sm backdrop-blur">
             <p className="font-medium">Set OPS_ALLOWED_EMAILS</p>
             <p className="text-xs mt-1 text-amber-900">
               Comma-separated Google emails allowed for ops. Without this list, no
@@ -67,7 +68,7 @@ export default function SignInPage({
         )}
 
         {neonOk && allowlist.length > 0 && (
-          <div className="rounded-xl border bg-white p-5 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
             <p className="text-sm text-slate-600">
               Sign in with a Google account on the staff allowlist ({allowlist.length}{' '}
               email{allowlist.length === 1 ? '' : 's'}).
@@ -79,14 +80,14 @@ export default function SignInPage({
           </div>
         )}
 
-        <div className="text-center text-sm space-x-3">
-          <Link href="/" className="text-blue-600 hover:underline">
+        <div className="text-center text-sm space-x-3 text-slate-600">
+          <Link href="/" className="text-emerald-700 font-medium hover:underline">
             Home
           </Link>
-          <Link href="/?unlock=1" className="text-slate-600 hover:underline">
+          <Link href="/?unlock=1" className="hover:underline">
             Secret unlock
           </Link>
-          <Link href="/status" className="text-slate-600 hover:underline">
+          <Link href="/status" className="hover:underline">
             Status
           </Link>
         </div>
