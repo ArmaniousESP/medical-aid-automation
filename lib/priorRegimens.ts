@@ -24,7 +24,8 @@ export type PriorRegimen = {
   renewed_request_id: string | null;
 };
 
-export const RENEWAL_DEADLINE = '2026-09-10'; // official target for 2027 continuity
+/** Official target for employees to confirm/update regimen for next-year support */
+export const RENEWAL_DEADLINE = '2026-12-10';
 export const RENEWAL_YEAR = 2027;
 
 export function renewalDeadlinePassed(now = new Date()): boolean {
@@ -109,12 +110,10 @@ export async function listPriorRegimensForEmployee(input: {
     [company, emp_id]
   );
 
-  // Privacy: only return if phone matches at least one row (or all rows share phone)
   const matched = res.rows.filter(
     (r) => !r.phone || phonesMatch(r.phone, input.phone)
   );
   if (!matched.length) {
-    // if rows exist without phone, still allow when emp_id+company verified via roster
     if (res.rows.length && res.rows.every((r) => !r.phone)) return res.rows as PriorRegimen[];
     return [];
   }
