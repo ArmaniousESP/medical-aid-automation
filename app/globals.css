@@ -2,30 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  -webkit-tap-highlight-color: transparent;
+:root {
+  --aid-emerald: #059669;
+  --aid-emerald-deep: #047857;
+  --aid-violet: #6d28d9;
+  --aid-surface: rgba(255, 255, 255, 0.82);
+  --aid-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.12);
+  --aid-ring: rgba(5, 150, 105, 0.35);
 }
 
-/* Comfortable reading */
 html {
   scroll-behavior: smooth;
 }
 
-/* Visible keyboard focus */
-:focus-visible {
-  outline: 2px solid #059669;
-  outline-offset: 2px;
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  color: #0f172a;
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(16, 185, 129, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(124, 58, 237, 0.1), transparent 50%),
+    radial-gradient(700px 400px at 50% 100%, rgba(14, 165, 233, 0.08), transparent 55%);
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
-/* Larger default form controls on mobile */
+::selection {
+  background: rgba(16, 185, 129, 0.22);
+  color: #064e3b;
+}
+
+:focus-visible {
+  outline: 2px solid var(--aid-emerald);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--aid-ring);
+}
+
 @layer base {
   input,
   select,
   textarea,
   button {
-    font-size: 16px; /* prevents iOS zoom on focus */
+    font-size: 16px;
   }
 
   @media (min-width: 640px) {
@@ -38,7 +65,70 @@ html {
   }
 }
 
-/* Utility for screen-reader only already in Tailwind; ensure bottom padding */
+@layer components {
+  .aid-glass {
+    background: var(--aid-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: var(--aid-shadow);
+  }
+
+  .aid-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm;
+    box-shadow: var(--aid-shadow);
+  }
+
+  .aid-cta-primary {
+    @apply rounded-2xl font-semibold text-white transition;
+    background: linear-gradient(135deg, #059669 0%, #0d9488 55%, #047857 100%);
+    box-shadow: 0 12px 28px -10px rgba(5, 150, 105, 0.55);
+  }
+
+  .aid-cta-primary:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 16px 32px -10px rgba(5, 150, 105, 0.6);
+  }
+
+  .aid-pill-active {
+    @apply rounded-full bg-emerald-600 text-white shadow-sm;
+  }
+
+  .aid-nav {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 24px -12px rgba(15, 23, 42, 0.12);
+  }
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Gentle entrance for key home blocks */
+@keyframes aid-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aid-rise {
+  animation: aid-rise 0.45s ease-out both;
+}
+
+.aid-rise-delay-1 {
+  animation-delay: 0.06s;
+}
+.aid-rise-delay-2 {
+  animation-delay: 0.12s;
+}
+.aid-rise-delay-3 {
+  animation-delay: 0.18s;
 }
