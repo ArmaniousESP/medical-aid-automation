@@ -24,9 +24,16 @@ export const CITY_OPTIONS: PickerOption[] = labels([
 ]);
 
 export const COMPANY_OPTIONS: PickerOption[] = labels([
+  'تجميل',
+  'فارما - اكتوبر',
+  'فارما - الهرم',
+  'فارما - العاشر',
+  'مؤسسة ارمانيوس',
+  'أخناتون للتجارة و التوزيع',
+  'مدرسة ايفا',
+  'ايفاجرو صناعات',
   'Armanious Foundation',
   'EVA Pharma',
-  'تجميل',
   'Other / أخرى',
 ]);
 
