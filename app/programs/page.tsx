@@ -136,15 +136,13 @@ export default async function ProgramsPage({
     : 0;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="space-y-3">
           <FlowSteps current={4} />
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Step 4 of 5 · Programs
-              </p>
+              <p className="aid-section-label">Step 4 of 5 · Programs</p>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Programs
               </h1>
@@ -155,14 +153,11 @@ export default async function ProgramsPage({
             <div className="hidden sm:flex flex-wrap gap-2 text-sm">
               <Link
                 href="/pharmacy"
-                className="rounded-xl border bg-white px-3 py-2 font-medium hover:bg-slate-50"
+                className="rounded-xl border border-white/80 bg-white/90 px-3 py-2 font-medium hover:bg-white backdrop-blur"
               >
                 ← Pharmacy
               </Link>
-              <Link
-                href="/refills"
-                className="rounded-xl bg-violet-700 px-4 py-2 font-semibold text-white hover:bg-violet-800"
-              >
+              <Link href="/refills" className="aid-cta-violet px-4 py-2 text-sm">
                 Next: Refills →
               </Link>
             </div>
@@ -170,27 +165,27 @@ export default async function ProgramsPage({
         </header>
 
         <div className={`grid gap-2 text-center ${whoOn ? 'grid-cols-4' : 'grid-cols-3'}`}>
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-slate-900">{rows.length}</p>
             <p className="text-[11px] text-slate-500">shown</p>
           </div>
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-emerald-800">{activeCount}</p>
             <p className="text-[11px] text-slate-500">active</p>
           </div>
-          <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+          <div className="aid-kpi">
             <p className="text-xl font-bold text-amber-800">{suspendedCount}</p>
             <p className="text-[11px] text-slate-500">suspended</p>
           </div>
           {whoOn && (
-            <div className="rounded-xl border bg-white px-2 py-3 shadow-sm">
+            <div className="aid-kpi">
               <p className="text-xl font-bold text-orange-800">{highRiskCount}</p>
               <p className="text-[11px] text-slate-500">high risk</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3 backdrop-blur">
           <div className="text-sm">
             <p className="font-medium text-slate-800">Chronic enrollments</p>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -209,7 +204,7 @@ export default async function ProgramsPage({
 
         <form
           method="get"
-          className="rounded-2xl border bg-white p-3 shadow-sm flex flex-wrap gap-2 items-center"
+          className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm flex flex-wrap gap-2 items-center backdrop-blur"
         >
           <input
             name="q"
@@ -257,7 +252,7 @@ export default async function ProgramsPage({
               className={`min-h-[2.5rem] rounded-full px-3.5 py-1.5 text-xs font-semibold border ${
                 status === s
                   ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white border-slate-200 text-slate-600'
+                  : 'bg-white/90 border-slate-200 text-slate-600'
               }`}
             >
               {label}
@@ -288,7 +283,7 @@ export default async function ProgramsPage({
                   className={`min-h-[2.25rem] rounded-full px-3 py-1 text-xs font-semibold border ${
                     risk === rk
                       ? 'bg-orange-700 text-white border-orange-700'
-                      : 'bg-white border-slate-200 text-slate-600'
+                      : 'bg-white/90 border-slate-200 text-slate-600'
                   }`}
                 >
                   {label}
@@ -312,7 +307,7 @@ export default async function ProgramsPage({
         )}
 
         {!error && rows.length === 0 && (
-          <div className="rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500 space-y-2">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-8 text-center text-sm text-slate-500 space-y-2 backdrop-blur">
             <p className="text-2xl" aria-hidden>
               ○
             </p>
@@ -332,7 +327,7 @@ export default async function ProgramsPage({
             <Link
               key={r.id}
               href={`/programs/${r.id}`}
-              className="block rounded-2xl border bg-white p-4 shadow-sm space-y-2 hover:border-violet-300 active:bg-slate-50"
+              className="block rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm space-y-2 hover:border-violet-300 backdrop-blur active:bg-white"
             >
               <div className="flex justify-between gap-2">
                 <p className="font-semibold text-slate-900 truncate">
@@ -371,9 +366,9 @@ export default async function ProgramsPage({
         </div>
 
         {rows.length > 0 && (
-          <div className="hidden md:block overflow-x-auto rounded-2xl border bg-white shadow-sm">
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/80 bg-white/90 shadow-sm backdrop-blur">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-xs text-slate-500">
+              <thead className="bg-slate-50/80 text-xs text-slate-500">
                 <tr>
                   <th className="p-3 font-semibold">Code</th>
                   <th className="p-3 font-semibold">Employee</th>
@@ -449,7 +444,7 @@ export default async function ProgramsPage({
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-20 border-t bg-white/95 backdrop-blur p-3 md:hidden">
+      <div className="aid-sticky-bar">
         <div className="mx-auto max-w-5xl flex gap-2">
           <Link
             href="/pharmacy"
@@ -459,7 +454,7 @@ export default async function ProgramsPage({
           </Link>
           <Link
             href="/refills"
-            className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-sm font-semibold text-white"
+            className="aid-cta-violet flex-1 py-3 text-center text-sm"
           >
             Refills →
           </Link>
