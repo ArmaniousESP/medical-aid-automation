@@ -5,26 +5,39 @@
 
 ## Verdict
 
-**Production-grade for core chronic medicine support**, with multi-org isolation and abuse protections in place.
+**Production-grade for core chronic medicine support**, with multi-org isolation, audit trail, and abuse protections.
 
-## Hardening completed (this pass)
+## Hardening completed
 
-- [x] **Claims list scoped** by `org_codes` / `org_ids` (join aid_requests + programs)
-- [x] **Pharmacy pick-list** requires ops auth + scoped by `employees.org_id`
-- [x] **Rate limits** on public intake (`submit` 20/min, search/estimate 60/min) and request-status (60/min)
-- [x] **Org backfill API** `POST /api/admin/org-backfill` (ops only)
-- [x] **Smoke workflow** `.github/workflows/smoke.yml` (health + public pages every 6h)
-- [x] Staff session exposes `org_scope` + memberships; org members can Activate without allowlist
+- [x] **Claims list scoped** by org
+- [x] **Pharmacy pick-list** requires ops auth + org scope
+- [x] **Rate limits** on public intake and request-status
+- [x] **Org backfill** API + seeded orgs (`ARMANIOUS`, `EVA`, `TAGMEEL`, `DEFAULT`)
+- [x] Company → org matching via code / name / `settings.aliases`
+- [x] **Audit events** (intake, enroll, claim, pharmacy, org approval)
+- [x] **Admin audit panel** with action + org filters
+- [x] **Org registration** public page + Admin approve/reject queue
+- [x] **Smoke workflow** health + public pages
+- [x] Staff session `org_scope` + memberships
 
-## Still recommended
+## Optional next
 
-- [ ] Register real org rows (Armanious, Eva Pharma, تجميل) so backfill maps company → org_code
-- [ ] Run `POST /api/admin/org-backfill` after orgs exist
-- [ ] Optional `ORG_REGISTRATION_MODE=approval`
-- [ ] Staging environment
-- [ ] WhatsApp provider credentials if outreach is required
-- [ ] Structured audit log for approvals
+- [ ] Set `ORG_REGISTRATION_MODE=approval` when open registration should require review
+- [ ] Staging environment (Vercel Preview + Neon branch)
+- [ ] Live WhatsApp credentials (Meta or Twilio) when outreach goes live
+- [ ] Expand smoke tests to authenticated ops paths
+- [ ] Row-level Neon policies if multi-tenant strictness is required beyond app filters
+
+## Multi-org quick reference
+
+| Surface | Path |
+|---------|------|
+| Register org | `/org/register` |
+| Pending requests | Admin → Organization requests |
+| Active orgs | Admin → Organizations |
+| Audit | Admin → Audit log |
+| Env gate | `ORG_REGISTRATION_MODE=approval` |
 
 ## Live health
 
-See `GET /api/health` — DATABASE_URL, Neon programs, egyptian catalog, formulary, claims.
+`GET /api/health` — DATABASE_URL, programs, Egyptian catalog, formulary, claims.
