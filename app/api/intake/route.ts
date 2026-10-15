@@ -1,0 +1,251 @@
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  createAidRequest,
+  listAidRequests,
+  updateAidRequestStatus,
+  type IntakeMedLine,
+} from '@/lib/intake';
+import { mshSearchMedicines, mshEstimateCost } from '@/lib/msh';
+import {
+  estimateEgyptianCost,
+  searchEgyptianDrugs,
+} from '@/lib/egyptianDrugs';
+import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
+import { jsonError } from '@/lib/errors';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/intake — ops list only (auth required)
+ * POST — public submit | search_med | estimate
+ * POST set_status — ops only
+ */
+export async function GET(req: NextRequest) {
+  try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { ok: false, error: 'DATABASE_URL not set' },
+        { status: 503 }
+      );
+    }
+    if (!authorizeRequest(req)) {
+      const u = unauthorizedResponse();
+      return NextResponse.json(u.body, { status: u.status });
+    }
+    const sp = req.nextUrl.searchParams;
+    const { resolveOrgScope } = await import('@/lib/orgScope');
+    const scope = await resolveOrgScope(req);
+    const rows = await listAidRequests({
+      status: sp.get('status') || 'all',
+      q: sp.get('q') || undefined,
+      limit: Number(sp.get('limit') || 50),
+      org_codes: scope.all ? undefined : scope.org_codes,
+    });
+    return NextResponse.json({
+      ok: true,
+      count: rows.length,
+      requests: rows,
+      org_scope: { all: scope.all, org_codes: scope.org_codes, source: scope.source },
+    });
+  } catch (e: unknown) {
+    const { body, status } = jsonError(e);
+    return NextResponse.json(body, { status });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { ok: false, error: 'DATABASE_URL not set — cannot store intake' },
+        { status: 503 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const action = String(body.action || 'submit');
+
+    if (action === 'search_med') {
+      const q = String(body.q || '');
+      const limit = Number(body.limit) || 8;
+      const eg = await searchEgyptianDrugs(q, limit);
+      if (eg.ok && eg.items.length) {
+        return NextResponse.json({
+          ok: true,
+          items: eg.items.map((it) => ({
+            name_en: it.name_en,
+            name_ar: it.name_ar,
+            scientific_name: it.scientific_name,
+            manufacturer: it.manufacturer,
+            price_egp: it.price_egp,
+            drug_class: it.drug_class,
+            route: it.route,
+            source: it.source,
+          })),
+          source: 'egyptian-drug-database',
+          catalog_size: eg.total,
+        });
+      }
+      const msh = await mshSearchMedicines(q, limit);
+      return NextResponse.json({
+        ...msh,
+        source: msh.items.length ? 'msh' : eg.error ? 'none' : 'egyptian-drug-database',
+        egyptian_error: eg.error,
+      });
+    }
+
+    if (action === 'estimate') {
+      const lines = Array.isArray(body.lines) ? body.lines : [];
+      const eg = await estimateEgyptianCost(lines);
+      if (eg.ok && eg.total_egp != null) {
+        return NextResponse.json(eg);
+      }
+      const msh = await mshEstimateCost(lines);
+      return NextResponse.json({
+        ...msh,
+        egyptian_partial: eg,
+      });
+    }
+
+    if (action === 'set_status') {
+      if (!authorizeRequest(req)) {
+        const u = unauthorizedResponse();
+        return NextResponse.json(u.body, { status: u.status });
+      }
+      if (!body.id || !body.status) {
+        return NextResponse.json(
+          { ok: false, error: 'id and status required' },
+          { status: 400 }
+        );
+      }
+      await updateAidRequestStatus(String(body.id), body.status, {
+        match_notes: body.match_notes,
+        program_id: body.program_id,
+      });
+      return NextResponse.json({ ok: true, id: body.id, status: body.status });
+    }
+
+    const meds: IntakeMedLine[] = Array.isArray(body.meds)
+      ? body.meds
+      : String(body.medicine_summary || '')
+          .split(/[\n,;]+/)
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+          .map((name: string) => ({ name, qty: 1 }));
+
+    const phone = body.phone ? String(body.phone) : undefined;
+    const empName = String(body.emp_name || body.employee_name || '');
+    const patientName =
+      body.patient_name || body.patient
+        ? String(body.patient_name || body.patient)
+        : undefined;
+    const company = body.company ? String(body.company) : undefined;
+    const city = body.city ? String(body.city) : undefined;
+    const medsSummary = meds
+      .map((m) => `${m.name}${m.qty ? ` ×${m.qty}` : ''}`)
+      .join('; ')
+      .slice(0, 500);
+
+    const created = await createAidRequest({
+      emp_name: empName,
+      emp_id: body.emp_id ? String(body.emp_id) : undefined,
+      company,
+      phone,
+      patient_name: patientName,
+      city,
+      meds,
+      comments: body.comments ? String(body.comments) : undefined,
+      roshetta_urls:
+        body.roshetta_urls || (body.roshetta ? [String(body.roshetta)] : []),
+      invoice_urls: body.invoice_urls || [],
+      lab_urls: body.lab_urls || [],
+      card_urls: body.card_urls || [],
+      source: body.source ? String(body.source) : 'platform',
+      msh_request_id: body.msh_request_id
+        ? String(body.msh_request_id)
+        : undefined,
+      estimated_monthly_cost:
+        body.estimated_monthly_cost != null
+          ? Number(body.estimated_monthly_cost)
+          : null,
+    });
+
+    let whatsapp: { attempted: boolean; ok?: boolean; error?: string } = {
+      attempted: false,
+    };
+    if (
+      process.env.WHATSAPP_NOTIFY_ON_INTAKE === '1' &&
+      phone &&
+      String(phone).trim()
+    ) {
+      try {
+        const { sendWhatsApp } = await import('@/lib/whatsapp');
+        const r = await sendWhatsApp({
+          to: phone,
+          template: 'request_received',
+          vars: {
+            name: empName,
+            patient: patientName || '',
+            request_id: created.id,
+          },
+        });
+        whatsapp = {
+          attempted: true,
+          ok: r.ok,
+          error: r.error,
+        };
+      } catch (e: unknown) {
+        whatsapp = {
+          attempted: true,
+          ok: false,
+          error: e instanceof Error ? e.message : 'whatsapp failed',
+        };
+      }
+    }
+
+    let bitrix: {
+      attempted: boolean;
+      task?: { ok: boolean; task_id?: number; error?: string };
+      deal?: { ok: boolean; deal_id?: number; error?: string };
+    } = { attempted: false };
+    try {
+      const { syncAidRequestToBitrix } = await import('@/lib/bitrix');
+      bitrix = await syncAidRequestToBitrix({
+        id: created.id,
+        emp_name: empName,
+        patient_name: patientName,
+        phone,
+        company,
+        city,
+        meds_summary: medsSummary,
+      });
+    } catch (e: unknown) {
+      bitrix = {
+        attempted: true,
+        task: {
+          ok: false,
+          error: e instanceof Error ? e.message : 'bitrix failed',
+        },
+      };
+    }
+
+    return NextResponse.json({
+      ok: true,
+      id: created.id,
+      status: created.status,
+      created_at: created.created_at,
+      status_url: `/request-status?id=${created.id}`,
+      message:
+        'Request received. Save your Request ID to check status later.',
+      whatsapp,
+      bitrix,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'intake failed';
+    if (/required|medicine/i.test(msg)) {
+      return NextResponse.json({ ok: false, error: msg }, { status: 400 });
+    }
+    const { body, status } = jsonError(e);
+    return NextResponse.json(body, { status });
+  }
+}
