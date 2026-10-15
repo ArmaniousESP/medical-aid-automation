@@ -3,6 +3,7 @@ import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { FlowSteps } from '../FlowSteps';
 import { DryRunModeToggle } from '../DryRunModeToggle';
 import { LiveDryRunButton } from '../LiveDryRunButton';
+import { WhatsAppDryRunButton } from './WhatsAppDryRunButton';
 import { NotifyDueButton } from './NotifyDueButton';
 import { RenewalCampaignButton } from './RenewalCampaignButton';
 import { SafetyAlertButton } from './SafetyAlertButton';
@@ -89,6 +90,9 @@ export default function NotificationsPage() {
         </div>
 
         <DryRunModeToggle />
+
+        {/* Primary dry-run control — always safe */}
+        <WhatsAppDryRunButton />
 
         <LiveDryRunButton showToggle={false} />
 
