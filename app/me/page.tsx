@@ -79,6 +79,14 @@ function buildRenewHref(
   return `/intake?${q.toString()}`;
 }
 
+function formatDeadline(iso: string) {
+  // 2026-12-10 → 10 Dec 2026
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${Number(m[3])} ${months[Number(m[2]) - 1]} ${m[1]}`;
+}
+
 export default function EmployeePortalPage() {
   const [company, setCompany] = useState('');
   const [empId, setEmpId] = useState('');
@@ -88,7 +96,7 @@ export default function EmployeePortalPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [regimens, setRegimens] = useState<PriorRegimen[]>([]);
   const [deadlinePassed, setDeadlinePassed] = useState(false);
-  const [deadline, setDeadline] = useState('2026-09-10');
+  const [deadline, setDeadline] = useState('2026-12-10');
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -132,7 +140,6 @@ export default function EmployeePortalPage() {
         city: data.profile.city || '',
       });
 
-      // Load 2026 regimens for 2027 renewal
       const rr = await fetch('/api/employee/regimens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -297,7 +304,6 @@ export default function EmployeePortalPage() {
               </div>
             </div>
 
-            {/* 2027 Renewal banner */}
             <section
               className={`rounded-2xl border p-5 space-y-3 shadow-sm ${
                 deadlinePassed
@@ -315,16 +321,17 @@ export default function EmployeePortalPage() {
                   </h2>
                   <p className="text-sm text-slate-700">
                     Your chronic medicine support continues when you confirm (or update) the
-                    same regimen for the next year.
+                    same regimen for the next year — same approach used by strong patient
+                    support programs: continuity, low friction, you stay in control.
                   </p>
                   <p className="text-sm text-slate-600" dir="rtl">
-                    لاستمرار صرف الأدوية المزمنة في 2027، أكّد أو حدّث نفس العلاج من هنا.
+                    لاستمرار صرف الأدوية المزمنة في 2027، أكّد أو حدّث نفس العلاج من هنا قبل الموعد.
                   </p>
                   <p className="text-xs text-slate-500 pt-1">
-                    Official target date was <strong>{deadline}</strong>
+                    Target date: <strong>{formatDeadline(deadline)}</strong>
                     {deadlinePassed
                       ? ' — late renewals are still accepted so care is not interrupted.'
-                      : ' — please renew before then.'}
+                      : ' — please renew by then to continue 2027 support without interruption.'}
                   </p>
                 </div>
               </div>
@@ -390,7 +397,7 @@ export default function EmployeePortalPage() {
                         Renew this for 2027 · تجديد هذا للعلاج
                       </Link>
                       <p className="text-[11px] text-slate-500 text-center">
-                        Opens the form pre-filled — you can adjust medicines, then submit.
+                        Opens the form pre-filled — review, adjust if needed, then submit.
                       </p>
                     </article>
                   ))}
