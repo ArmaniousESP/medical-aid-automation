@@ -113,7 +113,21 @@ export async function createAidRequest(input: IntakePayload) {
       input.estimated_monthly_cost ?? null,
     ]
   );
-  return ins.rows[0];
+  const row = ins.rows[0];
+  try {
+    const { writeAudit } = await import('@/lib/audit');
+    await writeAudit({
+      actor: 'intake',
+      action: 'aid_request.submitted',
+      entity_type: 'aid_request',
+      entity_id: row.id,
+      org_code: orgCode,
+      meta: { company: input.company || null, emp_id: input.emp_id || null },
+    });
+  } catch {
+    /* never block submit */
+  }
+  return row;
 }
 
 export async function listAidRequests(opts?: {
