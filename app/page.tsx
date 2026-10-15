@@ -193,6 +193,26 @@ export default function Home() {
           </p>
         </section>
 
+        <section className="rounded-2xl border border-violet-200/80 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-5 space-y-3 shadow-sm">
+          <p className="text-[11px] uppercase tracking-wide text-violet-700 font-semibold">
+            Organizations · المؤسسات
+          </p>
+          <h2 className="font-bold text-slate-900">Use this platform for your company</h2>
+          <p className="text-sm text-slate-600">
+            Register your organization to run chronic medicine support for your employees —
+            intake, pharmacy, programs, and employee self-service.
+          </p>
+          <p className="text-sm text-slate-600" dir="rtl">
+            سجّل مؤسستك لاستخدام المنصة لدعم العلاج الشهري لموظفيك.
+          </p>
+          <Link
+            href="/org/register"
+            className="aid-cta-violet inline-flex px-4 py-2.5 text-sm font-semibold"
+          >
+            Create organization account · إنشاء حساب مؤسسة
+          </Link>
+        </section>
+
         <details className="rounded-2xl border border-dashed border-slate-300/90 bg-white/80 backdrop-blur group shadow-sm">
           <summary className="cursor-pointer list-none px-4 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center justify-between gap-2">
             <span>
