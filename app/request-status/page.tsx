@@ -82,61 +82,51 @@ function StatusForm() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setError('Could not copy link');
+    }
   }
 
   return (
-    <div className="space-y-4">
-      {fromDevice && id && (
-        <div className="rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 flex gap-2 items-start backdrop-blur">
-          <span className="text-lg leading-none" aria-hidden>
-            📱
-          </span>
-          <div>
-            <p className="font-medium">Last request on this device</p>
-            <p className="text-xs text-sky-800 mt-0.5" dir="rtl">
-              آخر طلب محفوظ على هذا الجهاز — يُملأ تلقائياً
-            </p>
-          </div>
-        </div>
-      )}
-
-      <form
-        onSubmit={(e) => lookup(e)}
-        className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur"
-      >
+    <div className="space-y-5">
+      <form onSubmit={lookup} className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
         <label className="block space-y-1.5">
           <span className="text-sm font-medium text-slate-700">
             Request ID · رقم الطلب
           </span>
           <div className="flex gap-2">
             <input
+              required
               value={id}
               onChange={(e) => {
                 setId(e.target.value);
                 setFromDevice(false);
               }}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
               className={field + ' font-mono text-sm'}
-              autoComplete="off"
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
               spellCheck={false}
             />
             <button
               type="button"
               onClick={pasteId}
-              className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
             >
-              {pasted ? 'Pasted' : 'Paste'}
+              {pasted ? '✓' : 'Paste'}
             </button>
           </div>
+          {fromDevice && (
+            <p className="text-[11px] text-emerald-700">
+              Using last request saved on this device
+            </p>
+          )}
         </label>
 
-        <details className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
-          <summary className="cursor-pointer text-xs font-medium text-slate-600">
+        <details className="text-sm text-slate-600">
+          <summary className="cursor-pointer font-medium text-slate-700">
             Optional verification · تحقق اختياري
           </summary>
-          <div className="mt-3 space-y-3 pb-1">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs">Phone · الهاتف</span>
               <input
@@ -162,13 +152,13 @@ function StatusForm() {
           disabled={loading || !id.trim()}
           className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50 active:scale-[0.99]"
         >
-          {loading ? 'Looking up… · جاري البحث' : 'Check status · عرض الحالة'}
+          {loading ? 'Looking up… · جاري البحث' : 'Check status · فحص الحالة'}
         </button>
       </form>
 
       {error && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/95 p-5 text-sm text-amber-950 space-y-3 backdrop-blur">
-          <p className="font-semibold">We couldn't find that request</p>
+          <p className="font-semibold">We couldn&apos;t find that request</p>
           <p className="text-xs text-amber-900/80" dir="rtl">
             لم نعثر على الطلب — تأكد من رقم الطلب أو قدّم طلباً جديداً
           </p>
@@ -204,16 +194,20 @@ function StatusForm() {
             </p>
           </div>
 
-          <dl className="grid grid-cols-2 gap-3 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-slate-50 p-3">
-              <dt className="text-slate-500 text-xs">Patient</dt>
-              <dd className="font-medium mt-0.5">{String(data.patient_name || '—')}</dd>
+              <dt className="text-slate-500 text-xs">Patient · المريض</dt>
+              <dd className="font-medium mt-0.5 break-words">
+                {String(data.patient_name_masked || data.patient_name || '—')}
+              </dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <dt className="text-slate-500 text-xs">Employee</dt>
-              <dd className="font-medium mt-0.5">{String(data.emp_name || '—')}</dd>
+              <dt className="text-slate-500 text-xs">Employee · الموظف</dt>
+              <dd className="font-medium mt-0.5 break-words">
+                {String(data.emp_name_masked || data.emp_name || '—')}
+              </dd>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 col-span-2">
+            <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2">
               <dt className="text-slate-500 text-xs">Submitted</dt>
               <dd className="font-medium mt-0.5">
                 {data.created_at
@@ -221,104 +215,63 @@ function StatusForm() {
                   : '—'}
               </dd>
             </div>
+            {data.med_count != null && Number(data.med_count) > 0 && (
+              <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3">
+                <dt className="text-slate-500 text-xs">Medicines · الأدوية</dt>
+                <dd className="font-medium mt-0.5">
+                  {String(data.med_count)} item(s) on this request
+                </dd>
+              </div>
+            )}
+            {data.stage_hint ? (
+              <div className="sm:col-span-2">
+                <p className="text-xs text-slate-600">{String(data.stage_hint)}</p>
+              </div>
+            ) : null}
           </dl>
 
-          {Array.isArray(data.meds) && (data.meds as unknown[]).length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 mb-2">Medicines</p>
-              <ul className="space-y-1.5">
-                {(data.meds as { name?: string; qty?: number }[]).map((m, i) => (
-                  <li
-                    key={i}
-                    className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm flex justify-between gap-2"
-                  >
-                    <span>{m.name || '—'}</span>
-                    <span className="text-slate-500 shrink-0">×{m.qty ?? 1}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="space-y-2 pt-1">
-            <button
-              type="button"
-              onClick={copyLink}
-              className="w-full rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-semibold text-emerald-900"
-            >
-              {copied ? 'Link copied ✓' : 'Copy status link · نسخ الرابط'}
-            </button>
-            <p className="text-[11px] text-center text-slate-400">
-              Bookmark this page or save the link to check again later
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="w-full rounded-full border border-emerald-200 bg-emerald-50 py-3 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+          >
+            {copied ? 'Copied · تم النسخ' : 'Copy status link · نسخ الرابط'}
+          </button>
+          <p className="text-center text-[11px] text-slate-400">
+            Bookmark this page or save the link to check again later
+          </p>
         </div>
       )}
 
-      {!data && !error && !loading && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-5 text-center space-y-3 backdrop-blur">
-          <p className="text-2xl" aria-hidden>
-            🔎
-          </p>
-          <p className="text-sm font-medium text-slate-700">Looking for a request?</p>
-          <p className="text-xs text-slate-500">
-            Paste your Request ID above, or start a new submission.
-          </p>
-          <p className="text-xs text-slate-500" dir="rtl">
-            الصق رقم الطلب أعلاه، أو ابدأ طلباً جديداً
-          </p>
-          <div className="flex flex-wrap justify-center gap-2 pt-1">
-            <Link href="/intake" className="aid-cta-primary inline-flex px-5 py-2.5 text-sm">
-              Submit a request →
-            </Link>
-            <Link
-              href="/"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-            >
-              Home
-            </Link>
-          </div>
-        </div>
-      )}
+      <p className="text-center text-xs text-slate-400">
+        <Link href="/intake" className="hover:underline">
+          Submit another · طلب جديد
+        </Link>
+        {' · '}
+        <Link href="/me" className="hover:underline">
+          My profile · ملفي
+        </Link>
+      </p>
     </div>
   );
 }
 
 export default function RequestStatusPage() {
   return (
-    <main className="min-h-screen p-4 sm:p-6 text-slate-900 pb-24 md:pb-10">
-      <div className="mx-auto max-w-md space-y-5">
+    <main className="min-h-screen text-slate-900 pb-24">
+      <div className="mx-auto max-w-md px-4 pt-6 space-y-5">
         <PublicStepsBar active="status" />
-        <header className="space-y-1 text-center sm:text-left">
+        <header className="text-center sm:text-left space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            My request status
+            Request status
           </h1>
-          <p className="text-base text-slate-600" dir="rtl">
-            حالة الطلب
+          <p className="text-sm text-slate-600" dir="rtl">
+            متابعة حالة طلب العلاج الشهري
           </p>
         </header>
-        <Suspense
-          fallback={
-            <p className="text-sm text-slate-500 text-center py-8 animate-pulse">
-              Loading status… · جاري التحميل
-            </p>
-          }
-        >
+        <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
           <StatusForm />
         </Suspense>
-        <p className="text-center text-sm text-slate-500 space-x-2">
-          <Link href="/intake" className="text-emerald-700 font-medium hover:underline">
-            ← Submit
-          </Link>
-          <span>·</span>
-          <Link href="/" className="hover:underline">
-            Home
-          </Link>
-          <span>·</span>
-          <Link href="/guide" className="hover:underline">
-            Help
-          </Link>
-        </p>
       </div>
     </main>
   );
