@@ -79,8 +79,38 @@ function buildRenewHref(
   return `/intake?${q.toString()}`;
 }
 
+function stashRenewPrefill(
+  company: string,
+  empId: string,
+  phone: string,
+  empName: string,
+  reg: PriorRegimen
+) {
+  try {
+    sessionStorage.setItem(
+      'maa_renew_prefill',
+      JSON.stringify({
+        company,
+        emp_id: empId,
+        phone,
+        emp_name: empName,
+        patient_name: reg.patient_name,
+        regimen_id: reg.id,
+        meds: reg.meds.map((m) => ({ name: m.name, qty: m.qty || 1 })),
+        comments: 'Renewal for 2027 chronic medicine support · تجديد دعم 2027',
+        hint: '2027 renewal — form pre-filled from last year. Review medicines, update if needed, then submit.',
+        relation:
+          reg.patient_name.replace(/\s+/g, '') === empName.replace(/\s+/g, '')
+            ? 'self'
+            : 'dependent',
+      })
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
 function formatDeadline(iso: string) {
-  // 2026-12-10 → 10 Dec 2026
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return iso;
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -392,6 +422,15 @@ export default function EmployeePortalPage() {
                           profile.emp_name,
                           reg
                         )}
+                        onClick={() =>
+                          stashRenewPrefill(
+                            company,
+                            empId,
+                            phone,
+                            profile.emp_name,
+                            reg
+                          )
+                        }
                         className="aid-cta-violet block w-full py-2.5 text-center text-sm font-semibold"
                       >
                         Renew this for 2027 · تجديد هذا للعلاج
@@ -479,13 +518,11 @@ export default function EmployeePortalPage() {
                           type="button"
                           disabled={replyBusy || !reply.trim()}
                           onClick={sendReply}
-                          className="aid-cta-violet w-full py-2.5 text-sm disabled:opacity-50"
+                          className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                         >
-                          {replyBusy ? 'Sending…' : 'Send reply'}
+                          {replyBusy ? '…' : 'Send reply'}
                         </button>
-                        {replyMsg && (
-                          <p className="text-xs text-center text-slate-600">{replyMsg}</p>
-                        )}
+                        {replyMsg && <p className="text-xs text-slate-600">{replyMsg}</p>}
                       </div>
                     )}
                   </article>
@@ -495,13 +532,13 @@ export default function EmployeePortalPage() {
           </div>
         )}
 
-        <p className="text-center text-sm text-slate-500 space-x-2">
+        <p className="text-center text-xs text-slate-400">
           <Link href="/" className="hover:underline">
             Home
           </Link>
-          <span>·</span>
+          {' · '}
           <Link href="/guide" className="hover:underline">
-            Help
+            Guide
           </Link>
         </p>
       </div>
