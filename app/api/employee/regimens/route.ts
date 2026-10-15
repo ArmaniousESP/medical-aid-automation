@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  getPriorRegimenById,
   listPriorRegimensForEmployee,
   RENEWAL_DEADLINE,
   RENEWAL_YEAR,
@@ -7,6 +8,40 @@ import {
 } from '@/lib/priorRegimens';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * GET ?id=<uuid> — single prior regimen for intake prefill (public, no PHI beyond known regimen).
+ * POST { company, emp_id, phone } — list regimens for employee portal.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get('id') || '';
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: 'id required' },
+        { status: 400 }
+      );
+    }
+    const regimen = await getPriorRegimenById(id);
+    if (!regimen) {
+      return NextResponse.json(
+        { ok: false, error: 'not found' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      renewal_year: RENEWAL_YEAR,
+      deadline: RENEWAL_DEADLINE,
+      regimen,
+    });
+  } catch (e: unknown) {
+    return NextResponse.json(
+      { ok: false, error: e instanceof Error ? e.message : 'Error' },
+      { status: 500 }
+    );
+  }
+}
 
 /** POST { company, emp_id, phone } — prior fulfilled regimens for renewal */
 export async function POST(req: NextRequest) {

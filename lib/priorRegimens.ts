@@ -120,96 +120,91 @@ export async function listPriorRegimensForEmployee(input: {
   return matched as PriorRegimen[];
 }
 
+export async function getPriorRegimenById(id: string): Promise<PriorRegimen | null> {
+  await ensurePriorRegimenTables();
+  const rid = String(id || '').trim();
+  if (!rid) return null;
+  const res = await query<{
+    id: string;
+    company: string;
+    emp_name: string;
+    emp_id: string | null;
+    phone: string | null;
+    patient_name: string;
+    support_year: number;
+    meds: PriorMed[];
+    last_update: string | null;
+    notes: string | null;
+    status: string;
+    renewal_status: string;
+    renewed_request_id: string | null;
+  }>(
+    `SELECT id, company, emp_name, emp_id, phone, patient_name, support_year,
+            meds, last_update, notes, status, renewal_status, renewed_request_id
+     FROM prior_regimens WHERE id = $1::uuid LIMIT 1`,
+    [rid]
+  );
+  return (res.rows[0] as PriorRegimen) || null;
+}
+
 export async function upsertPriorRegimens(
   rows: {
     company: string;
     emp_name: string;
-    emp_id?: string;
-    phone?: string;
+    emp_id?: string | null;
+    phone?: string | null;
     patient_name: string;
     support_year?: number;
     meds: PriorMed[];
-    last_update?: string;
-    notes?: string;
+    last_update?: string | null;
+    notes?: string | null;
+    status?: string;
   }[]
-): Promise<{ upserted: number }> {
+): Promise<number> {
   await ensurePriorRegimenTables();
-  let upserted = 0;
+  let n = 0;
   for (const r of rows) {
-    const company = r.company.trim();
-    const emp_name = r.emp_name.trim();
-    const patient_name = r.patient_name.trim();
-    if (!company || !emp_name || !patient_name || !r.meds?.length) continue;
-    const emp_id = r.emp_id?.trim() || null;
-
-    const existing = await query<{ id: string }>(
-      `SELECT id FROM prior_regimens
-       WHERE lower(trim(company)) = lower(trim($1))
-         AND trim(coalesce(emp_id,'')) = trim(coalesce($2,''))
-         AND lower(trim(patient_name)) = lower(trim($3))
-         AND support_year = $4
-       LIMIT 1`,
-      [company, emp_id, patient_name, r.support_year || 2026]
+    await query(
+      `INSERT INTO prior_regimens (
+         company, emp_name, emp_id, phone, patient_name, support_year, meds,
+         last_update, notes, status, renewal_status
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,'pending_2027')`,
+      [
+        r.company,
+        r.emp_name,
+        r.emp_id || null,
+        r.phone || null,
+        r.patient_name,
+        r.support_year ?? 2026,
+        JSON.stringify(r.meds || []),
+        r.last_update || null,
+        r.notes || null,
+        r.status || 'fulfilled',
+      ]
     );
-
-    if (existing.rows[0]) {
-      await query(
-        `UPDATE prior_regimens SET
-           emp_name = $2, phone = COALESCE($3, phone), meds = $4::jsonb,
-           last_update = COALESCE($5, last_update), notes = COALESCE($6, notes),
-           updated_at = now()
-         WHERE id = $1`,
-        [
-          existing.rows[0].id,
-          emp_name,
-          r.phone || null,
-          JSON.stringify(r.meds),
-          r.last_update || null,
-          r.notes || null,
-        ]
-      );
-    } else {
-      await query(
-        `INSERT INTO prior_regimens
-           (company, emp_name, emp_id, phone, patient_name, support_year, meds, last_update, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)`,
-        [
-          company,
-          emp_name,
-          emp_id,
-          r.phone || null,
-          patient_name,
-          r.support_year || 2026,
-          JSON.stringify(r.meds),
-          r.last_update || null,
-          r.notes || null,
-        ]
-      );
-    }
-    upserted += 1;
+    n += 1;
   }
-  return { upserted };
+  return n;
 }
 
 export async function markRegimenRenewed(
   regimenId: string,
   requestId: string
 ): Promise<void> {
-  await ensurePriorRegimenTables();
   await query(
-    `UPDATE prior_regimens SET
-       renewal_status = 'renewed_2027',
-       renewed_request_id = $2,
-       updated_at = now()
-     WHERE id = $1`,
+    `UPDATE prior_regimens
+     SET renewal_status = 'renewed_2027',
+         renewed_request_id = $2::uuid,
+         updated_at = now()
+     WHERE id = $1::uuid`,
     [regimenId, requestId]
   );
 }
 
 export async function priorRegimenCount(): Promise<number> {
   await ensurePriorRegimenTables();
-  const r = await query<{ n: string }>(
+  const res = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM prior_regimens`
   );
-  return Number(r.rows[0]?.n || 0);
+  return Number(res.rows[0]?.n || 0);
 }
