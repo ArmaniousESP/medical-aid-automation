@@ -86,38 +86,159 @@ export default function IntakePage() {
   const [popularMeds, setPopularMeds] = useState<string[]>([]);
 
   useEffect(() => {
-    const draft = loadDraft();
-    const profile = loadProfile();
-    setLastId(loadLastRequestId());
-    if (draft) {
-      setEmpName(draft.emp_name || '');
-      setEmpId(draft.emp_id || '');
-      setCompany(draft.company || '');
-      setPhone(draft.phone || '');
-      setPatient(draft.patient_name || '');
-      setRelation(draft.relation || 'self');
-      setCity(draft.city || '');
-      setComments(draft.comments || '');
-      setRoshetta(draft.roshetta || '');
-      setMeds(draft.meds?.length ? draft.meds : [{ name: '', qty: 1 }]);
-      setDraftSavedAt(draft.savedAt || Date.now());
-      setDraftHint('Draft restored');
-    } else if (profile) {
-      setEmpName(profile.emp_name || '');
-      setEmpId(profile.emp_id || '');
-      setCompany(profile.company || '');
-      setPhone(profile.phone || '');
-      setCity(profile.city || '');
-      setDraftHint('Welcome back');
+    let cancelled = false;
+
+    async function init() {
+      setLastId(loadLastRequestId());
+
+      const sp = new URLSearchParams(window.location.search);
+      const regimenId = sp.get('regimen_id') || '';
+      const hasRenew =
+        sp.get('renew') === '2027' ||
+        !!regimenId ||
+        !!sp.get('meds') ||
+        !!sp.get('patient');
+
+      let stored: Record<string, unknown> | null = null;
+      try {
+        const raw = sessionStorage.getItem('maa_renew_prefill');
+        if (raw) {
+          stored = JSON.parse(raw) as Record<string, unknown>;
+          sessionStorage.removeItem('maa_renew_prefill');
+        }
+      } catch {
+        /* ignore */
+      }
+
+      if (hasRenew || stored) {
+        let company = String(sp.get('company') || stored?.company || '');
+        let emp_id = String(sp.get('emp_id') || stored?.emp_id || '');
+        let emp_name = String(sp.get('emp_name') || stored?.emp_name || '');
+        let phone = String(sp.get('phone') || stored?.phone || '');
+        let patient_name = String(sp.get('patient') || stored?.patient_name || '');
+        let meds: MedLine[] = [];
+
+        const storedMeds = stored?.meds;
+        if (Array.isArray(storedMeds)) {
+          meds = storedMeds
+            .map((m: unknown) => {
+              const x = m as { name?: string; qty?: number };
+              return { name: String(x?.name || '').trim(), qty: Number(x?.qty) || 1 };
+            })
+            .filter((m) => m.name);
+        }
+
+        const medsParam = sp.get('meds');
+        if (!meds.length && medsParam) {
+          meds = medsParam
+            .split(';')
+            .map((s) => {
+              const pipe = s.indexOf('|');
+              if (pipe < 0) {
+                const name = s.trim();
+                return name ? { name, qty: 1 } : null;
+              }
+              const name = s.slice(0, pipe).trim();
+              const qty = Number(s.slice(pipe + 1)) || 1;
+              return name ? { name, qty } : null;
+            })
+            .filter((m): m is MedLine => !!m);
+        }
+
+        const rid = regimenId || String(stored?.regimen_id || '');
+        if (rid) {
+          try {
+            const res = await fetch(
+              `/api/employee/regimens?id=${encodeURIComponent(rid)}`
+            );
+            const data = await res.json();
+            if (res.ok && data.ok && data.regimen) {
+              const r = data.regimen;
+              if (!company && r.company) company = r.company;
+              if (!emp_name && r.emp_name) emp_name = r.emp_name;
+              if (!emp_id && r.emp_id) emp_id = String(r.emp_id);
+              if (!phone && r.phone) phone = String(r.phone);
+              if (!patient_name && r.patient_name) patient_name = r.patient_name;
+              const fromDb = (r.meds || [])
+                .map((m: { name?: string; requested_name?: string; qty?: number }) => ({
+                  name: String(m.name || m.requested_name || '').trim(),
+                  qty: Number(m.qty) || 1,
+                }))
+                .filter((m: MedLine) => m.name);
+              if (fromDb.length) meds = fromDb;
+            }
+          } catch {
+            /* keep URL/storage meds */
+          }
+        }
+
+        if (cancelled) return;
+
+        if (company) setCompany(company);
+        if (emp_id) setEmpId(emp_id);
+        if (emp_name) setEmpName(emp_name);
+        if (phone) setPhone(phone);
+        if (patient_name) setPatient(patient_name);
+        if (meds.length) setMeds(meds);
+        setComments(
+          'Renewal for 2027 chronic medicine support · تجديد دعم 2027'
+        );
+        if (
+          patient_name &&
+          emp_name &&
+          patient_name.replace(/\s+/g, '') === emp_name.replace(/\s+/g, '')
+        ) {
+          setRelation('self');
+        } else if (patient_name) {
+          setRelation('dependent');
+        }
+        setDraftHint(
+          meds.length
+            ? `2027 renewal pre-filled · ${meds.length} medicine(s) — review and submit`
+            : '2027 renewal — review fields and add medicines if needed'
+        );
+        setHydrated(true);
+      } else {
+        const draft = loadDraft();
+        const profile = loadProfile();
+        if (draft) {
+          setEmpName(draft.emp_name || '');
+          setEmpId(draft.emp_id || '');
+          setCompany(draft.company || '');
+          setPhone(draft.phone || '');
+          setPatient(draft.patient_name || '');
+          setRelation(draft.relation || 'self');
+          setCity(draft.city || '');
+          setComments(draft.comments || '');
+          setRoshetta(draft.roshetta || '');
+          setMeds(draft.meds?.length ? draft.meds : [{ name: '', qty: 1 }]);
+          setDraftSavedAt(draft.savedAt || Date.now());
+          setDraftHint('Draft restored');
+        } else if (profile) {
+          setEmpName(profile.emp_name || '');
+          setEmpId(profile.emp_id || '');
+          setCompany(profile.company || '');
+          setPhone(profile.phone || '');
+          setCity(profile.city || '');
+          setDraftHint('Welcome back');
+        }
+        if (!cancelled) setHydrated(true);
+      }
+
+      void fetch('/api/learning?key=medicine&limit=6')
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled) return;
+          const items = (d.items || []) as { value: string }[];
+          setPopularMeds(items.map((i) => i.value).filter(Boolean));
+        })
+        .catch(() => {});
     }
-    setHydrated(true);
-    void fetch('/api/learning?key=medicine&limit=6')
-      .then((r) => r.json())
-      .then((d) => {
-        const items = (d.items || []) as { value: string }[];
-        setPopularMeds(items.map((i) => i.value).filter(Boolean));
-      })
-      .catch(() => {});
+
+    void init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -295,6 +416,7 @@ export default function IntakePage() {
             if (patch.company) setCompany(patch.company);
             if (patch.phone) setPhone(patch.phone);
             if (patch.patient_name) setPatient(patch.patient_name);
+            if (patch.relation) setRelation(patch.relation);
             if (patch.meds?.length) setMeds(patch.meds);
             if (patch.comments) setComments(patch.comments);
             if (patch.hint) setDraftHint(patch.hint);
@@ -403,7 +525,7 @@ export default function IntakePage() {
                 <span className="w-8 shrink-0" aria-hidden />
               </div>
               {meds.map((m, i) => (
-                <div key={i} className="flex gap-2 items-center">
+                <div key={`${i}-${m.name}`} className="flex gap-2 items-center">
                   <div className="min-w-0 flex-1">
                     <SearchablePicker
                       value={m.name}
@@ -425,23 +547,29 @@ export default function IntakePage() {
                 <button type="button" onClick={runEstimate} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700">Estimate cost · تقدير</button>
                 {estimate && <span className="text-sm text-slate-600 self-center">{estimate}</span>}
               </div>
+              {estimateLines.length > 0 && (
+                <ul className="text-xs text-slate-600 space-y-1 border-t border-slate-100 pt-2">
+                  {estimateLines.map((l, i) => (
+                    <li key={i} className="flex justify-between gap-2">
+                      <span className="truncate">{l.matched || l.query}</span>
+                      <span className="shrink-0">{l.line_total != null ? `${l.line_total} EGP` : '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="block"><span className={label}>Roshetta / attachment links</span>
+                <textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} rows={2} className={field} placeholder="Optional URLs" />
+              </label>
+              <label className="block"><span className={label}>Comments</span>
+                <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={2} className={field} />
+              </label>
             </section>
-            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
-              <h2 className="text-sm font-semibold">D · Notes & attachments</h2>
-              <label className="block"><span className={label}>Comments</span><textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={3} className={field} placeholder="Optional notes for the reviewer…" /></label>
-              <label className="block"><span className={label}>Roshetta / invoice links</span><textarea value={roshetta} onChange={(e) => setRoshetta(e.target.value)} rows={2} className={field} placeholder="Paste Drive links, one per line" /></label>
-            </section>
-            {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
-            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-4 text-base font-semibold disabled:opacity-50">
-              {loading ? 'Submitting… · جاري الإرسال' : 'Submit request · إرسال الطلب'}
+            {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
+            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50">
+              {loading ? 'Submitting…' : 'Submit request · إرسال الطلب'}
             </button>
           </form>
         )}
-        <p className="text-center text-sm text-slate-500 pb-4">
-          <Link href="/me" className="text-emerald-700 font-medium hover:underline">My profile · ملف الموظف</Link>
-          {' · '}
-          <Link href="/" className="hover:underline">Home</Link>
-        </p>
       </div>
     </main>
   );
