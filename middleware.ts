@@ -10,6 +10,7 @@ const PUBLIC_EXACT = new Set([
   '/intake',
   '/request-status',
   '/me',
+  '/org/register',
   '/guide',
   '/status',
   '/admin',
@@ -26,6 +27,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/',
   '/api/request-status',
   '/api/employee/',
+  '/api/orgs',
   '/api/learning',
   '/api/webhooks/whatsapp',
   '/api/webhooks/twilio',
@@ -40,6 +42,7 @@ const PUBLIC_PREFIXES = [
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (pathname === '/sign-in' || pathname.startsWith('/sign-in/')) return true;
+  if (pathname === '/org' || pathname.startsWith('/org/')) return true;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
   if (pathname === '/api/intake') return true;
   return false;
@@ -99,7 +102,8 @@ function hasOpsAuth(req: NextRequest, secrets: string[]): boolean {
     req.nextUrl.searchParams.get('secret'),
     req.cookies.get(ADMIN_COOKIE)?.value || null,
   ];
-  return candidates.some((c) => c != null && secrets.includes(c));
+  if (candidates.some((c) => c && secrets.includes(c))) return true;
+  return false;
 }
 
 export function middleware(req: NextRequest) {
@@ -110,25 +114,24 @@ export function middleware(req: NextRequest) {
   }
 
   const secrets = getOpsSecrets();
-  const allowlist = getAllowedEmails();
-  const neonConfigured = !!process.env.NEON_AUTH_BASE_URL;
-  const neonReady = neonConfigured && (allowlist.length > 0 || !!process.env.OPS_ADMIN_EMAILS);
+  const staffConfigured =
+    !!process.env.NEON_AUTH_BASE_URL && getAllowedEmails().length > 0;
 
-  if (!secrets.length && !neonConfigured) {
+  if (!secrets.length && !staffConfigured) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            'Ops locked: set PROCESS_SECRET and/or Neon Auth + roles',
+            'Ops locked — set PROCESS_SECRET and/or Neon Auth + OPS_ALLOWED_EMAILS',
           code: 'secret_required',
         },
-        { status: 401 }
+        { status: 503 }
       );
     }
     const url = req.nextUrl.clone();
-    url.pathname = '/admin';
-    url.searchParams.set('need_secret', '1');
+    url.pathname = '/';
+    url.searchParams.set('ops', 'locked');
     return NextResponse.redirect(url);
   }
 
@@ -138,20 +141,21 @@ export function middleware(req: NextRequest) {
 
   if (pathname.startsWith('/api/')) {
     return NextResponse.json(
-      { ok: false, error: 'Unauthorized', code: 'unauthorized' },
+      {
+        ok: false,
+        error: 'Unauthorized',
+        code: 'unauthorized',
+      },
       { status: 401 }
     );
   }
 
   const url = req.nextUrl.clone();
-  url.pathname = neonReady || neonConfigured ? '/admin' : '/admin';
-  url.searchParams.set('unlock', '1');
+  url.pathname = '/';
   url.searchParams.set('next', pathname);
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|csv)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)'],
 };
