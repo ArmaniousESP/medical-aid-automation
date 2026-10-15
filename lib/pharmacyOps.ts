@@ -56,6 +56,18 @@ export async function processPharmacyBatch(opts: {
 
       if (['approved', 'partially_approved', 'dispensing'].includes(st2 || '')) {
         await dispenseCycle({ cycleId: id, notes, actor });
+        try {
+          const { writeAudit } = await import('@/lib/audit');
+          await writeAudit({
+            actor,
+            action: 'pharmacy.dispensed',
+            entity_type: 'refill_cycle',
+            entity_id: id,
+            meta: { notes },
+          });
+        } catch {
+          /* */
+        }
         results.push({ cycle_id: id, ok: true, status: 'dispensed' });
       } else if (st2 === 'dispensed') {
         results.push({ cycle_id: id, ok: true, status: 'already_dispensed' });
