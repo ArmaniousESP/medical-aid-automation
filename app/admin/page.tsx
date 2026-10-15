@@ -7,6 +7,7 @@ import { AdminPanelClient } from './AdminPanelClient';
 import { AdminSearch } from './AdminSearch';
 import { LearningBootstrap } from './LearningBootstrap';
 import { AuditLogPanel } from './AuditLogPanel';
+import { OrgRequestsPanel } from './OrgRequestsPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,8 @@ export default function AdminPage() {
             flags={flags}
           />
         </Suspense>
+
+        <OrgRequestsPanel />
 
         <AuditLogPanel />
 
