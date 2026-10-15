@@ -9,6 +9,7 @@ import { LearningBootstrap } from './LearningBootstrap';
 import { AuditLogPanel } from './AuditLogPanel';
 import { OrgRequestsPanel } from './OrgRequestsPanel';
 import { OrgsListPanel } from './OrgsListPanel';
+import { OrgMembersPanel } from './OrgMembersPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,8 @@ export default function AdminPage() {
         </Suspense>
 
         <OrgsListPanel />
+
+        <OrgMembersPanel />
 
         <OrgRequestsPanel />
 
