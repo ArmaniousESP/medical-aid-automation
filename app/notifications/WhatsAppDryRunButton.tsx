@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useDryRunMode } from './useDryRunMode';
+import { WaDryRunSwitch, confirmLiveSend } from './WaDryRunSwitch';
 
 function currentPeriod() {
   const d = new Date();
@@ -8,11 +10,12 @@ function currentPeriod() {
 }
 
 /**
- * Dedicated WhatsApp dry-run control.
- * Never sends live messages — always forces dry_run: true.
+ * WhatsApp test / due controls with dry-run toggle.
+ * Default and recommended mode is dry-run; live requires toggle OFF + confirm.
  */
 export function WhatsAppDryRunButton() {
   const period = currentPeriod();
+  const { dryRun } = useDryRunMode();
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState<'single' | 'due' | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -38,16 +41,20 @@ export function WhatsAppDryRunButton() {
       setError('Enter a phone number for the single-message test');
       return;
     }
+    const useDry = dryRun;
+    if (!useDry && !confirmLiveSend('single test message')) return;
+
     setBusy('single');
     setError(null);
     setResult(null);
     setPreview(null);
     try {
       const message =
-        `🧪 Dry-run test · تجربة واتساب\n` +
+        (useDry ? `🧪 Dry-run test · تجربة واتساب\n` : `WhatsApp test · تجربة\n`) +
         `Period ${period}\n` +
-        `This message was NOT sent live.\n` +
-        `هذه رسالة تجريبية — لم تُرسل فعلياً.\n` +
+        (useDry
+          ? `This message was NOT sent live.\nهذه رسالة تجريبية — لم تُرسل فعلياً.\n`
+          : `Live test message.\n`) +
         `— Medical aid`;
       const res = await fetch('/api/notifications/whatsapp', {
         method: 'POST',
@@ -57,7 +64,7 @@ export function WhatsAppDryRunButton() {
           to,
           template: 'custom',
           message,
-          dry_run: true,
+          dry_run: useDry,
         }),
       });
       const data = await res.json();
@@ -66,7 +73,7 @@ export function WhatsAppDryRunButton() {
       }
       setResult(
         [
-          'DRY-RUN OK',
+          useDry || data.dry_run ? 'DRY-RUN OK' : 'LIVE OK',
           data.provider ? `provider=${data.provider}` : null,
           data.to ? `to=${data.to}` : `to=${to}`,
           data.message_id ? `id=${data.message_id}` : null,
@@ -83,6 +90,9 @@ export function WhatsAppDryRunButton() {
   }
 
   async function runDueBatch() {
+    const useDry = dryRun;
+    if (!useDry && !confirmLiveSend('due refill batch')) return;
+
     setBusy('due');
     setError(null);
     setResult(null);
@@ -94,7 +104,7 @@ export function WhatsAppDryRunButton() {
         headers: secretHeaders(),
         body: JSON.stringify({
           action: 'notify_due',
-          dry_run: true,
+          dry_run: useDry,
           period,
           limit: 30,
         }),
@@ -105,7 +115,7 @@ export function WhatsAppDryRunButton() {
       }
       setResult(
         [
-          'DRY-RUN batch OK',
+          useDry ? 'DRY-RUN batch OK' : 'LIVE batch OK',
           `${data.ok_count ?? 0}/${data.attempted ?? 0} recipients`,
           data.provider ? `provider=${data.provider}` : null,
           `period=${data.period || period}`,
@@ -136,30 +146,37 @@ export function WhatsAppDryRunButton() {
   }
 
   return (
-    <div className="rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-sm space-y-4">
-      <div className="flex items-start gap-3">
-        <span className="text-2xl" aria-hidden>
-          💬
-        </span>
-        <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-            Safe · always dry-run
-          </p>
-          <h2 className="text-lg font-bold text-slate-900">
-            WhatsApp dry-run
-          </h2>
-          <p className="text-sm text-slate-600">
-            Simulate messages without sending. Use this before any live campaign.
-          </p>
-          <p className="text-xs text-slate-500" dir="rtl">
-            تجربة واتساب بدون إرسال حقيقي — استخدمها قبل أي حملة مباشرة.
-          </p>
+    <div
+      className={`rounded-2xl border-2 p-5 shadow-sm space-y-4 ${
+        dryRun
+          ? 'border-amber-400 bg-gradient-to-br from-amber-50 via-white to-orange-50'
+          : 'border-emerald-400 bg-gradient-to-br from-emerald-50 via-white to-teal-50'
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="text-2xl" aria-hidden>
+            💬
+          </span>
+          <div className="min-w-0 space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+              WhatsApp actions
+            </p>
+            <h2 className="text-lg font-bold text-slate-900">Send / dry-run</h2>
+            <p className="text-sm text-slate-600">
+              Toggle dry-run on each card. OFF requires a live confirm.
+            </p>
+            <p className="text-xs text-slate-500" dir="rtl">
+              مفتاح dry-run على كل زر — الإرسال الحي يحتاج تأكيد.
+            </p>
+          </div>
         </div>
+        <WaDryRunSwitch />
       </div>
 
       <label className="block space-y-1.5">
         <span className="text-xs font-medium text-slate-700">
-          Test phone · رقم للتجربة (optional for single test)
+          Test phone · رقم للتجربة
         </span>
         <input
           type="tel"
@@ -174,27 +191,41 @@ export function WhatsAppDryRunButton() {
         <button
           type="button"
           disabled={busy !== null}
-          onClick={runSingle}
-          className="flex-1 rounded-xl bg-amber-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
+          onClick={() => void runSingle()}
+          className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow disabled:opacity-50 ${
+            dryRun ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'
+          }`}
         >
-          {busy === 'single' ? 'Running…' : '▶ Dry-run one message'}
+          {busy === 'single'
+            ? 'Running…'
+            : dryRun
+              ? '▶ Dry-run one message'
+              : '▶ Send one message (live)'}
         </button>
         <button
           type="button"
           disabled={busy !== null}
-          onClick={runDueBatch}
-          className="flex-1 rounded-xl border-2 border-amber-500 bg-white px-4 py-3 text-sm font-semibold text-amber-950 hover:bg-amber-50 disabled:opacity-50"
+          onClick={() => void runDueBatch()}
+          className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm font-semibold disabled:opacity-50 ${
+            dryRun
+              ? 'border-amber-500 bg-white text-amber-950 hover:bg-amber-50'
+              : 'border-emerald-600 bg-white text-emerald-950 hover:bg-emerald-50'
+          }`}
         >
-          {busy === 'due' ? 'Running…' : `▶ Dry-run due batch (${period})`}
+          {busy === 'due'
+            ? 'Running…'
+            : dryRun
+              ? `▶ Dry-run due batch (${period})`
+              : `▶ Live due batch (${period})`}
         </button>
       </div>
 
       {result && (
         <p
           className={`text-xs font-mono break-all rounded-lg px-3 py-2 ${
-            result.startsWith('DRY-RUN')
+            result.includes('DRY-RUN') || result.startsWith('DRY')
               ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-              : 'bg-slate-50 text-slate-700'
+              : 'bg-amber-50 text-amber-950 border border-amber-200'
           }`}
         >
           {result}
