@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PublicStepsBar } from '../PublicStepsBar';
-import { loadLastRequestId, saveLastRequestId } from '@/lib/intakeDraft';
+import { loadLastRequestId, loadProfile, saveLastRequestId } from '@/lib/intakeDraft';
 
 const field =
   'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200';
@@ -23,23 +23,33 @@ function StatusForm() {
 
   useEffect(() => {
     const qid = search?.get('id');
-    if (qid) {
-      setId(qid);
-      return;
+    if (qid) setId(qid);
+    else {
+      const last = loadLastRequestId();
+      if (last) {
+        setId(last);
+        setFromDevice(true);
+      }
     }
-    const last = loadLastRequestId();
-    if (last) {
-      setId(last);
-      setFromDevice(true);
+    // Pre-fill verification from /me profile saved on this device
+    const profile = loadProfile();
+    if (profile) {
+      if (profile.phone) setPhone(profile.phone);
+      if (profile.emp_id) setEmpId(profile.emp_id);
     }
+    const qp = search?.get('phone');
+    const qe = search?.get('emp_id');
+    if (qp) setPhone(qp);
+    if (qe) setEmpId(qe);
   }, [search]);
 
   useEffect(() => {
     if (id && /^[0-9a-f-]{36}$/i.test(id.trim())) {
       void lookup();
     }
+    // Re-check when verification fields arrive from profile
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, phone, empId]);
 
   async function lookup(e?: React.FormEvent) {
     e?.preventDefault();
@@ -122,7 +132,7 @@ function StatusForm() {
           )}
         </label>
 
-        <details className="text-sm text-slate-600">
+        <details className="text-sm text-slate-600" open={!!(phone || empId)}>
           <summary className="cursor-pointer font-medium text-slate-700">
             Optional verification · تحقق اختياري
           </summary>
@@ -145,6 +155,9 @@ function StatusForm() {
               />
             </label>
           </div>
+          <p className="mt-2 text-[11px] text-slate-500">
+            Enter the same phone or employee ID used on the request to unlock full names and medicine list.
+          </p>
         </details>
 
         <button
@@ -162,19 +175,12 @@ function StatusForm() {
           <p className="text-xs text-amber-900/80" dir="rtl">
             لم نعثر على الطلب — تأكد من رقم الطلب أو قدّم طلباً جديداً
           </p>
-          <ul className="text-xs list-disc list-inside space-y-1 text-amber-900/90">
-            <li>Copy the ID exactly from the success screen</li>
-            <li>Try optional phone / employee ID verification</li>
-          </ul>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link href="/intake" className="aid-cta-primary px-4 py-2.5 text-xs">
               Submit a new request
             </Link>
-            <Link
-              href="/guide"
-              className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold"
-            >
-              Help guide
+            <Link href="/me" className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold">
+              My profile · ملفي
             </Link>
           </div>
         </div>
@@ -198,13 +204,21 @@ function StatusForm() {
             <div className="rounded-xl bg-slate-50 p-3">
               <dt className="text-slate-500 text-xs">Patient · المريض</dt>
               <dd className="font-medium mt-0.5 break-words">
-                {String(data.patient_name_masked || data.patient_name || '—')}
+                {String(
+                  data.verified
+                    ? data.patient_name || data.patient_name_masked
+                    : data.patient_name_masked || data.patient_name || '—'
+                )}
               </dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
               <dt className="text-slate-500 text-xs">Employee · الموظف</dt>
               <dd className="font-medium mt-0.5 break-words">
-                {String(data.emp_name_masked || data.emp_name || '—')}
+                {String(
+                  data.verified
+                    ? data.emp_name || data.emp_name_masked
+                    : data.emp_name_masked || data.emp_name || '—'
+                )}
               </dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2">
@@ -228,6 +242,29 @@ function StatusForm() {
                 <p className="text-xs text-slate-600">{String(data.stage_hint)}</p>
               </div>
             ) : null}
+            {data.verified ? (
+              <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                Verified view · عرض مُتحقَّق — full names shown (phone or employee ID matched).
+              </div>
+            ) : (
+              <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                Names are masked for privacy. Open <strong>Optional verification</strong> and enter your phone or employee ID, or use{' '}
+                <a href="/me" className="font-semibold underline">My profile</a> to see all your past requests.
+              </div>
+            )}
+            {!!data.verified && Array.isArray(data.meds) && (data.meds as { name?: string; qty?: number }[]).length > 0 && (
+              <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3">
+                <dt className="text-slate-500 text-xs mb-1">Medicines · الأدوية</dt>
+                <ul className="text-sm space-y-1">
+                  {(data.meds as { name?: string; qty?: number }[]).map((m, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-slate-400 shrink-0">{m.qty || 1}×</span>
+                      <span className="min-w-0 break-words">{m.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </dl>
 
           <button
