@@ -9,12 +9,12 @@ Other companies can run their chronic medicine support programs on this platform
 | `organizations` | Tenant workspace (code, name, slug, contact) |
 | `org_members` | Staff of that org (`org_admin` · `org_operator` · `org_viewer`) |
 | `org_registration_requests` | Optional approval queue |
-
-Employees and requests stay linked by **company name** / `org_code` as today; the org account is the **admin boundary** for each institution.
+| `aid_requests.org_code` | Tenant tag on each intake row |
+| `employees.org_id` / `chronic_programs.org_id` | Program-side tenant |
 
 ## Public signup
 
-- Page: [`/org/register`](https://medical-aid-automation.vercel.app/org/register)
+- Page: `/org/register`
 - API: `POST /api/orgs/register`
 
 ```json
@@ -24,8 +24,7 @@ Employees and requests stay linked by **company name** / `org_code` as today; th
   "contact_name": "Sara Ahmed",
   "contact_email": "ops@acme.com",
   "contact_phone": "01xxxxxxxxx",
-  "employee_count_est": 200,
-  "message": "We run monthly chronic support for employees"
+  "employee_count_est": 200
 }
 ```
 
@@ -33,33 +32,32 @@ Employees and requests stay linked by **company name** / `org_code` as today; th
 
 | Env | Behavior |
 |-----|----------|
-| default (unset) | **Immediate** create org + first `org_admin` member |
-| `ORG_REGISTRATION_MODE=approval` | Store pending request; platform admin approves |
+| default | **Immediate** create org + first `org_admin` |
+| `ORG_REGISTRATION_MODE=approval` | Pending until platform admin approves |
 
 ## After registration
 
-1. Platform operator adds the contact email to `OPS_ALLOWED_EMAILS` or `staff_roles` so Google sign-in works.
-2. Org staff use `/sign-in` then the normal ops path (Queue → Claims → Pharmacy → Programs).
-3. Beneficiaries use `/intake` and `/me` with **that company’s** name + employee ID + phone.
+1. Add contact email to `OPS_ALLOWED_EMAILS` **or** keep them only in `org_members` (org-scoped).
+2. Staff sign in with Google on `/sign-in`.
+3. Employees use `/me` and `/intake` with that company name.
 
-## Data isolation (current → next)
+## Data isolation
 
-**Today**
+| Caller | Sees |
+|--------|------|
+| `OPS_ADMIN_EMAILS` / staff role `admin` | All organizations |
+| `PROCESS_SECRET` unlock (no email) | All (legacy shared ops) |
+| Google user who is only in `org_members` | **Only their org(s)** queue, programs, claims |
+| Google user on allowlist but **not** in `org_members` | All (backward compatible) |
 
-- Org registry + membership exist.
-- Request rows still use free-text `company` / `org_code` (DEFAULT).
-- Ops users with PROCESS_SECRET or allowlisted email see the shared ops UI (same deployment).
+Intake sets `org_code` by matching `company` to `organizations.name` / `code` / `slug` (else `DEFAULT`).
 
-**Next hardening (recommended)**
-
-1. Set `aid_requests.org_id` on intake from selected organization.
-2. Scope staff list/query APIs by `org_members` for non–platform-admin users.
-3. Optional subdomain or `?org=slug` for branded employee portal.
+Programs list filters `chronic_programs` via `employees.org_id`.
 
 ## Platform super-admin
 
-Emails in `OPS_ADMIN_EMAILS` remain global super-admins (all orgs + role management).
+`OPS_ADMIN_EMAILS` remains global.
 
 ## Schema
 
-See `docs/schema/005_org_accounts.sql`. Tables are also created at runtime by `lib/organizations.ts`.
+`docs/schema/005_org_accounts.sql` + runtime `ensureOrgTables()`.
