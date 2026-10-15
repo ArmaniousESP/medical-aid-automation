@@ -8,6 +8,7 @@ import { AdminSearch } from './AdminSearch';
 import { LearningBootstrap } from './LearningBootstrap';
 import { AuditLogPanel } from './AuditLogPanel';
 import { OrgRequestsPanel } from './OrgRequestsPanel';
+import { OrgsListPanel } from './OrgsListPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,9 @@ export default function AdminPage() {
                 className="rounded-xl border border-slate-100 bg-slate-50/80 px-1 py-2 text-center hover:border-emerald-200 hover:bg-emerald-50/50 transition"
               >
                 <div className="text-[10px] font-bold text-emerald-700">{s.n}</div>
-                <div className="text-[10px] font-semibold text-slate-800 leading-tight">{s.label}</div>
+                <div className="text-[10px] font-semibold text-slate-800 leading-tight">
+                  {s.label}
+                </div>
                 <div className="text-[9px] text-slate-400" dir="rtl">
                   {s.ar}
                 </div>
@@ -66,6 +69,8 @@ export default function AdminPage() {
           />
         </Suspense>
 
+        <OrgsListPanel />
+
         <OrgRequestsPanel />
 
         <AuditLogPanel />
@@ -83,6 +88,10 @@ export default function AdminPage() {
           {' · '}
           <Link href="/admin/roles" className="hover:underline">
             Roles
+          </Link>
+          {' · '}
+          <Link href="/org/register" className="hover:underline">
+            Org register
           </Link>
         </p>
       </div>
