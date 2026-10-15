@@ -26,9 +26,6 @@ function hasProcessSecret(req: NextRequest): boolean {
   return candidates.some((c) => isValidOpsSecret(c));
 }
 
-/**
- * Resolve which organizations the current caller may see.
- */
 export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
   await ensureOrgTables();
   const status = staffAccessStatus(req);
@@ -118,9 +115,27 @@ export async function resolveOrgCodeForCompany(
     [c]
   );
   if (byCode.rows[0]) return byCode.rows[0].code;
+
+  const byAlias = await query<{ code: string }>(
+    `SELECT code FROM organizations
+     WHERE settings ? 'aliases'
+       AND EXISTS (
+         SELECT 1 FROM jsonb_array_elements_text(settings->'aliases') a
+         WHERE lower(a) = lower($1)
+       )
+     LIMIT 1`,
+    [c]
+  );
+  if (byAlias.rows[0]) return byAlias.rows[0].code;
+
   const fuzzy = await query<{ code: string }>(
     `SELECT code FROM organizations
      WHERE lower(name) LIKE lower($1)
+        OR EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(
+            coalesce(settings->'aliases', '[]'::jsonb)
+          ) a WHERE lower(a) LIKE lower($1)
+        )
      ORDER BY length(name) ASC
      LIMIT 1`,
     [`%${c}%`]
