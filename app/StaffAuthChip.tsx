@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation';
 
 const cred: RequestInit = { credentials: 'include' };
 
+type OrgScope = {
+  all?: boolean;
+  org_codes?: string[];
+  source?: string;
+};
+
 /** Compact Google / staff session control for the staff nav strip */
 export function StaffAuthChip() {
   const pathname = usePathname() || '/';
@@ -13,6 +19,7 @@ export function StaffAuthChip() {
   const [neon, setNeon] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [orgScope, setOrgScope] = useState<OrgScope | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -20,8 +27,10 @@ export function StaffAuthChip() {
       const data = await res.json();
       setEmail(data.staff_ok ? data.staff_email || null : null);
       setNeon(!!data.neon_configured);
+      setOrgScope(data.org_scope || null);
     } catch {
       setEmail(null);
+      setOrgScope(null);
     }
   }, []);
 
@@ -72,14 +81,28 @@ export function StaffAuthChip() {
     try {
       await fetch('/api/auth/staff-session', { ...cred, method: 'DELETE' });
       setEmail(null);
+      setOrgScope(null);
     } finally {
       setLoading(false);
     }
   }
 
   if (email) {
+    const scopeLabel = orgScope?.all
+      ? 'All orgs'
+      : orgScope?.org_codes?.length
+        ? orgScope.org_codes.join(', ')
+        : null;
     return (
       <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+        {scopeLabel && (
+          <span
+            className="max-w-[7rem] truncate rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-900"
+            title={`Data scope: ${scopeLabel}`}
+          >
+            {scopeLabel}
+          </span>
+        )}
         <span
           className="max-w-[9rem] truncate rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-900"
           title={email}

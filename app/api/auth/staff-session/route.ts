@@ -8,6 +8,8 @@ import {
 } from '@/lib/staffAccess';
 import { sessionCookieOptions, clearCookieOptions } from '@/lib/cookies';
 import { resolveStaffRole } from '@/lib/staffRoles';
+import { listMembershipsForEmail } from '@/lib/organizations';
+import { resolveOrgScope } from '@/lib/orgScope';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,22 @@ export async function GET(req: NextRequest) {
       roleInfo = null;
     }
   }
+
+  let memberships: unknown[] = [];
+  let org_scope: unknown = null;
+  if (status.staff_email) {
+    try {
+      memberships = await listMembershipsForEmail(status.staff_email);
+    } catch {
+      memberships = [];
+    }
+  }
+  try {
+    org_scope = await resolveOrgScope(req);
+  } catch {
+    org_scope = null;
+  }
+
   return NextResponse.json({
     ok: true,
     neon_configured: neonAuthConfigured(),
@@ -34,6 +52,8 @@ export async function GET(req: NextRequest) {
     role_source: roleInfo?.source ?? null,
     can_manage_roles: roleInfo?.can_manage_roles ?? false,
     can_ops: roleInfo?.can_ops ?? status.staff_ok,
+    org_memberships: memberships,
+    org_scope,
   });
 }
 
@@ -67,16 +87,18 @@ export async function POST(req: NextRequest) {
 
   const email = String(session.user.email);
   const roleInfo = await resolveStaffRole(email);
+  const memberships = await listMembershipsForEmail(email).catch(() => []);
   const allowed =
     isEmailAllowed(email) ||
     roleInfo.can_ops ||
-    roleInfo.source === 'env_admin';
+    roleInfo.source === 'env_admin' ||
+    memberships.length > 0;
 
   if (!allowed) {
     return NextResponse.json(
       {
         ok: false,
-        error: `Email ${email} is not allowlisted and has no staff role`,
+        error: `Email ${email} is not allowlisted, has no staff role, and no org membership`,
         code: 'email_not_allowed',
       },
       { status: 403 }
@@ -92,8 +114,9 @@ export async function POST(req: NextRequest) {
     role: roleInfo.role,
     role_source: roleInfo.source,
     can_manage_roles: roleInfo.can_manage_roles,
+    org_memberships: memberships,
   });
-  res.cookies.set(STAFF_COOKIE, token, sessionCookieOptions(60 * 60 * 12));
+  res.cookies.set(STAFF_COOKIE, token, sessionCookieOptions());
   return res;
 }
 
