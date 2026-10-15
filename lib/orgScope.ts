@@ -5,25 +5,29 @@ import {
   listMembershipsForEmail,
 } from '@/lib/organizations';
 import { staffAccessStatus } from '@/lib/staffAccess';
-import { getEnvAdminEmails, resolveStaffRole } from '@/lib/staffRoles';
+import { resolveStaffRole } from '@/lib/staffRoles';
+import { isValidOpsSecret, ADMIN_COOKIE } from '@/lib/auth';
 
 export type OrgScope = {
-  /** Platform admin / PROCESS_SECRET — see all orgs */
   all: boolean;
-  /** Allowed org codes (uppercase) when not all */
   org_codes: string[];
-  /** Allowed org UUIDs for chronic_programs / employees */
   org_ids: string[];
   email: string | null;
   source: 'platform_admin' | 'process_secret' | 'org_member' | 'none';
 };
 
+function hasProcessSecret(req: NextRequest): boolean {
+  const candidates = [
+    req.headers.get('x-process-secret'),
+    req.nextUrl.searchParams.get('secret'),
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || null,
+    req.cookies.get(ADMIN_COOKIE)?.value || null,
+  ];
+  return candidates.some((c) => isValidOpsSecret(c));
+}
+
 /**
  * Resolve which organizations the current caller may see.
- * - OPS_ADMIN_EMAILS / staff role admin → all
- * - PROCESS_SECRET unlock without email → all (legacy shared ops)
- * - Google staff with org_members → those orgs only
- * - Google staff on OPS_ALLOWED_EMAILS only (no membership) → all (backward compatible)
  */
 export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
   await ensureOrgTables();
@@ -43,7 +47,9 @@ export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
     }
     const memberships = await listMembershipsForEmail(email);
     if (memberships.length) {
-      const codes = memberships.map((m) => m.org_code.toUpperCase());
+      const codes = [
+        ...new Set(memberships.map((m) => m.org_code.toUpperCase())),
+      ];
       const idsRes = await query<{ id: string }>(
         `SELECT id::text FROM organizations
          WHERE upper(code) = ANY($1::text[])`,
@@ -57,7 +63,6 @@ export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
         source: 'org_member',
       };
     }
-    // Allowlisted operator without org membership → full access (legacy)
     if (role.can_ops) {
       return {
         all: true,
@@ -69,8 +74,7 @@ export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
     }
   }
 
-  // PROCESS_SECRET cookie path has no email → treat as platform ops
-  if (status.admin_cookie_ok || status.header_ok) {
+  if (hasProcessSecret(req)) {
     return {
       all: true,
       org_codes: [],
@@ -89,7 +93,6 @@ export async function resolveOrgScope(req: NextRequest): Promise<OrgScope> {
   };
 }
 
-/** SQL fragment helpers for aid_requests.org_code filtering */
 export function aidRequestsOrgClause(
   scope: OrgScope,
   params: unknown[],
@@ -115,7 +118,6 @@ export async function resolveOrgCodeForCompany(
     [c]
   );
   if (byCode.rows[0]) return byCode.rows[0].code;
-  // Partial name match
   const fuzzy = await query<{ code: string }>(
     `SELECT code FROM organizations
      WHERE lower(name) LIKE lower($1)
