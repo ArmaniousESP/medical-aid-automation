@@ -17,12 +17,17 @@ export function AuditLogPanel() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [action, setAction] = useState('');
+  const [org, setOrg] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/audit?limit=40', {
+      const qs = new URLSearchParams({ limit: '50' });
+      if (action.trim()) qs.set('action', action.trim());
+      if (org.trim()) qs.set('org', org.trim());
+      const res = await fetch(`/api/admin/audit?${qs}`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -33,7 +38,7 @@ export function AuditLogPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [action, org]);
 
   useEffect(() => {
     load();
@@ -45,7 +50,7 @@ export function AuditLogPanel() {
         <div>
           <h2 className="font-semibold text-slate-900">Audit log</h2>
           <p className="text-xs text-slate-500" dir="rtl">
-            سجل العمليات · enroll / claims / pharmacy
+            سجل العمليات · enroll / claims / pharmacy / orgs
           </p>
         </div>
         <button
@@ -57,6 +62,29 @@ export function AuditLogPanel() {
           {loading ? '…' : 'Refresh'}
         </button>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        <input
+          value={action}
+          onChange={(e) => setAction(e.target.value)}
+          placeholder="Filter action…"
+          className="flex-1 min-w-[8rem] rounded-xl border border-slate-200 px-3 py-2 text-xs"
+        />
+        <input
+          value={org}
+          onChange={(e) => setOrg(e.target.value)}
+          placeholder="Org code…"
+          className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono uppercase"
+        />
+        <button
+          type="button"
+          onClick={load}
+          className="rounded-xl bg-slate-900 text-white px-3 py-2 text-xs font-semibold"
+        >
+          Apply
+        </button>
+      </div>
+
       {error && (
         <p className="text-xs text-red-700 bg-red-50 rounded-lg px-2 py-1.5">{error}</p>
       )}
@@ -82,7 +110,10 @@ export function AuditLogPanel() {
             <div className="text-slate-600">
               {ev.actor || '—'} · {ev.entity_type || 'entity'}
               {ev.entity_id ? (
-                <span className="font-mono text-[10px] text-slate-400"> {ev.entity_id.slice(0, 8)}…</span>
+                <span className="font-mono text-[10px] text-slate-400">
+                  {' '}
+                  {ev.entity_id.slice(0, 8)}…
+                </span>
               ) : null}
             </div>
           </li>

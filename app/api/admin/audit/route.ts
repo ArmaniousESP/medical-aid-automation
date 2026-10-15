@@ -6,7 +6,7 @@ import { jsonError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
-/** GET /api/admin/audit?limit=50&action= */
+/** GET /api/admin/audit?limit=50&action=&org= */
 export async function GET(req: NextRequest) {
   try {
     if (!authorizeRequest(req)) {
@@ -17,11 +17,16 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams;
     const limit = Math.min(Number(sp.get('limit') || 50), 200);
     const action = sp.get('action')?.trim();
+    const org = sp.get('org')?.trim();
     const params: unknown[] = [];
     const where = ['1=1'];
     if (action) {
       params.push(`%${action}%`);
       where.push(`action ILIKE $${params.length}`);
+    }
+    if (org) {
+      params.push(org.toUpperCase());
+      where.push(`upper(coalesce(org_code,'')) = $${params.length}`);
     }
     params.push(limit);
     const res = await query(
