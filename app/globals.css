@@ -3,18 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --aid-emerald: #059669;
-  --aid-emerald-deep: #047857;
+  /* Aida visual system on Medical Aid */
+  --aid-paper: #f4f1ea;
+  --aid-surface: #fffcf7;
+  --aid-ink: #12211c;
+  --aid-muted: #5e6b64;
+  --aid-line: #e4ddd2;
+  --aid-emerald: #0f6e56;
+  --aid-emerald-deep: #0b5744;
   --aid-teal: #0d9488;
-  --aid-violet: #6d28d9;
-  --aid-violet-deep: #5b21b6;
-  --aid-surface: rgba(255, 255, 255, 0.88);
-  --aid-surface-strong: rgba(255, 255, 255, 0.94);
-  --aid-border: rgba(226, 232, 240, 0.9);
-  --aid-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.12);
-  --aid-shadow-lg: 0 18px 48px -16px rgba(15, 23, 42, 0.18);
-  --aid-ring: rgba(5, 150, 105, 0.35);
-  --aid-ring-violet: rgba(109, 40, 217, 0.3);
+  --aid-violet: #5c4a7a;
+  --aid-violet-deep: #46385c;
+  --aid-surface-glass: rgba(255, 252, 247, 0.92);
+  --aid-surface-strong: rgba(255, 252, 247, 0.97);
+  --aid-border: rgba(228, 221, 210, 0.95);
+  --aid-shadow: 0 10px 36px -14px rgba(18, 33, 28, 0.12);
+  --aid-shadow-lg: 0 18px 44px -16px rgba(18, 33, 28, 0.16);
+  --aid-ring: rgba(15, 110, 86, 0.32);
+  --aid-ring-violet: rgba(92, 74, 122, 0.28);
 }
 
 html {
@@ -23,6 +29,7 @@ html {
 
 body {
   font-family:
+    'Manrope',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -32,20 +39,31 @@ body {
     Arial,
     sans-serif;
   -webkit-tap-highlight-color: transparent;
-  color: #0f172a;
-  background-color: #f8fafc;
+  color: var(--aid-ink);
+  background-color: var(--aid-paper);
   background-image:
-    radial-gradient(1200px 700px at 8% -12%, rgba(16, 185, 129, 0.16), transparent 58%),
-    radial-gradient(900px 520px at 100% -5%, rgba(124, 58, 237, 0.11), transparent 52%),
-    radial-gradient(800px 480px at 70% 110%, rgba(14, 165, 233, 0.09), transparent 55%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    radial-gradient(900px 520px at 6% -8%, rgba(15, 110, 86, 0.08), transparent 55%),
+    radial-gradient(700px 420px at 100% 0%, rgba(196, 92, 38, 0.05), transparent 50%),
+    linear-gradient(180deg, #f4f1ea 0%, #efebe3 100%);
   background-attachment: fixed;
   min-height: 100vh;
 }
 
+h1,
+h2,
+.aid-display {
+  font-family:
+    'Fraunces',
+    ui-serif,
+    Georgia,
+    'Times New Roman',
+    serif;
+  font-optical-sizing: auto;
+}
+
 ::selection {
-  background: rgba(16, 185, 129, 0.22);
-  color: #064e3b;
+  background: rgba(15, 110, 86, 0.2);
+  color: #0b5744;
 }
 
 :focus-visible {
@@ -74,7 +92,7 @@ body {
 
 @layer components {
   .aid-glass {
-    background: var(--aid-surface);
+    background: var(--aid-surface-glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--aid-border);
@@ -82,7 +100,9 @@ body {
   }
 
   .aid-card {
-    @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm;
+    @apply rounded-2xl border shadow-sm;
+    background: var(--aid-surface);
+    border-color: var(--aid-line);
     box-shadow: var(--aid-shadow);
   }
 
@@ -92,18 +112,18 @@ body {
 
   .aid-card-hover:hover {
     box-shadow: var(--aid-shadow-lg);
-    border-color: rgba(203, 213, 225, 0.95);
+    border-color: color-mix(in srgb, var(--aid-emerald) 25%, var(--aid-line));
   }
 
   .aid-cta-primary {
     @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
-    background: linear-gradient(135deg, #059669 0%, #0d9488 55%, #047857 100%);
-    box-shadow: 0 12px 28px -10px rgba(5, 150, 105, 0.55);
+    background: var(--aid-emerald);
+    box-shadow: 0 12px 28px -12px rgba(15, 110, 86, 0.5);
   }
 
   .aid-cta-primary:hover {
-    filter: brightness(1.05);
-    box-shadow: 0 16px 32px -10px rgba(5, 150, 105, 0.6);
+    background: var(--aid-emerald-deep);
+    box-shadow: 0 16px 32px -12px rgba(15, 110, 86, 0.55);
   }
 
   .aid-cta-primary:disabled {
@@ -114,12 +134,12 @@ body {
 
   .aid-cta-violet {
     @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
-    box-shadow: 0 12px 28px -10px rgba(109, 40, 217, 0.5);
+    background: var(--aid-violet);
+    box-shadow: 0 12px 28px -12px rgba(92, 74, 122, 0.45);
   }
 
   .aid-cta-violet:hover {
-    filter: brightness(1.05);
+    background: var(--aid-violet-deep);
   }
 
   .aid-cta-violet:disabled {
@@ -130,8 +150,8 @@ body {
 
   .aid-cta-teal {
     @apply inline-flex items-center justify-center rounded-2xl font-semibold text-white transition;
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%);
-    box-shadow: 0 12px 28px -10px rgba(13, 148, 136, 0.5);
+    background: var(--aid-teal);
+    box-shadow: 0 12px 28px -12px rgba(13, 148, 136, 0.45);
   }
 
   .aid-cta-teal:hover {
@@ -139,65 +159,84 @@ body {
   }
 
   .aid-pill-active {
-    @apply rounded-full bg-emerald-600 text-white shadow-sm;
+    @apply rounded-full text-white shadow-sm;
+    background: var(--aid-emerald);
   }
 
   .aid-pill-ops {
-    @apply rounded-full bg-violet-700 text-white shadow-sm;
+    @apply rounded-full text-white shadow-sm;
+    background: var(--aid-violet);
   }
 
   .aid-nav {
-    background: rgba(255, 255, 255, 0.86);
+    background: color-mix(in srgb, var(--aid-paper) 88%, white);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--aid-border);
-    box-shadow: 0 4px 24px -12px rgba(15, 23, 42, 0.12);
+    border-bottom: 1px solid var(--aid-line);
+    box-shadow: 0 4px 24px -14px rgba(18, 33, 28, 0.1);
   }
 
   .aid-sticky-bar {
     @apply fixed bottom-0 inset-x-0 z-20 border-t p-3 md:hidden;
-    background: rgba(255, 255, 255, 0.9);
+    background: color-mix(in srgb, var(--aid-surface) 94%, white);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-color: rgba(226, 232, 240, 0.75);
-    box-shadow: 0 -8px 30px -12px rgba(15, 23, 42, 0.12);
+    border-color: var(--aid-line);
+    box-shadow: 0 -8px 30px -14px rgba(18, 33, 28, 0.1);
   }
 
   .aid-input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none;
+    @apply w-full rounded-xl border px-4 py-3 text-base shadow-sm outline-none;
+    border-color: var(--aid-line);
+    background: var(--aid-surface);
+    color: var(--aid-ink);
   }
 
   .aid-input:focus {
-    border-color: #10b981;
+    border-color: var(--aid-emerald);
     box-shadow: 0 0 0 3px var(--aid-ring);
   }
 
   .aid-section-label {
-    @apply text-xs font-semibold uppercase tracking-wide text-violet-600;
+    @apply text-xs font-semibold uppercase tracking-wide;
+    color: var(--aid-emerald);
   }
 
   .aid-kpi {
-    @apply rounded-xl border border-white/80 bg-white/90 px-2 py-3 text-center shadow-sm backdrop-blur;
+    @apply rounded-xl border px-2 py-3 text-center shadow-sm;
+    background: var(--aid-surface);
+    border-color: var(--aid-line);
   }
 
   .aid-trust-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-emerald-100/90 bg-white/85 px-3 py-1 text-xs font-medium text-emerald-900 shadow-sm backdrop-blur;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium shadow-sm;
+    border-color: color-mix(in srgb, var(--aid-emerald) 20%, var(--aid-line));
+    background: var(--aid-surface);
+    color: var(--aid-ink);
   }
 
   .aid-label {
-    @apply mb-1.5 block text-sm font-medium text-slate-700;
+    @apply mb-1.5 block text-sm font-medium;
+    color: color-mix(in srgb, var(--aid-ink) 85%, var(--aid-muted));
   }
 
   .aid-hint {
-    @apply mt-1 text-xs text-slate-500;
+    @apply mt-1 text-xs;
+    color: var(--aid-muted);
   }
 
   .aid-empty {
-    @apply rounded-2xl border border-dashed border-slate-200 bg-white/60 px-4 py-8 text-center text-sm text-slate-500;
+    @apply rounded-2xl border border-dashed px-4 py-8 text-center text-sm;
+    border-color: var(--aid-line);
+    background: color-mix(in srgb, var(--aid-surface) 70%, transparent);
+    color: var(--aid-muted);
   }
 
   .aid-badge-success {
-    @apply inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100;
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1;
+    background: color-mix(in srgb, var(--aid-emerald) 10%, white);
+    color: var(--aid-emerald-deep);
+    --tw-ring-color: color-mix(in srgb, var(--aid-emerald) 18%, transparent);
   }
 
   .aid-badge-warn {
