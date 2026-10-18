@@ -60,8 +60,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#059669' },
-    { media: '(prefers-color-scheme: dark)', color: '#047857' },
+    { media: '(prefers-color-scheme: light)', color: '#0f6e56' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b5744' },
   ],
   viewportFit: 'cover',
 };
@@ -107,6 +107,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
         {APPLE_SPLASH.map((s) => (
           <link
             key={`${s.w}x${s.h}`}
