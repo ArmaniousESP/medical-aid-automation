@@ -35,9 +35,10 @@ body {
   color: #0f172a;
   background-color: #f8fafc;
   background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(16, 185, 129, 0.14), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(124, 58, 237, 0.1), transparent 50%),
-    radial-gradient(700px 400px at 50% 100%, rgba(14, 165, 233, 0.08), transparent 55%);
+    radial-gradient(1200px 700px at 8% -12%, rgba(16, 185, 129, 0.16), transparent 58%),
+    radial-gradient(900px 520px at 100% -5%, rgba(124, 58, 237, 0.11), transparent 52%),
+    radial-gradient(800px 480px at 70% 110%, rgba(14, 165, 233, 0.09), transparent 55%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -177,6 +178,34 @@ body {
 
   .aid-kpi {
     @apply rounded-xl border border-white/80 bg-white/90 px-2 py-3 text-center shadow-sm backdrop-blur;
+  }
+
+  .aid-trust-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-emerald-100/90 bg-white/85 px-3 py-1 text-xs font-medium text-emerald-900 shadow-sm backdrop-blur;
+  }
+
+  .aid-label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .aid-hint {
+    @apply mt-1 text-xs text-slate-500;
+  }
+
+  .aid-empty {
+    @apply rounded-2xl border border-dashed border-slate-200 bg-white/60 px-4 py-8 text-center text-sm text-slate-500;
+  }
+
+  .aid-badge-success {
+    @apply inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100;
+  }
+
+  .aid-badge-warn {
+    @apply inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900 ring-1 ring-amber-100;
+  }
+
+  .aid-badge-info {
+    @apply inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-900 ring-1 ring-sky-100;
   }
 }
 
