@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
+import { dhis2ConfigStatus } from '@/lib/dhis2';
 import { bitrixConfigStatus } from '@/lib/bitrix';
 import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
 
@@ -71,6 +72,18 @@ async function loadHealth() {
         : `mode=${wa.mode}${wa.dry_run_default ? ' · dry-run' : ' · live-ready'}${wa.provider_forced ? ` · forced=${wa.provider_forced}` : ''}`,
     required: false,
     recommended: true,
+  };
+
+  const dhis2 = dhis2ConfigStatus();
+  checks.dhis2 = {
+    ok: true,
+    detail: dhis2.push_ready
+      ? `push ready · enroll=${dhis2.sync_on_enroll} · dispense=${dhis2.sync_on_dispense}${dhis2.dry_run ? ' · DRY_RUN' : ''}`
+      : dhis2.configured
+        ? 'auth set — add ORG_UNIT, PROGRAM, TRACKED_ENTITY_TYPE'
+        : 'optional HMIS — off until DHIS2_* env set',
+    required: false,
+    recommended: false,
   };
 
   const bx = bitrixConfigStatus();
@@ -178,7 +191,7 @@ async function loadHealth() {
 
   const ok = !!checks.env_database?.ok && !!checks.neon?.ok;
   const secretOk = !!checks.process_secret?.ok;
-  return { ok, secretOk, checks, wa, bx };
+  return { ok, secretOk, checks, wa, bx, dhis2 };
 }
 
 export default async function StatusPage() {
@@ -196,7 +209,7 @@ export default async function StatusPage() {
             حالة النظام · هل المنصة جاهزة؟
           </p>
           <p className="text-xs text-slate-500">
-            Database · catalog · WhatsApp · feature flags · ops unlock
+            Database · catalog · WhatsApp · DHIS2 · ops unlock
           </p>
         </header>
 
@@ -291,6 +304,17 @@ export default async function StatusPage() {
             </li>
           ))}
         </ul>
+
+        <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-xs text-slate-600 space-y-1 shadow-sm">
+          <p className="font-semibold text-slate-800">Integrations (optional)</p>
+          <p>
+            DHIS2 HMIS: {health.dhis2?.push_ready ? 'push ready' : health.dhis2?.configured ? 'auth only' : 'off'} —{' '}
+            <Link href="/api/dhis2" className="text-violet-700 underline">
+              /api/dhis2
+            </Link>
+          </p>
+          <p>Docs: docs/dhis2.md · Neon remains system of record.</p>
+        </div>
 
         <div className="flex flex-wrap gap-3 text-sm justify-center">
           <Link href="/guide" className="text-violet-700 hover:underline font-medium">
