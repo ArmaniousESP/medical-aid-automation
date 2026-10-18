@@ -73,15 +73,13 @@ export function AppNav() {
             className="mr-1.5 inline-flex items-center gap-2 whitespace-nowrap"
           >
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md"
-              style={{
-                background: 'linear-gradient(135deg, #059669, #0d9488 55%, #6d28d9)',
-              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white shadow-md"
+              style={{ background: 'var(--aid-emerald)' }}
               aria-hidden
             >
               M
             </span>
-            <span className="text-base font-bold tracking-tight text-slate-900">
+            <span className="text-base font-semibold tracking-tight" style={{ color: 'var(--aid-ink)' }}>
               Medical Aid
             </span>
           </Link>
@@ -91,9 +89,14 @@ export function AppNav() {
               href={item.href}
               className={`rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium transition whitespace-nowrap min-h-[2.25rem] inline-flex items-center ${
                 active(item.href)
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
-                  : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
+                  ? 'text-white shadow-md'
+                  : 'hover:bg-white/80'
               }`}
+              style={
+                active(item.href)
+                  ? { background: 'var(--aid-emerald)' }
+                  : { color: 'var(--aid-muted)' }
+              }
               title={item.labelAr}
             >
               {item.label}
