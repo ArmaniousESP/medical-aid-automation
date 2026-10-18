@@ -125,9 +125,9 @@ export function UnlockPanel() {
   if (unlocked) {
     return (
       <div className="space-y-3">
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/90 p-3 space-y-2 backdrop-blur">
+        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/90 p-3.5 space-y-2 backdrop-blur shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs text-emerald-700 font-medium">
+            <span className="text-xs text-emerald-800 font-semibold">
               Unlocked
               {staffEmail ? ` · Google · ${staffEmail}` : ' · secret'}
             </span>
@@ -140,9 +140,15 @@ export function UnlockPanel() {
             </button>
           </div>
           <AdminGoogleAuth nextPath={nextPath} onStaffChange={onStaffChange} />
+          <Link
+            href="/admin"
+            className="aid-cta-violet inline-flex w-full justify-center px-3 py-2 text-xs font-semibold"
+          >
+            Open Admin · لوحة الإدارة
+          </Link>
         </div>
 
-        <p className="text-[10px] text-center text-slate-500 font-mono">
+        <p className="text-[10px] text-center text-slate-500 font-semibold uppercase tracking-wide">
           Daily path · المسار اليومي
         </p>
         <ol className="space-y-1.5">
@@ -209,9 +215,7 @@ export function UnlockPanel() {
         {showPrompt && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <p className="font-medium">Ops access required</p>
-            <p className="mt-0.5">
-              Use Google (allowlisted) or PROCESS_SECRET below.
-            </p>
+            <p className="mt-0.5">Use Google (allowlisted) or PROCESS_SECRET below.</p>
           </div>
         )}
 
