@@ -7,6 +7,7 @@
  *   AUTO_ENROLL_INTAKE_REQUIRE_MATCH=true — skip enroll if any line score < threshold
  *   AUTO_CLAIM_ON_ENROLL=true (default) — create claims draft after enroll
  *   AUTO_CLAIM_SUBMIT=true — also push to CLAIMS_WEBHOOK_URL
+ *   DHIS2_SYNC_ON_ENROLL=1 — optional soft push to DHIS2 Tracker after enroll
  */
 
 import { listPendingIntake, updateAidRequestStatus } from '@/lib/intake';
@@ -15,6 +16,7 @@ import { resolveUnitPriceWithExternal, computePriceTotal } from '@/lib/pricing';
 import { medMatchConfidence } from '@/lib/confidence';
 import { query } from '@/lib/db';
 import { enrollChronicProgram } from '@/lib/programs';
+import { syncProgramEnrollmentToDhis2 } from '@/lib/dhis2';
 import { createClaimDraft, submitClaimExternal } from '@/lib/claims';
 import { classifyError, type ErrorCode } from '@/lib/errors';
 
@@ -113,7 +115,13 @@ async function enrollFromMatchedRequest(
     roshetta_urls?: unknown;
   },
   lines: LineResult[]
-): Promise<{ ok: boolean; program_id?: string; program_code?: string; message?: string }> {
+): Promise<{
+  ok: boolean;
+  program_id?: string;
+  program_code?: string;
+  message?: string;
+  dhis2?: { attempted: boolean; ok?: boolean; dry_run?: boolean; error?: string };
+}> {
   const empName = String(req.emp_name || '').trim();
   const empId = String(req.emp_id || '').trim() || normalize(empName);
   const patient = String(req.patient_name || empName).trim() || empName;
@@ -233,6 +241,21 @@ async function enrollFromMatchedRequest(
     }),
   });
 
+  let dhis2: { attempted: boolean; ok?: boolean; dry_run?: boolean; error?: string } | undefined;
+  try {
+    dhis2 = await syncProgramEnrollmentToDhis2({
+      program_id: enrolled.program_id,
+      program_code: enrolled.program_code,
+      emp_name: empName,
+      emp_id: empId,
+      patient_name: patient,
+      request_id: req.id,
+      enrolled_at: new Date().toISOString().slice(0, 10),
+    });
+  } catch {
+    dhis2 = { attempted: true, ok: false, error: 'dhis2 sync threw' };
+  }
+
   return {
     ok: true,
     program_id: enrolled.program_id,
@@ -240,6 +263,7 @@ async function enrollFromMatchedRequest(
     message: enrolled.created
       ? `Created ${enrolled.program_code}`
       : enrolled.message || 'Program exists',
+    dhis2,
   };
 }
 
@@ -358,6 +382,7 @@ export async function processPlatformIntake(
       program_id?: string;
       program_code?: string;
       message?: string;
+      dhis2?: unknown;
     } | null = null;
     let claimInfo: unknown = null;
 
