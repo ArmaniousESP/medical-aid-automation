@@ -42,12 +42,25 @@ const PUBLIC_STEPS: Step[] = [
     titleEn: 'Check status anytime',
     titleAr: 'تابع حالة الطلب',
     bodyEn:
-      'Paste your Request ID on the status page. Names are masked; medicine details stay private.',
+      'Paste your Request ID on the status page. Names are masked; medicine details stay private. Add phone or employee ID to unlock full names when this is your request.',
     bodyAr:
-      'الصق رقم الطلب في صفحة الحالة. الأسماء جزئية؛ تفاصيل الأدوية غير عامة.',
+      'الصق رقم الطلب في صفحة الحالة. الأسماء جزئية؛ أضف الهاتف أو الرقم الوظيفي لإظهار الأسماء الكاملة لطلبك.',
     href: '/request-status',
     cta: 'Open status page',
     mock: 'status',
+  },
+  {
+    n: 3,
+    id: 'public-3',
+    titleEn: 'Open your employee profile',
+    titleAr: 'افتح ملف الموظف',
+    bodyEn:
+      'Choose company, employee ID, and phone. Renew 2027 regimens, see past requests, and reply to staff questions — verified as you.',
+    bodyAr:
+      'اختر الشركة والرقم الوظيفي والهاتف. جدّد دعم 2027، راجع الطلبات السابقة، وأجب على أسئلة الفريق.',
+    href: '/me',
+    cta: 'Open my profile',
+    mock: 'none',
   },
 ];
 
@@ -167,6 +180,12 @@ const MORE_TOOLS = [
     titleAr: 'حالة النظام',
     body: 'Database, env, and feature-flag checks.',
   },
+  {
+    href: '/org/register',
+    title: 'Org register',
+    titleAr: 'تسجيل مؤسسة',
+    body: 'Other companies request access (approval mode).',
+  },
 ];
 
 function StepMock({ kind }: { kind: Step['mock'] }) {
@@ -240,13 +259,15 @@ export default function GuidePage() {
   return (
     <main className="min-h-screen text-slate-900 pb-24 md:pb-10">
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
-        <header className="space-y-2 text-center sm:text-left">
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-            Guide · الدليل
-          </p>
+        <header className="space-y-3 text-center aid-rise">
+          <p className="aid-section-label">Guide · الدليل</p>
           <h1 className="text-3xl font-bold tracking-tight">How to use Medical Aid</h1>
           <p className="text-slate-600" dir="rtl">
-            خطوتان للمستفيد · خمس خطوات للتشغيل
+            ثلاث خطوات للمستفيد · خمس خطوات للتشغيل
+          </p>
+          <p className="text-sm text-slate-500 max-w-lg mx-auto">
+            Submit → track status → open your profile for renewals and replies. Staff follow Queue →
+            Claims → Pharmacy → Programs → Refills.
           </p>
         </header>
 
@@ -295,7 +316,7 @@ export default function GuidePage() {
               للمستفيدين — بدون تسجيل دخول
             </p>
             <p className="mt-3 text-sm font-semibold text-emerald-900">
-              Submit → Copy Request ID → Check status
+              Submit → Status → Profile (renew & history)
             </p>
           </div>
 
@@ -305,15 +326,21 @@ export default function GuidePage() {
             ))}
           </ol>
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Link href="/intake" className="aid-cta-primary py-3.5 text-center text-sm">
-              Submit a request
+              Submit
             </Link>
             <Link
               href="/request-status"
               className="rounded-2xl border-2 border-emerald-200 bg-white/90 py-3.5 text-center text-sm font-semibold text-emerald-900 hover:bg-emerald-50 backdrop-blur"
             >
-              Check my status
+              Status
+            </Link>
+            <Link
+              href="/me"
+              className="rounded-2xl border-2 border-violet-200 bg-violet-50/90 py-3.5 text-center text-sm font-semibold text-violet-900 hover:bg-violet-100 backdrop-blur"
+            >
+              Profile
             </Link>
           </div>
         </section>
@@ -401,12 +428,13 @@ export default function GuidePage() {
           <h2 className="font-bold text-lg">Privacy</h2>
           <ul className="space-y-2 text-slate-600">
             <li>
-              Public: <strong>Submit</strong> and <strong>Status</strong> only.
+              Public: <strong>Submit</strong>, <strong>Status</strong>, and <strong>Profile</strong>{' '}
+              lookup only.
             </li>
             <li>
-              Ops need Google sign-in (allowlist) or PROCESS_SECRET unlock.
+              Ops need Google sign-in (allowlist / org membership) or PROCESS_SECRET unlock.
             </li>
-            <li dir="rtl">التفاصيل الطبية غير معروضة للعامة.</li>
+            <li dir="rtl">التفاصيل الطبية غير معروضة للعامة دون تحقق.</li>
           </ul>
         </section>
 
@@ -416,6 +444,12 @@ export default function GuidePage() {
             className="rounded-2xl border border-white/80 bg-white/90 px-5 py-3 text-sm font-semibold hover:bg-white backdrop-blur"
           >
             Home
+          </Link>
+          <Link
+            href="/me"
+            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-900"
+          >
+            My profile
           </Link>
           <Link
             href="/admin"
