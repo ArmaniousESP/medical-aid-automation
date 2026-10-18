@@ -29,6 +29,7 @@ const PUBLIC_PREFIXES = [
   '/api/employee/',
   '/api/orgs',
   '/api/learning',
+  '/api/dhis2',
   '/api/webhooks/whatsapp',
   '/api/webhooks/twilio',
   '/_next/',
