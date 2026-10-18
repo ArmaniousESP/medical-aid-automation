@@ -3,9 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const field =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200';
-
 export default function OrgRegisterPage() {
   const [org_name, setOrgName] = useState('');
   const [org_code, setOrgCode] = useState('');
@@ -59,181 +56,211 @@ export default function OrgRegisterPage() {
     }
   }
 
+  const pending = result?.status === 'pending';
+
   return (
     <main className="min-h-screen text-slate-900 pb-24">
       <div className="mx-auto max-w-lg px-4 pt-8 space-y-6">
-        <header className="space-y-2 text-center sm:text-left">
+        <header className="space-y-3 text-center aid-rise">
           <p className="aid-section-label">For organizations · للمؤسسات</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Create organization account
           </h1>
           <p className="text-sm text-slate-600" dir="rtl">
-            سجّل مؤسستك لاستخدام منصة دعم العلاج الشهري
+            سجّل مؤسستك لتشغيل دعم العلاج الشهري على المنصة
           </p>
-          <p className="text-sm text-slate-500">
-            Same platform used for chronic medicine support: intake, pharmacy routing,
-            programs, refills, and employee self-service — under your organization name.
+          <p className="text-sm text-slate-500 max-w-md mx-auto">
+            After review, your team can run intake, pharmacy, programs, and employee
+            self-service — scoped to your organization only.
           </p>
         </header>
 
+        <ol className="aid-rise grid grid-cols-3 gap-2 text-center text-[11px]">
+          {[
+            { n: '1', en: 'Register', ar: 'التسجيل' },
+            { n: '2', en: 'Approval', ar: 'الموافقة' },
+            { n: '3', en: 'Invite staff', ar: 'دعوة الفريق' },
+          ].map((s) => (
+            <li
+              key={s.n}
+              className="rounded-2xl border border-white/90 bg-white/85 px-2 py-3 shadow-sm backdrop-blur"
+            >
+              <span className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800">
+                {s.n}
+              </span>
+              <p className="font-semibold text-slate-800">{s.en}</p>
+              <p className="text-slate-500" dir="rtl">
+                {s.ar}
+              </p>
+            </li>
+          ))}
+        </ol>
+
         {result ? (
-          <div className="rounded-2xl border-2 border-emerald-200 bg-white/95 p-6 space-y-4 shadow-sm">
-            <p className="text-lg font-bold text-emerald-900">
-              {result.status === 'active'
-                ? 'Organization ready · تم إنشاء المؤسسة'
-                : 'Request submitted · تم إرسال الطلب'}
+          <section
+            className={
+              pending
+                ? 'rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 space-y-3 shadow-sm'
+                : 'rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 space-y-3 shadow-sm'
+            }
+          >
+            <p
+              className={
+                pending
+                  ? 'aid-badge-warn'
+                  : 'aid-badge-success'
+              }
+            >
+              {pending ? 'Pending review · بانتظار المراجعة' : 'Active · مفعّل'}
             </p>
-            <p className="text-sm text-slate-700">{result.message}</p>
+            <h2 className="text-lg font-bold text-slate-900">
+              {pending ? 'Request received' : 'Organization ready'}
+            </h2>
+            <p className="text-sm text-slate-600">{result.message}</p>
             {result.org && (
-              <dl className="text-sm space-y-2 rounded-xl bg-slate-50 p-4">
-                <div className="flex justify-between gap-2">
-                  <dt className="text-slate-500">Name</dt>
-                  <dd className="font-semibold">{result.org.name}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-slate-500">Org code</dt>
-                  <dd className="font-mono font-semibold">{result.org.code}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-slate-500">Slug</dt>
-                  <dd className="font-mono text-xs">{result.org.slug}</dd>
-                </div>
-              </dl>
+              <p className="text-sm font-mono text-slate-700">
+                {result.org.name} · <span className="font-semibold">{result.org.code}</span>
+              </p>
             )}
-            <div className="space-y-2 text-sm text-slate-600">
-              <p className="font-medium text-slate-800">Next steps</p>
-              <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>
-                  Ask the platform operator to add your contact email to{' '}
-                  <code className="bg-slate-100 px-1 rounded">OPS_ALLOWED_EMAILS</code>{' '}
-                  (or staff_roles) so you can sign in with Google.
-                </li>
-                <li>
-                  Employees use <Link href="/me" className="text-emerald-800 font-semibold underline">My profile</Link>{' '}
-                  with your company name + employee ID + phone.
-                </li>
-                <li>
-                  Public intake stays at{' '}
-                  <Link href="/intake" className="text-emerald-800 font-semibold underline">/intake</Link>.
-                </li>
-              </ol>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/sign-in" className="aid-cta-primary px-4 py-2.5 text-sm">
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Link
+                href="/sign-in"
+                className="aid-cta-primary px-4 py-2.5 text-sm"
+              >
                 Staff sign-in
               </Link>
               <Link
                 href="/"
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 Home
               </Link>
             </div>
-          </div>
+          </section>
         ) : (
           <form
             onSubmit={submit}
-            className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur"
+            className="rounded-2xl border border-white/90 bg-white/90 p-5 sm:p-6 space-y-4 shadow-sm backdrop-blur aid-rise"
           >
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Organization name * · اسم المؤسسة</span>
+            <label className="block">
+              <span className="aid-label">Organization name · اسم المؤسسة</span>
               <input
                 required
                 value={org_name}
                 onChange={(e) => setOrgName(e.target.value)}
-                className={field}
-                placeholder="e.g. Acme Pharma Egypt"
+                className="aid-input"
+                placeholder="e.g. Armanious Group"
+                autoComplete="organization"
               />
             </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Short code (optional)</span>
+
+            <label className="block">
+              <span className="aid-label">
+                Short code <span className="font-normal text-slate-400">(optional)</span>
+              </span>
               <input
                 value={org_code}
-                onChange={(e) => setOrgCode(e.target.value)}
-                className={field + ' font-mono'}
-                placeholder="ACME"
+                onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
+                className="aid-input font-mono uppercase"
+                placeholder="ARMANIOUS"
                 maxLength={24}
               />
-              <span className="text-[11px] text-slate-400">
-                Used as org_code on requests. Auto-generated if empty.
+              <span className="aid-hint">Used for data isolation · رمز العزل بين المؤسسات</span>
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="aid-label">Contact name · المسؤول</span>
+                <input
+                  required
+                  value={contact_name}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="aid-input"
+                  autoComplete="name"
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="aid-label">Work email · البريد</span>
+                <input
+                  required
+                  type="email"
+                  value={contact_email}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="aid-input"
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                />
+                <span className="aid-hint">
+                  Use the Google account you will sign in with
+                </span>
+              </label>
+              <label className="block">
+                <span className="aid-label">Phone · الهاتف</span>
+                <input
+                  value={contact_phone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  className="aid-input"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
+              </label>
+              <label className="block">
+                <span className="aid-label">Employees (est.)</span>
+                <input
+                  value={employee_count_est}
+                  onChange={(e) => setEmpCount(e.target.value)}
+                  className="aid-input"
+                  inputMode="numeric"
+                  placeholder="e.g. 200"
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="aid-label">
+                Message <span className="font-normal text-slate-400">(optional)</span>
               </span>
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Contact name * · المسؤول</span>
-              <input
-                required
-                value={contact_name}
-                onChange={(e) => setContactName(e.target.value)}
-                className={field}
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Work email * · البريد</span>
-              <input
-                required
-                type="email"
-                value={contact_email}
-                onChange={(e) => setContactEmail(e.target.value)}
-                className={field}
-                placeholder="ops@company.com"
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Phone · الهاتف</span>
-              <input
-                type="tel"
-                value={contact_phone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                className={field}
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Approx. employees on program</span>
-              <input
-                type="number"
-                min={1}
-                value={employee_count_est}
-                onChange={(e) => setEmpCount(e.target.value)}
-                className={field}
-                placeholder="e.g. 200"
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Message (optional)</span>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
-                className={field}
+                className="aid-input resize-y min-h-[5rem]"
                 placeholder="Tell us about your chronic support program…"
               />
             </label>
+
             {error && (
               <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
                 {error}
               </p>
             )}
+
             <button
               type="submit"
               disabled={loading}
               className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50"
             >
               {loading
-                ? 'Creating… · جاري الإنشاء'
-                : 'Create organization · إنشاء مؤسسة'}
+                ? 'Submitting… · جاري الإرسال'
+                : 'Submit for approval · إرسال للموافقة'}
             </button>
-            <p className="text-[11px] text-slate-400 text-center">
-              By registering you agree to keep beneficiary health data confidential and use the
-              platform only for authorized employee medical-aid programs.
+
+            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+              By registering you agree to keep beneficiary health data confidential and use
+              the platform only for authorized employee medical-aid programs.
             </p>
           </form>
         )}
 
-        <p className="text-center text-xs text-slate-400">
+        <p className="text-center text-xs text-slate-400 space-x-2 pb-4">
           <Link href="/" className="hover:underline">
             Home
           </Link>
-          {' · '}
+          <span>·</span>
+          <Link href="/sign-in" className="hover:underline">
+            Sign in
+          </Link>
+          <span>·</span>
           <Link href="/guide" className="hover:underline">
             Guide
           </Link>
