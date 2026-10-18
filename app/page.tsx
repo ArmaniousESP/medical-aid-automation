@@ -79,10 +79,7 @@ export default function Home() {
                   <span>Auto-saves as you type</span>
                 </div>
               </div>
-              <span
-                className="text-2xl opacity-80 group-hover:translate-x-0.5 transition"
-                aria-hidden
-              >
+              <span className="text-2xl opacity-80 group-hover:translate-x-0.5 transition" aria-hidden>
                 →
               </span>
             </div>
@@ -105,10 +102,7 @@ export default function Home() {
                   Paste your Request ID · or open from the banner above
                 </div>
               </div>
-              <span
-                className="text-2xl text-slate-300 group-hover:text-emerald-500 transition"
-                aria-hidden
-              >
+              <span className="text-2xl text-slate-300 group-hover:text-emerald-500 transition" aria-hidden>
                 →
               </span>
             </div>
@@ -171,21 +165,9 @@ export default function Home() {
           <h2 className="text-sm font-semibold text-center text-slate-800">Three steps · ثلاث خطوات</h2>
           <ol className="space-y-3">
             {[
-              {
-                n: '1',
-                en: 'Submit — copy your Request ID',
-                ar: 'قدّم الطلب وانسخ رقم الطلب',
-              },
-              {
-                n: '2',
-                en: 'Staff reviews medicines & pharmacy',
-                ar: 'الفريق يراجع الأدوية والصيدلية',
-              },
-              {
-                n: '3',
-                en: 'Check status or open My profile anytime',
-                ar: 'تابع الحالة أو افتح ملفك متى شئت',
-              },
+              { n: '1', en: 'Submit — copy your Request ID', ar: 'قدّم الطلب وانسخ رقم الطلب' },
+              { n: '2', en: 'Staff reviews medicines & pharmacy', ar: 'الفريق يراجع الأدوية والصيدلية' },
+              { n: '3', en: 'Check status or open My profile anytime', ar: 'تابع الحالة أو افتح ملفك متى شئت' },
             ].map((step) => (
               <li key={step.n} className="flex gap-3 text-sm">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 text-xs font-bold text-emerald-800">
@@ -202,23 +184,47 @@ export default function Home() {
           </ol>
         </section>
 
-        <p className="text-center text-sm text-slate-500 space-x-3">
-          <Link href="/guide" className="text-emerald-800 font-medium underline-offset-2 hover:underline">
-            Help guide
+        <section className="space-y-2">
+          <Link
+            href="/org/register"
+            className="block rounded-2xl border border-dashed border-emerald-200/80 bg-white/70 px-4 py-3.5 text-center text-sm font-medium text-emerald-900 hover:bg-emerald-50/80 transition"
+          >
+            Create organization account · إنشاء حساب مؤسسة
           </Link>
-          <span aria-hidden>·</span>
-          <Link href="/org/register" className="hover:underline">
-            Org register
-          </Link>
-          <span aria-hidden>·</span>
-          <Link href="/sign-in" className="hover:underline">
-            Staff sign-in
-          </Link>
-        </p>
+        </section>
 
-        <Suspense fallback={null}>
-          <UnlockPanel />
-        </Suspense>
+        <details className="rounded-2xl border border-dashed border-slate-300/90 bg-white/80 backdrop-blur group shadow-sm">
+          <summary className="cursor-pointer list-none px-4 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center justify-between gap-2">
+            <span>
+              Staff unlock{' '}
+              <span className="text-slate-400 font-normal" dir="rtl">
+                · للتشغيل فقط
+              </span>
+            </span>
+            <span className="text-xs text-slate-400 group-open:hidden">tap to open</span>
+            <span className="text-xs text-slate-400 hidden group-open:inline">close</span>
+          </summary>
+          <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-2">
+            <p className="text-xs text-slate-500 text-center">
+              Queue → Claims → Pharmacy → Programs → Refills
+            </p>
+            <Suspense
+              fallback={
+                <p className="text-xs text-slate-400 text-center py-2">Loading staff tools…</p>
+              }
+            >
+              <UnlockPanel />
+            </Suspense>
+          </div>
+        </details>
+
+        <footer className="text-center text-xs text-slate-400 pb-6 space-y-2">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            <span>Privacy-first · public: submit, status, profile only</span>
+          </div>
+          <p dir="rtl">بياناتك خاصة — التقديم والحالة وملف الموظف فقط للعامة</p>
+        </footer>
       </div>
     </main>
   );
