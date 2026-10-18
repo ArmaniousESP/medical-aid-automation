@@ -7,16 +7,20 @@ import {
   pushTrackerImport,
   type Dhis2ProgramPayload,
 } from '@/lib/dhis2';
-import { requireOps } from '@/lib/auth';
+import { authorizeRequest, unauthorizedResponse } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-/** GET — config + optional live ping (?ping=1) */
+/** GET — config is public-safe (no secrets). Live ping requires ops. */
 export async function GET(req: NextRequest) {
   const status = dhis2ConfigStatus();
   const ping = req.nextUrl.searchParams.get('ping') === '1';
   if (!ping) {
     return NextResponse.json({ ok: true, dhis2: status });
+  }
+  if (!authorizeRequest(req)) {
+    const u = unauthorizedResponse();
+    return NextResponse.json(u.body, { status: 401 });
   }
   if (!status.configured) {
     return NextResponse.json({
@@ -38,9 +42,9 @@ export async function GET(req: NextRequest) {
  * body: { action: 'ping' | 'dry_enrollment' | 'push_enrollment', payload?: Dhis2ProgramPayload }
  */
 export async function POST(req: NextRequest) {
-  const gate = await requireOps(req);
-  if (!gate.ok) {
-    return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
+  if (!authorizeRequest(req)) {
+    const u = unauthorizedResponse();
+    return NextResponse.json(u.body, { status: 401 });
   }
 
   let body: {
