@@ -17,7 +17,6 @@ export function GoogleSignInButton({ nextPath }: { nextPath: string }) {
         callbackURL: `${window.location.origin}/sign-in/callback?next=${encodeURIComponent(nextPath)}`,
       });
       if (error) throw new Error(error.message || 'Google sign-in failed');
-      // Redirect is handled by the auth client when successful
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : 'Error');
       setLoading(false);
@@ -49,23 +48,56 @@ export function GoogleSignInButton({ nextPath }: { nextPath: string }) {
         type="button"
         disabled={loading}
         onClick={signInGoogle}
-        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+        className="aid-cta-primary w-full min-h-[2.75rem] gap-2 px-4 text-sm disabled:opacity-50"
       >
-        {loading ? '…' : 'Continue with Google'}
+        <GoogleGlyph />
+        {loading ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
         type="button"
         disabled={loading}
         onClick={establishStaff}
-        className="w-full rounded-lg bg-violet-700 px-4 py-2 text-sm font-medium text-white hover:bg-violet-800 disabled:opacity-50"
+        className="w-full min-h-[2.5rem] rounded-full border px-4 text-sm font-medium transition disabled:opacity-50"
+        style={{
+          borderColor: 'var(--aid-line)',
+          background: 'var(--aid-paper)',
+          color: 'var(--aid-ink)',
+        }}
       >
         Already signed in? Open ops
       </button>
       {msg && (
-        <p className="text-xs text-slate-600 break-all" dir="auto">
+        <p
+          className="text-xs break-all rounded-xl px-3 py-2"
+          style={{ color: 'var(--aid-muted)', background: 'var(--aid-paper)' }}
+          dir="auto"
+        >
           {msg}
         </p>
       )}
     </div>
+  );
+}
+
+function GoogleGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden className="shrink-0">
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2C29.2 35.3 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.5 39.6 16.2 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.3 4.1-4.1 5.5l.1.1 6.3 5.2C39.2 37.1 44 32 44 24c0-1.2-.1-2.3-.4-3.5z"
+      />
+    </svg>
   );
 }
