@@ -8,6 +8,7 @@ const PUBLIC_ITEMS = [
   { href: '/', label: 'Home', labelAr: 'رئيسية', icon: '⌂' },
   { href: '/intake', label: 'Submit', labelAr: 'تقديم', icon: '1' },
   { href: '/request-status', label: 'Status', labelAr: 'حالة', icon: '2' },
+  { href: '/me', label: 'Profile', labelAr: 'ملفي', icon: '3' },
   { href: '/guide', label: 'Help', labelAr: 'مساعدة', icon: '?' },
 ] as const;
 
@@ -104,12 +105,12 @@ export function MobilePublicNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[3.5rem] min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
+              className={`flex min-h-[3.5rem] min-w-[2.75rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
                 active ? 'text-emerald-700' : 'text-slate-500'
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
                   active
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                     : 'bg-slate-100 text-slate-600'
@@ -117,10 +118,10 @@ export function MobilePublicNav() {
               >
                 {item.icon}
               </span>
-              <span className="text-[10px] font-semibold leading-tight">
+              <span className="text-[9px] font-semibold leading-tight">
                 {item.label}
               </span>
-              <span className="text-[9px] leading-none opacity-75" dir="rtl">
+              <span className="text-[8px] leading-none opacity-75" dir="rtl">
                 {item.labelAr}
               </span>
             </Link>
@@ -133,12 +134,12 @@ export function MobilePublicNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[3.5rem] min-w-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
+              className={`flex min-h-[3.5rem] min-w-[2.75rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-center ${
                 active ? 'text-emerald-700' : 'text-slate-500'
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
                   active
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                     : 'bg-slate-100 text-slate-600'
@@ -146,10 +147,10 @@ export function MobilePublicNav() {
               >
                 {item.icon}
               </span>
-              <span className="text-[10px] font-semibold leading-tight">
+              <span className="text-[9px] font-semibold leading-tight">
                 {item.label}
               </span>
-              <span className="text-[9px] leading-none opacity-75" dir="rtl">
+              <span className="text-[8px] leading-none opacity-75" dir="rtl">
                 {item.labelAr}
               </span>
             </Link>
