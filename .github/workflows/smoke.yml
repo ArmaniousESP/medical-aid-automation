@@ -47,14 +47,12 @@ jobs:
           python3 -c "import json; d=json.load(open('/tmp/orgs.json')); assert d.get('ok') is True; assert 'organizations' in d"
 
           # Ops endpoints must reject anonymous
-          for path in /api/admin/audit /api/admin/org-requests /api/admin/org-members; do
+          for path in /api/admin/audit /api/admin/org-requests /api/admin/org-members /api/admin/org-stats; do
             code=$(curl -sS -o /dev/null -w "%{http_code}" "$URL$path")
             echo "$path (anon) -> $code"
-            # 401 unauthorized is expected
             test "$code" = "401"
           done
 
-          # Health still reports core systems
           python3 << 'PY'
 import json
 d=json.load(open('/tmp/health.json'))
