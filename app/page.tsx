@@ -29,6 +29,29 @@ export default function Home() {
           </p>
         </header>
 
+        <div
+          className="aid-rise aid-rise-delay-1 grid grid-cols-3 gap-2"
+          role="list"
+          aria-label="Platform guarantees"
+        >
+          {[
+            { en: 'Private by default', ar: 'خصوصية أولاً' },
+            { en: 'Bilingual EN / AR', ar: 'عربي وإنجليزي' },
+            { en: 'Mobile-first', ar: 'مناسب للجوال' },
+          ].map((item) => (
+            <div
+              key={item.en}
+              role="listitem"
+              className="rounded-2xl border border-white/90 bg-white/85 px-2 py-3 text-center shadow-sm backdrop-blur"
+            >
+              <p className="text-[11px] font-semibold text-slate-800 leading-snug">{item.en}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5" dir="rtl">
+                {item.ar}
+              </p>
+            </div>
+          ))}
+        </div>
+
         <HomeContinuity />
 
         <section className="space-y-3" aria-label="For beneficiaries">
@@ -238,9 +261,12 @@ export default function Home() {
           </div>
         </details>
 
-        <footer className="text-center text-xs text-slate-400 pb-4 space-y-1">
-          <p>Your data is private. Only submit, status & profile lookup are public.</p>
-          <p dir="rtl">بياناتك خاصة — التقديم والحالة وملف الموظف فقط للعامة.</p>
+        <footer className="text-center text-xs text-slate-400 pb-6 space-y-2">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            <span>Privacy-first · public: submit, status, profile only</span>
+          </div>
+          <p dir="rtl">بياناتك خاصة — التقديم والحالة وملف الموظف فقط للعامة</p>
         </footer>
       </div>
     </main>
