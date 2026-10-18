@@ -1,10 +1,10 @@
 import Link from 'next/link';
 
-/** 1 → 2 progress for beneficiaries */
+/** 1 → 2 → 3 progress for beneficiaries */
 export function PublicStepsBar({
   active,
 }: {
-  active: 'submit' | 'status';
+  active: 'submit' | 'status' | 'profile';
 }) {
   const steps = [
     {
@@ -21,20 +21,46 @@ export function PublicStepsBar({
       labelAr: 'حالة',
       href: '/request-status',
     },
+    {
+      key: 'profile' as const,
+      n: 3,
+      label: 'Profile',
+      labelAr: 'ملفي',
+      href: '/me',
+    },
   ];
+
+  const order = { submit: 0, status: 1, profile: 2 } as const;
+  const activeIdx = order[active];
+
+  const hint =
+    active === 'submit'
+      ? {
+          en: 'Step 1 of 3 — fill the form & save your Request ID',
+          ar: 'الخطوة 1 من 3 — املأ النموذج واحفظ رقم الطلب',
+        }
+      : active === 'status'
+        ? {
+            en: 'Step 2 of 3 — paste your Request ID to see status',
+            ar: 'الخطوة 2 من 3 — الصق رقم الطلب لعرض الحالة',
+          }
+        : {
+            en: 'Step 3 of 3 — company + ID · renew · past requests',
+            ar: 'الخطوة 3 من 3 — الشركة والرقم · التجديد · الطلبات',
+          };
 
   return (
     <div className="rounded-2xl border border-white/80 bg-white/90 p-3.5 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-1 items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-1 items-center gap-1 sm:gap-1.5 min-w-0">
           {steps.map((s, i) => {
             const isActive = s.key === active;
-            const isDone = active === 'status' && s.key === 'submit';
+            const isDone = order[s.key] < activeIdx;
             return (
-              <div key={s.key} className="flex flex-1 items-center gap-1.5">
+              <div key={s.key} className="flex flex-1 items-center gap-1 min-w-0">
                 {i > 0 && (
                   <div
-                    className={`h-1 flex-1 rounded-full ${
+                    className={`h-1 flex-1 rounded-full min-w-[0.35rem] ${
                       isDone || isActive ? 'bg-emerald-400' : 'bg-slate-200'
                     }`}
                     aria-hidden
@@ -43,7 +69,7 @@ export function PublicStepsBar({
                 <Link
                   href={s.href}
                   aria-current={isActive ? 'step' : undefined}
-                  className={`flex min-h-[2.5rem] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition ${
+                  className={`flex min-h-[2.5rem] items-center gap-1 rounded-full px-2 sm:px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold whitespace-nowrap transition ${
                     isActive
                       ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                       : isDone
@@ -52,7 +78,7 @@ export function PublicStepsBar({
                   }`}
                 >
                   <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                    className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 ${
                       isActive
                         ? 'bg-white/25'
                         : isDone
@@ -62,7 +88,7 @@ export function PublicStepsBar({
                   >
                     {isDone && !isActive ? '✓' : s.n}
                   </span>
-                  <span>
+                  <span className="truncate">
                     <span className="sm:hidden">{s.labelAr}</span>
                     <span className="hidden sm:inline">{s.label}</span>
                   </span>
@@ -79,21 +105,10 @@ export function PublicStepsBar({
         </Link>
       </div>
       <p className="mt-2.5 text-xs text-slate-500 text-center">
-        {active === 'submit' ? (
-          <>
-            Step 1 of 2 — fill the form & save your Request ID
-            <span className="block text-[11px] mt-0.5" dir="rtl">
-              الخطوة 1 من 2 — املأ النموذج واحفظ رقم الطلب
-            </span>
-          </>
-        ) : (
-          <>
-            Step 2 of 2 — paste your Request ID to see status
-            <span className="block text-[11px] mt-0.5" dir="rtl">
-              الخطوة 2 من 2 — الصق رقم الطلب لعرض الحالة
-            </span>
-          </>
-        )}
+        {hint.en}
+        <span className="block text-[11px] mt-0.5" dir="rtl">
+          {hint.ar}
+        </span>
       </p>
     </div>
   );
