@@ -22,12 +22,44 @@ jobs:
           cat /tmp/health.json
           test "$code" = "200"
           python3 -c "import json; d=json.load(open('/tmp/health.json')); assert d.get('ok') is True"
+
       - name: Public pages
         run: |
+          set -e
           URL="${{ secrets.SMOKE_BASE_URL }}"
           if [ -z "$URL" ]; then URL="https://medical-aid-automation.vercel.app"; fi
-          for path in / /intake /request-status /me /guide /org/register; do
+          for path in / /intake /request-status /me /guide /org/register /sign-in; do
             code=$(curl -sS -o /dev/null -w "%{http_code}" "$URL$path")
             echo "$path -> $code"
             test "$code" = "200"
           done
+
+      - name: Public APIs shape
+        run: |
+          set -e
+          URL="${{ secrets.SMOKE_BASE_URL }}"
+          if [ -z "$URL" ]; then URL="https://medical-aid-automation.vercel.app"; fi
+
+          # Organizations list (names only)
+          code=$(curl -sS -o /tmp/orgs.json -w "%{http_code}" "$URL/api/orgs")
+          echo "/api/orgs -> $code"
+          test "$code" = "200"
+          python3 -c "import json; d=json.load(open('/tmp/orgs.json')); assert d.get('ok') is True; assert 'organizations' in d"
+
+          # Ops endpoints must reject anonymous
+          for path in /api/admin/audit /api/admin/org-requests /api/admin/org-members; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "$URL$path")
+            echo "$path (anon) -> $code"
+            # 401 unauthorized is expected
+            test "$code" = "401"
+          done
+
+          # Health still reports core systems
+          python3 << 'PY'
+import json
+d=json.load(open('/tmp/health.json'))
+checks=d.get('checks') or {}
+assert checks.get('env_database',{}).get('ok') is True
+assert checks.get('neon',{}).get('ok') is True
+print('core checks ok')
+PY
