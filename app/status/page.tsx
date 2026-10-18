@@ -187,25 +187,24 @@ export default async function StatusPage() {
   const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 text-slate-900 pb-28 md:pb-16">
+    <main className="min-h-screen text-slate-900 pb-28 md:pb-16 p-4 sm:p-6">
       <div className="mx-auto max-w-lg space-y-6">
-        <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-            Platform · Status
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            System status
-          </h1>
+        <header className="space-y-2 text-center sm:text-left aid-rise">
+          <p className="aid-section-label">Platform · Status</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">System status</h1>
           <p className="text-sm text-slate-600" dir="rtl">
             حالة النظام · هل المنصة جاهزة؟
+          </p>
+          <p className="text-xs text-slate-500">
+            Database · catalog · WhatsApp · feature flags · ops unlock
           </p>
         </header>
 
         <div
-          className={`rounded-2xl border p-4 ${
+          className={`rounded-2xl border p-4 shadow-sm backdrop-blur ${
             health.ok
-              ? 'bg-emerald-50 border-emerald-200'
-              : 'bg-amber-50 border-amber-300'
+              ? 'bg-emerald-50/95 border-emerald-200'
+              : 'bg-amber-50/95 border-amber-300'
           }`}
         >
           <div className="font-semibold">
@@ -214,23 +213,21 @@ export default async function StatusPage() {
               : 'Setup needed — add DATABASE_URL on Vercel'}
           </div>
           <p className="text-xs text-slate-600 mt-1">
-            Medicine search uses the open Egyptian drug database first; MSH is
-            fallback only.
+            Medicine search uses the Egyptian drug catalog first; MSH is fallback only. Public
+            surface stays submit · status · profile.
           </p>
         </div>
 
         {health.ok && (
-          <div className="rounded-2xl border border-violet-200 bg-violet-50/80 p-4 space-y-3 text-sm">
-            <h2 className="font-semibold text-violet-950">
-              This month ops path · {period}
-            </h2>
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/90 p-4 space-y-3 text-sm shadow-sm backdrop-blur">
+            <h2 className="font-semibold text-violet-950">This month ops path · {period}</h2>
             <ol className="list-decimal list-inside space-y-2 text-violet-950 text-xs sm:text-sm">
               <li>
                 Unlock on{' '}
                 <Link href="/" className="underline font-medium">
                   Home
                 </Link>{' '}
-                with PROCESS_SECRET
+                (Google or PROCESS_SECRET)
               </li>
               <li>
                 <Link href="/intake-ops" className="underline font-medium">
@@ -248,7 +245,7 @@ export default async function StatusPage() {
                 <Link href="/pharmacy" className="underline font-medium">
                   3 Pharmacy
                 </Link>{' '}
-                — filter EVA / Not EVA · CSV · batch dispense
+                — EVA / Not EVA · CSV · batch dispense
               </li>
               <li>
                 <Link href="/programs" className="underline font-medium">
@@ -266,13 +263,13 @@ export default async function StatusPage() {
                 <Link href="/notifications" className="underline font-medium">
                   WhatsApp
                 </Link>{' '}
-                — dry-run due reminders when provider is set
+                — dry-run when provider is set
               </li>
             </ol>
           </div>
         )}
 
-        <ul className="rounded-2xl border bg-white divide-y shadow-sm">
+        <ul className="rounded-2xl border border-white/80 bg-white/90 divide-y shadow-sm backdrop-blur">
           {Object.entries(health.checks).map(([key, val]) => (
             <li key={key} className="flex justify-between gap-3 p-3 text-sm">
               <div>
@@ -302,8 +299,8 @@ export default async function StatusPage() {
           <Link href="/admin" className="text-slate-700 hover:underline font-medium">
             Admin
           </Link>
-          <Link href="/intake" className="text-emerald-700 hover:underline font-medium">
-            Intake
+          <Link href="/me" className="text-emerald-700 hover:underline font-medium">
+            Profile
           </Link>
           <Link href="/" className="text-blue-600 hover:underline">
             Home
