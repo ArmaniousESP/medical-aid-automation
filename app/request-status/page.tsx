@@ -6,8 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { PublicStepsBar } from '../PublicStepsBar';
 import { loadLastRequestId, loadProfile, saveLastRequestId } from '@/lib/intakeDraft';
 
-const field =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200';
+const field = 'aid-input';
 
 function StatusForm() {
   const search = useSearchParams();
@@ -31,7 +30,6 @@ function StatusForm() {
         setFromDevice(true);
       }
     }
-    // Pre-fill verification from /me profile saved on this device
     const profile = loadProfile();
     if (profile) {
       if (profile.phone) setPhone(profile.phone);
@@ -47,7 +45,6 @@ function StatusForm() {
     if (id && /^[0-9a-f-]{36}$/i.test(id.trim())) {
       void lookup();
     }
-    // Re-check when verification fields arrive from profile
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, phone, empId]);
 
@@ -100,11 +97,12 @@ function StatusForm() {
 
   return (
     <div className="space-y-5">
-      <form onSubmit={lookup} className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-slate-700">
-            Request ID · رقم الطلب
-          </span>
+      <form
+        onSubmit={lookup}
+        className="rounded-2xl border border-white/90 bg-white/90 p-5 shadow-sm space-y-4 backdrop-blur"
+      >
+        <label className="block">
+          <span className="aid-label">Request ID · رقم الطلب</span>
           <div className="flex gap-2">
             <input
               required
@@ -126,7 +124,7 @@ function StatusForm() {
             </button>
           </div>
           {fromDevice && (
-            <p className="text-[11px] text-emerald-700">
+            <p className="aid-hint text-emerald-700">
               Using last request saved on this device
             </p>
           )}
@@ -138,7 +136,7 @@ function StatusForm() {
           </summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs">Phone · الهاتف</span>
+              <span className="text-xs font-medium text-slate-600">Phone · الهاتف</span>
               <input
                 type="tel"
                 value={phone}
@@ -147,7 +145,9 @@ function StatusForm() {
               />
             </label>
             <label className="block">
-              <span className="text-xs">Employee ID · الرقم الوظيفي</span>
+              <span className="text-xs font-medium text-slate-600">
+                Employee ID · الرقم الوظيفي
+              </span>
               <input
                 value={empId}
                 onChange={(e) => setEmpId(e.target.value)}
@@ -156,7 +156,8 @@ function StatusForm() {
             </label>
           </div>
           <p className="mt-2 text-[11px] text-slate-500">
-            Enter the same phone or employee ID used on the request to unlock full names and medicine list.
+            Enter the same phone or employee ID used on the request to unlock full names and medicine
+            list.
           </p>
         </details>
 
@@ -171,7 +172,7 @@ function StatusForm() {
 
       {error && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/95 p-5 text-sm text-amber-950 space-y-3 backdrop-blur">
-          <p className="font-semibold">We couldn&apos;t find that request</p>
+          <p className="font-semibold">We couldn't find that request</p>
           <p className="text-xs text-amber-900/80" dir="rtl">
             لم نعثر على الطلب — تأكد من رقم الطلب أو قدّم طلباً جديداً
           </p>
@@ -179,7 +180,10 @@ function StatusForm() {
             <Link href="/intake" className="aid-cta-primary px-4 py-2.5 text-xs">
               Submit a new request
             </Link>
-            <Link href="/me" className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold">
+            <Link
+              href="/me"
+              className="rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-xs font-semibold"
+            >
               My profile · ملفي
             </Link>
           </div>
@@ -195,9 +199,7 @@ function StatusForm() {
             <p className="text-2xl font-bold text-emerald-950">
               {String(data.status_label_ar || data.status || '')}
             </p>
-            <p className="text-sm text-emerald-800">
-              {String(data.status_label_en || '')}
-            </p>
+            <p className="text-sm text-emerald-800">{String(data.status_label_en || '')}</p>
           </div>
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -248,23 +250,29 @@ function StatusForm() {
               </div>
             ) : (
               <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-                Names are masked for privacy. Open <strong>Optional verification</strong> and enter your phone or employee ID, or use{' '}
-                <a href="/me" className="font-semibold underline">My profile</a> to see all your past requests.
+                Names are masked for privacy. Open <strong>Optional verification</strong> and enter
+                your phone or employee ID, or use{' '}
+                <a href="/me" className="font-semibold underline">
+                  My profile
+                </a>{' '}
+                to see all your past requests.
               </div>
             )}
-            {!!data.verified && Array.isArray(data.meds) && (data.meds as { name?: string; qty?: number }[]).length > 0 && (
-              <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3">
-                <dt className="text-slate-500 text-xs mb-1">Medicines · الأدوية</dt>
-                <ul className="text-sm space-y-1">
-                  {(data.meds as { name?: string; qty?: number }[]).map((m, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="text-slate-400 shrink-0">{m.qty || 1}×</span>
-                      <span className="min-w-0 break-words">{m.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {!!data.verified &&
+              Array.isArray(data.meds) &&
+              (data.meds as { name?: string; qty?: number }[]).length > 0 && (
+                <div className="sm:col-span-2 rounded-xl bg-slate-50 p-3">
+                  <dt className="text-slate-500 text-xs mb-1">Medicines · الأدوية</dt>
+                  <ul className="text-sm space-y-1">
+                    {(data.meds as { name?: string; qty?: number }[]).map((m, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-slate-400 shrink-0">{m.qty || 1}×</span>
+                        <span className="min-w-0 break-words">{m.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </dl>
 
           <button
@@ -298,12 +306,15 @@ export default function RequestStatusPage() {
     <main className="min-h-screen text-slate-900 pb-24">
       <div className="mx-auto max-w-md px-4 pt-6 space-y-5">
         <PublicStepsBar active="status" />
-        <header className="text-center sm:text-left space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Request status
-          </h1>
+        <header className="text-center space-y-2 aid-rise">
+          <p className="aid-section-label">Track · متابعة</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Request status</h1>
           <p className="text-sm text-slate-600" dir="rtl">
             متابعة حالة طلب العلاج الشهري
+          </p>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Use your Request ID. Add phone or employee ID to see full names when this is your
+            request.
           </p>
         </header>
         <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
