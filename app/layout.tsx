@@ -6,15 +6,38 @@ import { MobilePublicNav } from './MobilePublicNav';
 import { SplashScreen } from './SplashScreen';
 import { InstallPrompt } from './InstallPrompt';
 import { RegisterSW } from './RegisterSW';
+import { SiteFooter } from './SiteFooter';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Medical Aid — Submit & track monthly treatment',
+    default: 'Medical Aid — Monthly chronic medicine support',
     template: '%s · Medical Aid',
   },
   description:
-    'Submit a monthly treatment request and check status with your Request ID. دعم العلاج الشهري.',
+    'Production-grade platform for employer chronic medicine programs: submit requests, track status, employee self-service, pharmacy routing, and multi-organization ops. دعم العلاج الشهري.',
   applicationName: 'Medical Aid',
+  keywords: [
+    'medical aid',
+    'chronic medicine',
+    'employee benefits',
+    'pharmacy',
+    'Egypt',
+    'دعم العلاج الشهري',
+  ],
+  authors: [{ name: 'Medical Aid' }],
+  openGraph: {
+    title: 'Medical Aid — Monthly chronic medicine support',
+    description:
+      'Submit, track, and fulfill monthly treatment support — private, bilingual, multi-organization.',
+    type: 'website',
+    locale: 'en_US',
+    alternateLocale: ['ar_EG'],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Medical Aid',
+    description: 'Monthly chronic medicine support for employees and families.',
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -44,11 +67,36 @@ export const viewport: Viewport = {
 };
 
 const APPLE_SPLASH = [
-  { w: 1290, h: 2796, media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)' },
-  { w: 1170, h: 2532, media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)' },
-  { w: 828, h: 1792, media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)' },
-  { w: 750, h: 1334, media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)' },
-  { w: 1640, h: 2360, media: '(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2)' },
+  {
+    w: 1290,
+    h: 2796,
+    media:
+      '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)',
+  },
+  {
+    w: 1170,
+    h: 2532,
+    media:
+      '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)',
+  },
+  {
+    w: 828,
+    h: 1792,
+    media:
+      '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)',
+  },
+  {
+    w: 750,
+    h: 1334,
+    media:
+      '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)',
+  },
+  {
+    w: 1640,
+    h: 2360,
+    media:
+      '(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2)',
+  },
 ] as const;
 
 export default function RootLayout({
@@ -68,7 +116,7 @@ export default function RootLayout({
           />
         ))}
       </head>
-      <body className="min-h-screen antialiased text-slate-900">
+      <body className="min-h-screen antialiased text-slate-900 flex flex-col">
         <RegisterSW />
         <SplashScreen />
         <a
@@ -78,11 +126,14 @@ export default function RootLayout({
           Skip to content
         </a>
         <AppNav />
-        <div className="mx-auto max-w-6xl px-4 pt-3">
+        <div className="mx-auto max-w-6xl px-4 pt-3 w-full">
           <SetupBanner />
         </div>
-        <div id="main-content" className="pb-24 md:pb-8">
+        <div id="main-content" className="flex-1 pb-24 md:pb-8">
           {children}
+        </div>
+        <div className="hidden md:block">
+          <SiteFooter />
         </div>
         <MobilePublicNav />
         <InstallPrompt />
