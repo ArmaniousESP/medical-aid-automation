@@ -18,7 +18,10 @@ export default function Home() {
             />
             Monthly medicine support · دعم العلاج الشهري
           </p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+          <h1
+            className="aid-display text-3xl sm:text-4xl font-semibold tracking-tight"
+            style={{ color: 'var(--aid-ink)' }}
+          >
             How can we help?
           </h1>
           <p className="text-base text-slate-600" dir="rtl">
@@ -94,9 +97,7 @@ export default function Home() {
                 2
               </span>
               <div className="text-left flex-1 min-w-0">
-                <div className="text-xl font-semibold text-slate-900">
-                  Check my status
-                </div>
+                <div className="text-xl font-semibold text-slate-900">Check my status</div>
                 <div className="text-sm text-slate-500 mt-0.5" dir="rtl">
                   تابع طلبك برقم الطلب
                 </div>
@@ -115,16 +116,21 @@ export default function Home() {
 
           <Link
             href="/me"
-            className="aid-rise aid-rise-delay-3 group block rounded-2xl border border-violet-200/90 bg-gradient-to-br from-violet-50/90 to-white/90 p-6 shadow-sm backdrop-blur hover:border-violet-300 hover:shadow-lg hover:shadow-violet-600/10 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-violet-200 active:scale-[0.99]"
+            className="aid-rise aid-rise-delay-3 group block rounded-2xl border p-6 shadow-sm transition focus:outline-none focus-visible:ring-4 active:scale-[0.99]"
+            style={{
+              borderColor: 'var(--aid-line)',
+              background: 'var(--aid-surface)',
+            }}
           >
             <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-2xl font-bold text-violet-800 ring-1 ring-violet-200">
+              <span
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white"
+                style={{ background: 'var(--aid-emerald)' }}
+              >
                 3
               </span>
               <div className="text-left flex-1 min-w-0">
-                <div className="text-xl font-semibold text-slate-900">
-                  My employee profile
-                </div>
+                <div className="text-xl font-semibold text-slate-900">My employee profile</div>
                 <div className="text-sm text-slate-500 mt-0.5" dir="rtl">
                   الشركة + الرقم الوظيفي · طلباتك والرد على المراجعين
                 </div>
@@ -132,10 +138,7 @@ export default function Home() {
                   New request · history · reply to staff questions
                 </div>
               </div>
-              <span
-                className="text-2xl text-violet-300 group-hover:text-violet-600 transition"
-                aria-hidden
-              >
+              <span className="text-2xl transition" style={{ color: 'var(--aid-muted)' }} aria-hidden>
                 →
               </span>
             </div>
@@ -165,9 +168,7 @@ export default function Home() {
         </div>
 
         <section className="rounded-2xl border border-white/80 bg-white/75 p-5 space-y-3 shadow-sm backdrop-blur">
-          <h2 className="text-sm font-semibold text-center text-slate-800">
-            Three steps · ثلاث خطوات
-          </h2>
+          <h2 className="text-sm font-semibold text-center text-slate-800">Three steps · ثلاث خطوات</h2>
           <ol className="space-y-3">
             {[
               {
@@ -190,84 +191,34 @@ export default function Home() {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 text-xs font-bold text-emerald-800">
                   {step.n}
                 </span>
-                <span>
-                  <span className="text-slate-800">{step.en}</span>
-                  <span className="block text-slate-500 text-xs mt-0.5" dir="rtl">
+                <div className="min-w-0">
+                  <p className="text-slate-800 font-medium">{step.en}</p>
+                  <p className="text-slate-500 text-xs mt-0.5" dir="rtl">
                     {step.ar}
-                  </span>
-                </span>
+                  </p>
+                </div>
               </li>
             ))}
           </ol>
-          <p className="text-center pt-1 space-x-2">
-            <Link
-              href="/guide"
-              className="text-sm font-medium text-violet-700 hover:underline"
-            >
-              Full guide
-            </Link>
-            <span className="text-slate-300">·</span>
-            <Link
-              href="/me"
-              className="text-sm font-medium text-emerald-700 hover:underline"
-            >
-              My profile
-            </Link>
-          </p>
         </section>
 
-        <section className="rounded-2xl border border-violet-200/80 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-5 space-y-3 shadow-sm">
-          <p className="text-[11px] uppercase tracking-wide text-violet-700 font-semibold">
-            Organizations · المؤسسات
-          </p>
-          <h2 className="font-bold text-slate-900">Use this platform for your company</h2>
-          <p className="text-sm text-slate-600">
-            Register your organization to run chronic medicine support for your employees —
-            intake, pharmacy, programs, and employee self-service.
-          </p>
-          <p className="text-sm text-slate-600" dir="rtl">
-            سجّل مؤسستك لاستخدام المنصة لدعم العلاج الشهري لموظفيك.
-          </p>
-          <Link
-            href="/org/register"
-            className="aid-cta-violet inline-flex px-4 py-2.5 text-sm font-semibold"
-          >
-            Create organization account · إنشاء حساب مؤسسة
+        <p className="text-center text-sm text-slate-500 space-x-3">
+          <Link href="/guide" className="text-emerald-800 font-medium underline-offset-2 hover:underline">
+            Help guide
           </Link>
-        </section>
+          <span aria-hidden>·</span>
+          <Link href="/org/register" className="hover:underline">
+            Org register
+          </Link>
+          <span aria-hidden>·</span>
+          <Link href="/sign-in" className="hover:underline">
+            Staff sign-in
+          </Link>
+        </p>
 
-        <details className="rounded-2xl border border-dashed border-slate-300/90 bg-white/80 backdrop-blur group shadow-sm">
-          <summary className="cursor-pointer list-none px-4 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center justify-between gap-2">
-            <span>
-              Staff unlock{' '}
-              <span className="text-slate-400 font-normal" dir="rtl">
-                · للتشغيل فقط
-              </span>
-            </span>
-            <span className="text-xs text-slate-400 group-open:hidden">tap to open</span>
-            <span className="text-xs text-slate-400 hidden group-open:inline">close</span>
-          </summary>
-          <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-2">
-            <p className="text-xs text-slate-500 text-center">
-              Queue → Claims → Pharmacy → Programs → Refills
-            </p>
-            <Suspense
-              fallback={
-                <p className="text-xs text-slate-400 text-center py-2">Loading staff tools…</p>
-              }
-            >
-              <UnlockPanel />
-            </Suspense>
-          </div>
-        </details>
-
-        <footer className="text-center text-xs text-slate-400 pb-6 space-y-2">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-            <span>Privacy-first · public: submit, status, profile only</span>
-          </div>
-          <p dir="rtl">بياناتك خاصة — التقديم والحالة وملف الموظف فقط للعامة</p>
-        </footer>
+        <Suspense fallback={null}>
+          <UnlockPanel />
+        </Suspense>
       </div>
     </main>
   );
