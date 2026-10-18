@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { webhookRetryDefaults } from '@/lib/httpRetry';
 import { whatsappConfigStatus } from '@/lib/whatsapp';
+import { dhis2ConfigStatus } from '@/lib/dhis2';
 import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
 import { featureFlagsStatus } from '@/lib/featureFlags';
 
@@ -61,6 +62,16 @@ export async function GET() {
   checks.whatsapp = {
     ok: wa.mode !== 'none' || wa.dry_run_default,
     detail: `mode=${wa.mode}`,
+  };
+
+  const dhis2 = dhis2ConfigStatus();
+  checks.dhis2 = {
+    ok: true,
+    detail: dhis2.push_ready
+      ? `configured · enroll=${dhis2.sync_on_enroll} · dispense=${dhis2.sync_on_dispense}${dhis2.dry_run ? ' · DRY_RUN' : ''}`
+      : dhis2.configured
+        ? 'auth set — add ORG_UNIT, PROGRAM, TRACKED_ENTITY_TYPE for push'
+        : 'optional HMIS bridge — off (see docs/dhis2.md)',
   };
 
   // Feature flags — off until management approval (not required for platform health)
