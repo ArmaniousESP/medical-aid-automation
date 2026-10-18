@@ -4,64 +4,58 @@
 
 | Audience | Access |
 |----------|--------|
-| Public | Submit request (`/intake`), check status by ID (`/request-status`) |
-| Ops staff | Programs, claims, pharmacy, full lists, process APIs |
+| Public | Submit (`/intake`), status by ID (`/request-status`) — **no account** |
+| Employees | Profile gate (`/me`) via company + employee ID + phone |
+| Ops staff / org operators | Programs, claims, pharmacy, process APIs |
 
-Patient data must **not** be publicly listable.
+Patient data must **not** be publicly listable. See [schema/006_identity_data_flow.md](./schema/006_identity_data_flow.md).
 
 ---
 
-## Phase 1 — current (shipped)
+## Phase 1 — shared ops secret (still supported)
 
-**Shared ops secret(s)** via `PROCESS_SECRET`.
+**`PROCESS_SECRET`** — emergency / bootstrap unlock.
 
 ```bash
-# Single staff password
 PROCESS_SECRET=your-long-random-string
-
-# Multiple staff passwords (comma-separated)
-PROCESS_SECRET=alice-secret,bob-secret
+# or multiple: alice-secret,bob-secret
 ```
 
-- Middleware blocks all non-public routes without a matching cookie/header.
-- Home → **Unlock ops** sets httpOnly cookie `maa_admin` (12h).
+- Middleware blocks non-public routes without cookie/header.
+- Home → **Unlock ops** sets httpOnly `maa_admin` (12h).
 - APIs accept `x-process-secret`, `Authorization: Bearer`, or `?secret=`.
-- If `PROCESS_SECRET` is unset, ops stay **locked**.
-
-**Public paths:** `/`, `/intake`, `/request-status`, `/guide`, `/status`,  
-`POST /api/intake` (submit/search/estimate), `GET /api/request-status`, `/api/health`, `/api/auth/*`.
 
 ---
 
-## Phase 2 — recommended upgrade
+## Phase 2 — current recommended (shipped)
 
-Named staff accounts with **Auth.js** or **Neon Auth**, still keeping intake/status public.
+**Neon Auth + Google** for staff and org operators.
 
-| Option | Why |
-|--------|-----|
-| Auth.js + Neon | Users in your DB, free, full control |
-| Neon Auth | Managed Better Auth in `neon_auth` schema |
-| Clerk | Polished UI / orgs / SSO when needed |
+| Piece | Role |
+|-------|------|
+| `NEON_AUTH_*` + Google OAuth | Identity |
+| `OPS_ALLOWED_EMAILS` / `OPS_ADMIN_EMAILS` | Platform staff allowlist |
+| `org_members` | Per-org operators (invite from Admin) |
+| `maa_ops_staff` HMAC cookie | Middleware + API authorization |
+| `staff_roles` | admin · operator · viewer |
 
-**Avoid while on Neon:** Supabase Auth (would split identity into another Postgres).
+Flow: `/sign-in` → Google → `/sign-in/callback` → `POST /api/auth/staff-session` → ops pages.
 
-### Staff-only rules
-
-- Disable open sign-up
-- Allowlist `@yourorg.org` or invite-only
-- Roles later: `ops` · `pharmacy` · `finance`
+**Public paths stay open:** `/`, `/intake`, `/request-status`, `/me`, `/guide`, `/status`, `/org/register`, `POST /api/intake`, `GET /api/request-status`, `/api/health`, `/api/auth/*`, `/api/employee/*` (verify triple).
 
 ---
 
 ## Phase 3 — optional
 
 - SSO (WorkOS / Auth0) for corporate IdP
-- Per-action audit log (`unlocked_by`, `approved_by`)
+- Stronger employee OTP via WhatsApp (still no full account required)
+- Row-level security policies in Neon for defense in depth
 
 ---
 
 ## What not to do
 
 - Do not require login for beneficiaries to submit or check status by Request ID
-- Do not leave ops open when `PROCESS_SECRET` is empty
+- Do not leave ops open when neither `PROCESS_SECRET` nor Neon staff session is set
 - Do not put full patient lists on a public URL
+- Do not split identity into a second product database (keep Neon system of record)
