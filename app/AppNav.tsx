@@ -10,6 +10,7 @@ const PUBLIC = [
   { href: '/', label: 'Home', labelAr: 'الرئيسية' },
   { href: '/intake', label: 'Submit request', labelAr: 'تقديم طلب' },
   { href: '/request-status', label: 'My status', labelAr: 'حالة طلبي' },
+  { href: '/me', label: 'My profile', labelAr: 'ملفي' },
   { href: '/guide', label: 'Help', labelAr: 'مساعدة' },
 ];
 
