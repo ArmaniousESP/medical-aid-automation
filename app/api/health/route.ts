@@ -5,19 +5,21 @@ import { whatsappConfigStatus } from '@/lib/whatsapp';
 import { dhis2ConfigStatus } from '@/lib/dhis2';
 import { loadEgyptianDrugs, searchEgyptianDrugs } from '@/lib/egyptianDrugs';
 import { featureFlagsStatus } from '@/lib/featureFlags';
+import { staffAccessStatus } from '@/lib/staffAccess';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/health
- * Platform readiness: Neon required; Google optional (legacy).
- * Egyptian catalog: Neon egyptian_drugs preferred; CSV cache fallback; MSH last.
+ * Platform readiness: Neon required; Google sheets optional (legacy).
+ * Staff: PROCESS_SECRET and/or Neon Auth Google + OPS_ALLOWED_EMAILS.
  */
 export async function GET() {
   const checks: Record<string, { ok: boolean; detail?: string }> = {};
   const retry = webhookRetryDefaults();
   const wa = whatsappConfigStatus();
   const flags = featureFlagsStatus();
+  const staff = staffAccessStatus();
 
   checks.env_database = {
     ok: !!process.env.DATABASE_URL,
@@ -36,6 +38,28 @@ export async function GET() {
   checks.process_secret = {
     ok: !!process.env.PROCESS_SECRET,
     detail: process.env.PROCESS_SECRET ? 'configured' : 'optional but recommended',
+  };
+
+  const neonAuthBase = (process.env.NEON_AUTH_BASE_URL || '').trim();
+  const allowlist = staff.allowlist_configured;
+  checks.neon_auth = {
+    ok: true,
+    detail: neonAuthBase
+      ? allowlist
+        ? `Google sign-in ready · ${staff.allowlist_count} allowed email(s) · /sign-in`
+        : 'NEON_AUTH_BASE_URL set — add OPS_ALLOWED_EMAILS for staff Google'
+      : 'off — set NEON_AUTH_BASE_URL + OPS_ALLOWED_EMAILS (see docs/NEON_AUTH.md)',
+  };
+
+  checks.staff_access = {
+    ok: !!process.env.PROCESS_SECRET || (neonAuthBase.length > 0 && allowlist),
+    detail: process.env.PROCESS_SECRET
+      ? neonAuthBase && allowlist
+        ? 'PROCESS_SECRET + Google staff'
+        : 'PROCESS_SECRET unlock'
+      : neonAuthBase && allowlist
+        ? 'Google staff only'
+        : 'no ops unlock configured',
   };
 
   const enrollOn = process.env.AUTO_ENROLL_INTAKE !== 'false';
@@ -74,7 +98,6 @@ export async function GET() {
         : 'optional HMIS bridge — off (see docs/dhis2.md)',
   };
 
-  // Feature flags — off until management approval (not required for platform health)
   checks.who_assessment = {
     ok: true,
     detail: flags.who_assessment.enabled
@@ -88,7 +111,6 @@ export async function GET() {
       : 'OFF until ENABLE_AI_ADHERENCE_COACH=true',
   };
 
-  // Neon-stored Egyptian catalog count (0 until staff runs sync)
   let neonCatalog = 0;
   try {
     const { egyptianDrugCount } = await import('@/lib/egyptianCatalogDb');
@@ -193,6 +215,7 @@ export async function GET() {
         'Neon egyptian_drugs (if synced) → CSV cache → MSH fallback',
       feature_flags: flags,
       guide: '/guide',
+      staff_sign_in: '/sign-in',
       time: new Date().toISOString(),
       checks,
     },
