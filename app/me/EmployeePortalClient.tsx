@@ -34,6 +34,14 @@ type PriorRegimen = {
   last_update: string | null;
 };
 
+type Msg = {
+  id: string;
+  author_role: string;
+  author_label: string | null;
+  body: string;
+  created_at: string;
+};
+
 export default function EmployeePortalClient() {
   const [company, setCompany] = useState('');
   const [empId, setEmpId] = useState('');
@@ -44,6 +52,11 @@ export default function EmployeePortalClient() {
   const [regimens, setRegimens] = useState<PriorRegimen[]>([]);
   const [deadline, setDeadline] = useState('2026-12-10');
   const [deadlinePassed, setDeadlinePassed] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [reply, setReply] = useState('');
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyMsg, setReplyMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const p = loadProfile();
@@ -60,6 +73,8 @@ export default function EmployeePortalClient() {
     setError(null);
     setProfile(null);
     setRegimens([]);
+    setActiveId(null);
+    setMessages([]);
     try {
       const res = await fetch('/api/employee/lookup', {
         method: 'POST',
@@ -94,6 +109,53 @@ export default function EmployeePortalClient() {
     }
   }
 
+  async function openThread(requestId: string) {
+    setActiveId(requestId);
+    setReplyMsg(null);
+    try {
+      const q = new URLSearchParams({
+        request_id: requestId,
+        company,
+        emp_id: empId,
+        phone,
+      });
+      const res = await fetch(`/api/employee/reply?${q}`);
+      const data = await res.json();
+      if (data.ok) setMessages(data.messages || []);
+      else setMessages([]);
+    } catch {
+      setMessages([]);
+    }
+  }
+
+  async function sendReply() {
+    if (!activeId || !reply.trim()) return;
+    setReplyBusy(true);
+    setReplyMsg(null);
+    try {
+      const res = await fetch('/api/employee/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: activeId,
+          company,
+          emp_id: empId,
+          phone,
+          body: reply.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Failed');
+      setMessages(data.messages || []);
+      setReply('');
+      setReplyMsg('Reply sent · تم الإرسال');
+    } catch (err: unknown) {
+      setReplyMsg(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setReplyBusy(false);
+    }
+  }
+
   const newRequestHref = `/intake?company=${encodeURIComponent(company)}&emp_id=${encodeURIComponent(empId)}&phone=${encodeURIComponent(phone)}`;
 
   return (
@@ -107,19 +169,24 @@ export default function EmployeePortalClient() {
             ملفك · تجديد دعم 2027 · طلباتك
           </p>
           <p className="text-xs max-w-sm mx-auto" style={{ color: 'var(--aid-muted)' }}>
-            No password — company, employee ID, and phone open your history and renewals.
+            No password — company, employee ID, and phone open your history, renewals, and staff replies.
           </p>
         </header>
 
         {!profile && (
           <div
             className="rounded-2xl border p-4 text-xs leading-relaxed shadow-sm"
-            style={{ background: 'var(--aid-surface)', borderColor: 'var(--aid-line)', color: 'var(--aid-muted)' }}
+            style={{
+              background: 'var(--aid-surface)',
+              borderColor: 'var(--aid-line)',
+              color: 'var(--aid-muted)',
+            }}
           >
             <p className="font-semibold mb-1" style={{ color: 'var(--aid-ink)' }}>
               How your data stays private
             </p>
-            We only show records that match all three fields. Staff use Google sign-in; this page never lists other employees.
+            We only show records that match all three fields. Staff use Google sign-in; this page never
+            lists other employees.
           </div>
         )}
 
@@ -161,7 +228,11 @@ export default function EmployeePortalClient() {
               placeholder="Same phone on file"
             />
           </label>
-          <button type="submit" disabled={loading} className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={loading}
+            className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50"
+          >
             {loading ? 'Opening… · جاري الفتح' : 'Open my profile · فتح الملف'}
           </button>
         </form>
@@ -276,7 +347,7 @@ export default function EmployeePortalClient() {
                 {profile.requests.map((r) => (
                   <article
                     key={r.id}
-                    className="rounded-2xl border p-4 shadow-sm"
+                    className="rounded-2xl border p-4 shadow-sm space-y-2"
                     style={{ borderColor: 'var(--aid-line)', background: 'var(--aid-surface)' }}
                   >
                     <div className="flex justify-between gap-2">
@@ -288,13 +359,67 @@ export default function EmployeePortalClient() {
                       </div>
                       <span className="aid-badge-info">{r.status}</span>
                     </div>
-                    <Link
-                      href={`/request-status?id=${encodeURIComponent(r.id)}&phone=${encodeURIComponent(phone)}&emp_id=${encodeURIComponent(empId)}`}
-                      className="text-xs font-semibold underline mt-2 inline-block"
-                      style={{ color: 'var(--aid-emerald)' }}
-                    >
-                      View status
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/request-status?id=${encodeURIComponent(r.id)}&phone=${encodeURIComponent(phone)}&emp_id=${encodeURIComponent(empId)}`}
+                        className="text-xs font-semibold underline"
+                        style={{ color: 'var(--aid-emerald)' }}
+                      >
+                        View status
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openThread(r.id)}
+                        className="text-xs font-semibold underline"
+                        style={{ color: 'var(--aid-ink)' }}
+                      >
+                        {r.open_inquiry ? 'Reply to staff' : 'Messages'}
+                      </button>
+                    </div>
+                    {activeId === r.id && (
+                      <div
+                        className="rounded-xl border p-3 space-y-2"
+                        style={{ borderColor: 'var(--aid-line)', background: 'var(--aid-paper)' }}
+                      >
+                        <ul className="max-h-36 overflow-y-auto space-y-2 text-xs">
+                          {messages.length === 0 && (
+                            <li style={{ color: 'var(--aid-muted)' }}>No messages yet</li>
+                          )}
+                          {messages.map((m) => (
+                            <li
+                              key={m.id}
+                              className="rounded-lg border p-2"
+                              style={{ borderColor: 'var(--aid-line)', background: 'var(--aid-surface)' }}
+                            >
+                              <p style={{ color: 'var(--aid-muted)' }}>
+                                {m.author_label || m.author_role} ·{' '}
+                                {new Date(m.created_at).toLocaleString()}
+                              </p>
+                              <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+                            </li>
+                          ))}
+                        </ul>
+                        <textarea
+                          value={reply}
+                          onChange={(e) => setReply(e.target.value)}
+                          className="aid-input text-sm min-h-[72px]"
+                          placeholder="Write a reply to staff…"
+                        />
+                        <button
+                          type="button"
+                          disabled={replyBusy || !reply.trim()}
+                          onClick={() => void sendReply()}
+                          className="aid-cta-primary w-full py-2 text-sm disabled:opacity-50"
+                        >
+                          {replyBusy ? 'Sending…' : 'Send reply · إرسال'}
+                        </button>
+                        {replyMsg && (
+                          <p className="text-xs" style={{ color: 'var(--aid-muted)' }}>
+                            {replyMsg}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>
