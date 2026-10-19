@@ -59,37 +59,56 @@ export default function OrgRegisterPage() {
   const pending = result?.status === 'pending';
 
   return (
-    <main className="min-h-screen text-slate-900 pb-24">
+    <main className="min-h-screen pb-24" style={{ color: 'var(--aid-ink)' }}>
       <div className="mx-auto max-w-lg px-4 pt-8 space-y-6">
         <header className="space-y-3 text-center aid-rise">
           <p className="aid-section-label">For organizations · للمؤسسات</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="aid-display text-3xl sm:text-4xl font-semibold tracking-tight">
             Create organization account
           </h1>
-          <p className="text-sm text-slate-600" dir="rtl">
+          <p className="text-sm" style={{ color: 'var(--aid-muted)' }} dir="rtl">
             سجّل مؤسستك لتشغيل دعم العلاج الشهري على المنصة
           </p>
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
-            After review, your team can run intake, pharmacy, programs, and employee
-            self-service — scoped to your organization only.
+          <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--aid-muted)' }}>
+            After review, your team runs intake, pharmacy, and programs — data stays
+            scoped to your organization only.
           </p>
         </header>
+
+        <div
+          className="rounded-2xl border p-4 text-xs leading-relaxed shadow-sm"
+          style={{
+            background: 'var(--aid-surface)',
+            borderColor: 'var(--aid-line)',
+            color: 'var(--aid-muted)',
+          }}
+        >
+          <p className="font-semibold mb-1" style={{ color: 'var(--aid-ink)' }}>
+            Your data boundary
+          </p>
+          Employees, requests, and pharmacy lists are filtered by org membership. Platform
+          admins review registration; operators only see their own workspace.
+        </div>
 
         <ol className="aid-rise grid grid-cols-3 gap-2 text-center text-[11px]">
           {[
             { n: '1', en: 'Register', ar: 'التسجيل' },
-            { n: '2', en: 'Approval', ar: 'الموافقة' },
-            { n: '3', en: 'Invite staff', ar: 'دعوة الفريق' },
+            { n: '2', en: 'Review', ar: 'المراجعة' },
+            { n: '3', en: 'Operate', ar: 'التشغيل' },
           ].map((s) => (
             <li
               key={s.n}
-              className="rounded-2xl border border-white/90 bg-white/85 px-2 py-3 shadow-sm backdrop-blur"
+              className="rounded-2xl border px-2 py-3 shadow-sm"
+              style={{ background: 'var(--aid-surface)', borderColor: 'var(--aid-line)' }}
             >
-              <span className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-[10px] font-bold text-violet-800">
+              <span
+                className="mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                style={{ background: 'var(--aid-emerald)' }}
+              >
                 {s.n}
               </span>
-              <p className="font-semibold text-slate-800">{s.en}</p>
-              <p className="text-slate-500" dir="rtl">
+              <p className="font-semibold">{s.en}</p>
+              <p style={{ color: 'var(--aid-muted)' }} dir="rtl">
                 {s.ar}
               </p>
             </li>
@@ -97,170 +116,121 @@ export default function OrgRegisterPage() {
         </ol>
 
         {result ? (
-          <section
-            className={
-              pending
-                ? 'rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 space-y-3 shadow-sm'
-                : 'rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 space-y-3 shadow-sm'
-            }
+          <div
+            className={`rounded-2xl border p-5 space-y-3 shadow-sm ${
+              pending ? 'border-amber-200 bg-amber-50/95' : 'border-emerald-200 bg-emerald-50/95'
+            }`}
           >
-            <p
-              className={
-                pending
-                  ? 'aid-badge-warn'
-                  : 'aid-badge-success'
-              }
-            >
-              {pending ? 'Pending review · بانتظار المراجعة' : 'Active · مفعّل'}
-            </p>
-            <h2 className="text-lg font-bold text-slate-900">
-              {pending ? 'Request received' : 'Organization ready'}
-            </h2>
-            <p className="text-sm text-slate-600">{result.message}</p>
+            <p className="font-semibold">{pending ? 'Pending review' : 'Ready'}</p>
+            <p className="text-sm">{result.message}</p>
             {result.org && (
-              <p className="text-sm font-mono text-slate-700">
-                {result.org.name} · <span className="font-semibold">{result.org.code}</span>
+              <p className="text-xs font-mono">
+                {result.org.code} · {result.org.slug}
               </p>
             )}
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Link
-                href="/sign-in"
-                className="aid-cta-primary px-4 py-2.5 text-sm"
-              >
+            <div className="flex flex-wrap gap-3 text-sm">
+              <Link href="/sign-in" className="font-semibold underline" style={{ color: 'var(--aid-emerald)' }}>
                 Staff sign-in
               </Link>
-              <Link
-                href="/"
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
-              >
+              <Link href="/" className="underline" style={{ color: 'var(--aid-muted)' }}>
                 Home
               </Link>
             </div>
-          </section>
+          </div>
         ) : (
           <form
             onSubmit={submit}
-            className="rounded-2xl border border-white/90 bg-white/90 p-5 sm:p-6 space-y-4 shadow-sm backdrop-blur aid-rise"
+            className="rounded-2xl border p-5 shadow-sm space-y-4"
+            style={{ background: 'var(--aid-surface)', borderColor: 'var(--aid-line)' }}
           >
-            <label className="block">
-              <span className="aid-label">Organization name · اسم المؤسسة</span>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Organization name · اسم المؤسسة</span>
               <input
                 required
                 value={org_name}
                 onChange={(e) => setOrgName(e.target.value)}
                 className="aid-input"
-                placeholder="e.g. Armanious Group"
-                autoComplete="organization"
+                placeholder="e.g. Armanious Foundation"
               />
             </label>
-
-            <label className="block">
-              <span className="aid-label">
-                Short code <span className="font-normal text-slate-400">(optional)</span>
-              </span>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Org code (optional) · كود اختياري</span>
               <input
                 value={org_code}
-                onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
-                className="aid-input font-mono uppercase"
-                placeholder="ARMANIOUS"
-                maxLength={24}
+                onChange={(e) => setOrgCode(e.target.value)}
+                className="aid-input font-mono"
+                placeholder="e.g. ESP"
               />
-              <span className="aid-hint">Used for data isolation · رمز العزل بين المؤسسات</span>
             </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block sm:col-span-2">
-                <span className="aid-label">Contact name · المسؤول</span>
-                <input
-                  required
-                  value={contact_name}
-                  onChange={(e) => setContactName(e.target.value)}
-                  className="aid-input"
-                  autoComplete="name"
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="aid-label">Work email · البريد</span>
-                <input
-                  required
-                  type="email"
-                  value={contact_email}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  className="aid-input"
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                />
-                <span className="aid-hint">
-                  Use the Google account you will sign in with
-                </span>
-              </label>
-              <label className="block">
-                <span className="aid-label">Phone · الهاتف</span>
-                <input
-                  value={contact_phone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  className="aid-input"
-                  inputMode="tel"
-                  autoComplete="tel"
-                />
-              </label>
-              <label className="block">
-                <span className="aid-label">Employees (est.)</span>
-                <input
-                  value={employee_count_est}
-                  onChange={(e) => setEmpCount(e.target.value)}
-                  className="aid-input"
-                  inputMode="numeric"
-                  placeholder="e.g. 200"
-                />
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="aid-label">
-                Message <span className="font-normal text-slate-400">(optional)</span>
-              </span>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Contact name · اسم المسؤول</span>
+              <input
+                required
+                value={contact_name}
+                onChange={(e) => setContactName(e.target.value)}
+                className="aid-input"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Contact email · البريد</span>
+              <input
+                required
+                type="email"
+                value={contact_email}
+                onChange={(e) => setContactEmail(e.target.value)}
+                className="aid-input"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Phone · الهاتف</span>
+              <input
+                type="tel"
+                value={contact_phone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                className="aid-input"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Est. employees · عدد تقريبي</span>
+              <input
+                type="number"
+                min={1}
+                value={employee_count_est}
+                onChange={(e) => setEmpCount(e.target.value)}
+                className="aid-input"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Message · رسالة</span>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={3}
-                className="aid-input resize-y min-h-[5rem]"
-                placeholder="Tell us about your chronic support program…"
+                className="aid-input min-h-[88px]"
+                placeholder="Tell us about your chronic medicine program…"
               />
             </label>
-
             {error && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                {error}
-              </p>
+              <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>
             )}
-
             <button
               type="submit"
               disabled={loading}
               className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50"
             >
-              {loading
-                ? 'Submitting… · جاري الإرسال'
-                : 'Submit for approval · إرسال للموافقة'}
+              {loading ? 'Submitting…' : 'Submit registration · إرسال الطلب'}
             </button>
-
-            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-              By registering you agree to keep beneficiary health data confidential and use
-              the platform only for authorized employee medical-aid programs.
-            </p>
           </form>
         )}
 
-        <p className="text-center text-xs text-slate-400 space-x-2 pb-4">
-          <Link href="/" className="hover:underline">
+        <p className="text-center text-sm" style={{ color: 'var(--aid-muted)' }}>
+          <Link href="/" className="font-medium hover:underline" style={{ color: 'var(--aid-emerald)' }}>
             Home
           </Link>
-          <span>·</span>
+          {' · '}
           <Link href="/sign-in" className="hover:underline">
-            Sign in
+            Staff sign-in
           </Link>
-          <span>·</span>
+          {' · '}
           <Link href="/guide" className="hover:underline">
             Guide
           </Link>
