@@ -215,11 +215,11 @@ function StepCard({
   s: Step;
   accent: 'emerald' | 'violet';
 }) {
-  const badge = accent === 'emerald' ? 'bg-emerald-600' : 'bg-violet-700';
+  const badge = accent === 'emerald' ? 'bg-[#0f6e56]' : 'bg-slate-900';
   const btn =
     accent === 'emerald'
-      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25'
-      : 'bg-violet-700 hover:bg-violet-800 shadow-md shadow-violet-700/25';
+      ? 'bg-[#0f6e56] hover:bg-[#0b5a47] shadow-md shadow-[#0f6e56]/25'
+      : 'bg-slate-900 hover:bg-slate-800 shadow-md shadow-slate-900/20';
   const label = s.n === 0 ? '○' : String(s.n);
 
   return (
@@ -261,13 +261,13 @@ export default function GuidePage() {
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
         <header className="space-y-3 text-center aid-rise">
           <p className="aid-section-label">Guide · الدليل</p>
-          <h1 className="text-3xl font-bold tracking-tight">How to use Medical Aid</h1>
+          <h1 className="aid-display text-3xl sm:text-4xl">How to use Medical Aid</h1>
           <p className="text-slate-600" dir="rtl">
             ثلاث خطوات للمستفيد · خمس خطوات للتشغيل
           </p>
-          <p className="text-sm text-slate-500 max-w-lg mx-auto">
-            Submit → track status → open your profile for renewals and replies. Staff follow Queue →
-            Claims → Pharmacy → Programs → Refills.
+          <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+            Submit → check status → open your profile. Staff follow Queue → Claims → Pharmacy →
+            Programs → Refills. No account is required for beneficiaries.
           </p>
         </header>
 
@@ -338,7 +338,7 @@ export default function GuidePage() {
             </Link>
             <Link
               href="/me"
-              className="rounded-2xl border-2 border-violet-200 bg-violet-50/90 py-3.5 text-center text-sm font-semibold text-violet-900 hover:bg-violet-100 backdrop-blur"
+              className="rounded-2xl border-2 border-[#0f6e56]/30 bg-[#0f6e56]/5 py-3.5 text-center text-sm font-semibold text-[#0f6e56] hover:bg-[#0f6e56]/10 backdrop-blur"
             >
               Profile
             </Link>
@@ -346,12 +346,12 @@ export default function GuidePage() {
         </section>
 
         <section id="for-staff" className="space-y-4 scroll-mt-28">
-          <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/90 p-5 backdrop-blur">
-            <h2 className="font-bold text-violet-950 text-lg">For staff</h2>
-            <p className="text-sm text-violet-800 mt-1" dir="rtl">
+          <div className="rounded-2xl border-2 border-slate-200 bg-white/90 p-5 backdrop-blur">
+            <h2 className="font-bold text-slate-950 text-lg">For staff</h2>
+            <p className="text-sm text-slate-600 mt-1" dir="rtl">
               لفريق التشغيل — نفس الشريط المرقّم في الصفحات
             </p>
-            <p className="mt-3 text-xs sm:text-sm font-semibold text-violet-900">
+            <p className="mt-3 text-xs sm:text-sm font-semibold text-[#0f6e56]">
               Admin → Queue → Claims → Pharmacy → Programs → Refills
             </p>
           </div>
