@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PublicStepsBar } from '../PublicStepsBar';
 import { IntakeSuccess } from '../IntakeSuccess';
@@ -71,11 +71,18 @@ export default function IntakePage() {
   const [roshetta, setRoshetta] = useState('');
   const [meds, setMeds] = useState<MedLine[]>([{ name: '', qty: 1 }]);
   const [loading, setLoading] = useState(false);
+  const [estimating, setEstimating] = useState(false);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<string | null>(null);
   const [estimateLines, setEstimateLines] = useState<
-    { query: string; matched?: string; unit_price_egp?: number | null; quantity?: number; line_total?: number | null }[]
+    {
+      query: string;
+      matched?: string;
+      unit_price_egp?: number | null;
+      quantity?: number;
+      line_total?: number | null;
+    }[]
   >([]);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -108,6 +115,7 @@ export default function IntakePage() {
       setCompany(profile.company || '');
       setPhone(profile.phone || '');
       setCity(profile.city || '');
+      setDraftHint('Welcome back');
     }
     setHydrated(true);
     void fetch('/api/learning?key=medicine&limit=6')
@@ -173,6 +181,38 @@ export default function IntakePage() {
 
   const medLoader = useCallback((q: string) => loadMedOptions(q), []);
 
+  async function runEstimate() {
+    const lines = meds
+      .filter((m) => m.name.trim())
+      .map((m) => ({ query: m.name, quantity: m.qty || 1 }));
+    if (!lines.length) {
+      setEstimate('Add at least one medicine first');
+      setEstimateLines([]);
+      return;
+    }
+    setEstimating(true);
+    setEstimate(null);
+    try {
+      const res = await fetch('/api/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'estimate', lines }),
+      });
+      const data = await res.json();
+      setEstimateLines(Array.isArray(data.lines) ? data.lines : []);
+      if (data.total_egp != null) {
+        setEstimate(`≈ ${data.total_egp} EGP · Egyptian catalog`);
+      } else {
+        setEstimate(data.error || 'No price match in catalog');
+      }
+    } catch {
+      setEstimate('Estimate failed — try again');
+      setEstimateLines([]);
+    } finally {
+      setEstimating(false);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -211,6 +251,8 @@ export default function IntakePage() {
       saveLastRequestId(String(data.id));
       setLastId(String(data.id));
       clearDraft();
+      setDraftHint(null);
+      setDraftSavedAt(null);
       setResultId(data.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
@@ -249,6 +291,62 @@ export default function IntakePage() {
           </p>
         </header>
 
+        {!resultId && (draftHint || draftSavedAt) && (
+          <div className="rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">{draftHint || 'Draft auto-saved · مسودة محفوظة'}</span>
+              {draftSavedAt && (
+                <span className="text-xs text-sky-700">{formatDraftAge(draftSavedAt)}</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-lg bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white"
+                onClick={() => {
+                  const at = saveDraft({
+                    emp_name,
+                    emp_id,
+                    company,
+                    phone,
+                    patient_name,
+                    relation,
+                    city,
+                    comments,
+                    roshetta,
+                    meds,
+                  });
+                  setDraftSavedAt(at);
+                  setDraftHint('Draft saved · تم الحفظ');
+                }}
+              >
+                Save now · حفظ
+              </button>
+              <button
+                type="button"
+                className="rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-xs font-semibold text-sky-900"
+                onClick={() => {
+                  clearDraft();
+                  setDraftSavedAt(null);
+                  setDraftHint(null);
+                }}
+              >
+                Clear draft · مسح
+              </button>
+            </div>
+          </div>
+        )}
+
+        {lastId && !resultId && (
+          <Link
+            href={`/request-status?id=${encodeURIComponent(lastId)}`}
+            className="block rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900 hover:bg-emerald-100"
+          >
+            Last request · آخر طلب:{' '}
+            <span className="font-mono font-semibold">{lastId.slice(0, 8)}…</span>
+          </Link>
+        )}
+
         {resultId ? (
           <IntakeSuccess
             resultId={resultId}
@@ -283,6 +381,8 @@ export default function IntakePage() {
               setComments('');
               setRoshetta('');
               setPatient('');
+              setEstimate(null);
+              setEstimateLines([]);
             }}
           />
         ) : (
@@ -405,6 +505,37 @@ export default function IntakePage() {
                   ))}
                 </div>
               )}
+              <div className="pt-1 space-y-2 border-t" style={{ borderColor: 'var(--aid-line)' }}>
+                <button
+                  type="button"
+                  disabled={estimating}
+                  onClick={() => void runEstimate()}
+                  className="w-full rounded-xl border py-2.5 text-sm font-semibold disabled:opacity-50"
+                  style={{
+                    borderColor: 'var(--aid-line)',
+                    background: 'var(--aid-paper)',
+                    color: 'var(--aid-ink)',
+                  }}
+                >
+                  {estimating ? 'Estimating…' : 'Estimate monthly cost · تقدير التكلفة'}
+                </button>
+                {estimate && (
+                  <p className="text-sm font-semibold" style={{ color: 'var(--aid-emerald)' }}>
+                    {estimate}
+                  </p>
+                )}
+                {estimateLines.length > 0 && (
+                  <ul className="text-xs space-y-1" style={{ color: 'var(--aid-muted)' }}>
+                    {estimateLines.map((ln, i) => (
+                      <li key={i}>
+                        {ln.matched || ln.query}
+                        {ln.line_total != null ? ` · ${ln.line_total} EGP` : ''}
+                        {ln.unit_price_egp != null ? ` (${ln.unit_price_egp} × ${ln.quantity || 1})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </section>
 
             <section
@@ -413,7 +544,11 @@ export default function IntakePage() {
             >
               <label className="block">
                 <span className={label}>Comments</span>
-                <textarea value={comments} onChange={(e) => setComments(e.target.value)} className={field + ' min-h-[80px]'} />
+                <textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  className={field + ' min-h-[80px]'}
+                />
               </label>
               <label className="block">
                 <span className={label}>Prescription / invoice links</span>
@@ -427,10 +562,16 @@ export default function IntakePage() {
             </section>
 
             {error && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>
+              <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                {error}
+              </p>
             )}
 
-            <button type="submit" disabled={loading} className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={loading}
+              className="aid-cta-primary w-full py-3.5 text-base disabled:opacity-50"
+            >
               {loading ? 'Submitting…' : 'Submit request · إرسال الطلب'}
             </button>
           </form>
