@@ -85,8 +85,7 @@ const STAFF_STEPS: Step[] = [
     titleAr: 'الطابور',
     bodyEn:
       'Keep filter on Waiting. Tap Process queue (match + enroll + claim drafts). Then go to Claims.',
-    bodyAr:
-      'اترك التصفية على Waiting. اضغط معالجة الطابور ثم انتقل للمطالبات.',
+    bodyAr: 'اترك التصفية على Waiting. اضغط معالجة الطابور ثم انتقل للمطالبات.',
     href: '/intake-ops',
     cta: 'Open Queue',
     mock: 'queue',
@@ -135,8 +134,7 @@ const STAFF_STEPS: Step[] = [
     titleAr: 'الصرف الشهري',
     bodyEn:
       'Generate this month’s cycles, review each cycle, then return to Pharmacy for CSV if needed.',
-    bodyAr:
-      'ولّد دورات الشهر، راجع كل دورة، ثم عد للصيدلية للتصدير إن لزم.',
+    bodyAr: 'ولّد دورات الشهر، راجع كل دورة، ثم عد للصيدلية للتصدير إن لزم.',
     href: '/refills',
     cta: 'Open Refills',
     mock: 'none',
@@ -261,7 +259,9 @@ export default function GuidePage() {
       <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
         <header className="space-y-3 text-center aid-rise">
           <p className="aid-section-label">Guide · الدليل</p>
-          <h1 className="text-3xl font-bold tracking-tight">How to use Medical Aid</h1>
+          <h1 className="aid-display text-3xl sm:text-4xl font-semibold tracking-tight">
+            How to use Medical Aid
+          </h1>
           <p className="text-slate-600" dir="rtl">
             ثلاث خطوات للمستفيد · خمس خطوات للتشغيل
           </p>
