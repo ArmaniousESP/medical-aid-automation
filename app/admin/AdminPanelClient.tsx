@@ -73,7 +73,7 @@ export function AdminPanelClient({
             </Link>
             {' · '}
             <a
-              href="https://github.com/ArmaniousESP/medical-aid-automation/blob/main/docs/NEON_AUTH.md"
+              href="https://github.com/medshub/medical-aid-automation/blob/main/docs/NEON_AUTH.md"
               className="underline"
               target="_blank"
               rel="noreferrer"
