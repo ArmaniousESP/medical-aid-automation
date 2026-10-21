@@ -17,7 +17,8 @@
 - [x] **Audit events** (intake, enroll, claim, pharmacy, org approval)
 - [x] **Admin audit panel** with action + org filters
 - [x] **Org registration** public page + Admin approve/reject flow
-- [x] **Smoke workflow** health + public pages
+- [x] **Smoke workflow** health + public pages (every 6h + push)
+- [x] **Expanded smoke** — search_med, estimate, status shape, anon 401
 - [x] Staff session `org_scope` + memberships
 - [x] **Aida identity UX** — cream paper, forest green, serif titles on public surfaces
 - [x] **Three-door model** documented (`docs/schema/006_identity_data_flow.md`): public / employee / staff
@@ -29,12 +30,14 @@
 - [x] **Intake cost estimate** from Egyptian catalog (~25k meds) + price disclaimer
 - [x] **Intake drafts** auto-save, last-request link, renew prefill
 - [x] **Admin access card** shows Google vs PROCESS_SECRET readiness
+- [x] **Home** surfaces estimate + share hints
+- [x] **Guide** covers estimate, share, and staff path
 
 ## Optional next
 
 - [ ] Set `NEON_AUTH_BASE_URL` + `OPS_ALLOWED_EMAILS` + `NEON_AUTH_COOKIE_SECRET` for Google staff (see `docs/NEON_AUTH.md`)
 - [ ] Set `ORG_REGISTRATION_MODE=approval` when open registration should require review
-- [ ] Staging environment (Vercel Preview + Neon branch)
+- [ ] Staging environment (Vercel Preview + Neon branch) — see `docs/STAGING.md`
 - [ ] Live WhatsApp credentials (Meta or Twilio) when outreach goes live
 - [ ] Expand smoke tests to authenticated ops paths
 - [ ] Row-level Neon policies if multi-tenant strictness is required beyond app filters
@@ -49,3 +52,4 @@
 | Audit | Admin → Audit log |
 | Env gate | `ORG_REGISTRATION_MODE=approval` |
 | Staff Google setup | `docs/NEON_AUTH.md` |
+| Staging setup | `docs/STAGING.md` |
