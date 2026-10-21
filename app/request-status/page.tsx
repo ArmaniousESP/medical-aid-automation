@@ -83,9 +83,14 @@ function StatusForm() {
     }
   }
 
+  function statusUrl() {
+    if (!id.trim() || typeof window === 'undefined') return '';
+    return `${window.location.origin}/request-status?id=${encodeURIComponent(id.trim())}`;
+  }
+
   async function copyLink() {
     if (!id.trim()) return;
-    const url = `${window.location.origin}/request-status?id=${encodeURIComponent(id.trim())}`;
+    const url = statusUrl();
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -93,6 +98,24 @@ function StatusForm() {
     } catch {
       setError('Could not copy link');
     }
+  }
+
+  async function shareLink() {
+    if (!id.trim()) return;
+    const url = statusUrl();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Medical aid request status',
+          text: `Request ID: ${id.trim()}`,
+          url,
+        });
+        return;
+      } catch {
+        /* cancelled or failed — fall through */
+      }
+    }
+    await copyLink();
   }
 
   const status = String(data?.status || '');
@@ -203,14 +226,24 @@ function StatusForm() {
               <p className="text-lg font-semibold">{status || '—'}</p>
               {patient && <p className="text-sm mt-1">{patient}</p>}
             </div>
-            <button
-              type="button"
-              onClick={copyLink}
-              className="text-xs font-semibold underline"
-              style={{ color: 'var(--aid-emerald)' }}
-            >
-              {copied ? 'Link copied' : 'Copy status link'}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={() => void shareLink()}
+                className="text-xs font-semibold underline"
+                style={{ color: 'var(--aid-emerald)' }}
+              >
+                Share · مشاركة
+              </button>
+              <button
+                type="button"
+                onClick={() => void copyLink()}
+                className="text-xs font-semibold underline"
+                style={{ color: 'var(--aid-muted)' }}
+              >
+                {copied ? 'Link copied' : 'Copy link'}
+              </button>
+            </div>
           </div>
           {meds.length > 0 && (
             <ul className="text-sm space-y-1.5">

@@ -1,6 +1,6 @@
 # Production readiness assessment
 
-**Date:** 2026-10-19  
+**Date:** 2026-10-21  
 **App:** https://medical-aid-automation.vercel.app/
 
 ## Verdict
@@ -22,13 +22,17 @@
 - [x] **Aida identity UX** — cream paper, forest green, serif titles on public surfaces
 - [x] **Three-door model** documented (`docs/schema/006_identity_data_flow.md`): public / employee / staff
 - [x] **Employee portal** privacy gate + staff message reply threads
-- [x] **Request status** optional verification unlocks full names; others masked
+- [x] **Request status** optional verification unlocks full names; others masked; **Share / Copy link**
 - [x] **Org register** data-boundary copy + multi-tenant isolation messaging
 - [x] **Staff sign-in** three-doors map + Google CTA (when Neon Auth configured)
+- [x] **Health checks** for Neon Auth + staff access (`/api/health`)
+- [x] **Intake cost estimate** from Egyptian catalog (~25k meds) + price disclaimer
+- [x] **Intake drafts** auto-save, last-request link, renew prefill
+- [x] **Admin access card** shows Google vs PROCESS_SECRET readiness
 
 ## Optional next
 
-- [ ] Apply `aid-display` serif titles to remaining long pages (`/intake`, `/guide`) if not already
+- [ ] Set `NEON_AUTH_BASE_URL` + `OPS_ALLOWED_EMAILS` + `NEON_AUTH_COOKIE_SECRET` for Google staff (see `docs/NEON_AUTH.md`)
 - [ ] Set `ORG_REGISTRATION_MODE=approval` when open registration should require review
 - [ ] Staging environment (Vercel Preview + Neon branch)
 - [ ] Live WhatsApp credentials (Meta or Twilio) when outreach goes live
@@ -44,3 +48,4 @@
 | Active orgs | Admin → Organizations |
 | Audit | Admin → Audit log |
 | Env gate | `ORG_REGISTRATION_MODE=approval` |
+| Staff Google setup | `docs/NEON_AUTH.md` |
