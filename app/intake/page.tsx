@@ -84,6 +84,7 @@ export default function IntakePage() {
       line_total?: number | null;
     }[]
   >([]);
+  const [estimateDisclaimer, setEstimateDisclaimer] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [draftHint, setDraftHint] = useState<string | null>(null);
@@ -188,10 +189,12 @@ export default function IntakePage() {
     if (!lines.length) {
       setEstimate('Add at least one medicine first');
       setEstimateLines([]);
+      setEstimateDisclaimer(null);
       return;
     }
     setEstimating(true);
     setEstimate(null);
+    setEstimateDisclaimer(null);
     try {
       const res = await fetch('/api/intake', {
         method: 'POST',
@@ -200,14 +203,22 @@ export default function IntakePage() {
       });
       const data = await res.json();
       setEstimateLines(Array.isArray(data.lines) ? data.lines : []);
+      setEstimateDisclaimer(
+        typeof data.disclaimer === 'string' ? data.disclaimer : null
+      );
       if (data.total_egp != null) {
-        setEstimate(`≈ ${data.total_egp} EGP · Egyptian catalog`);
+        setEstimate(
+          `≈ ${data.total_egp} EGP · Egyptian catalog${
+            data.catalog_size ? ` (${data.catalog_size} meds)` : ''
+          }`
+        );
       } else {
         setEstimate(data.error || 'No price match in catalog');
       }
     } catch {
       setEstimate('Estimate failed — try again');
       setEstimateLines([]);
+      setEstimateDisclaimer(null);
     } finally {
       setEstimating(false);
     }
@@ -383,6 +394,7 @@ export default function IntakePage() {
               setPatient('');
               setEstimate(null);
               setEstimateLines([]);
+              setEstimateDisclaimer(null);
             }}
           />
         ) : (
@@ -530,10 +542,17 @@ export default function IntakePage() {
                       <li key={i}>
                         {ln.matched || ln.query}
                         {ln.line_total != null ? ` · ${ln.line_total} EGP` : ''}
-                        {ln.unit_price_egp != null ? ` (${ln.unit_price_egp} × ${ln.quantity || 1})` : ''}
+                        {ln.unit_price_egp != null
+                          ? ` (${ln.unit_price_egp} × ${ln.quantity || 1})`
+                          : ''}
                       </li>
                     ))}
                   </ul>
+                )}
+                {estimateDisclaimer && (
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'var(--aid-muted)' }}>
+                    {estimateDisclaimer}
+                  </p>
                 )}
               </div>
             </section>
