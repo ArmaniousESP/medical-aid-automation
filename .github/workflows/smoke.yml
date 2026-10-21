@@ -46,6 +46,30 @@ jobs:
           test "$code" = "200"
           python3 -c "import json; d=json.load(open('/tmp/orgs.json')); assert d.get('ok') is True; assert 'organizations' in d"
 
+          # Medicine search (Egyptian catalog)
+          code=$(curl -sS -o /tmp/meds.json -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"search_med","q":"Concor","limit":3}' \
+            "$URL/api/intake")
+          echo "/api/intake search_med -> $code"
+          test "$code" = "200"
+          python3 -c "import json; d=json.load(open('/tmp/meds.json')); assert d.get('ok') is True; assert isinstance(d.get('items'), list)"
+
+          # Cost estimate
+          code=$(curl -sS -o /tmp/est.json -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"estimate","lines":[{"query":"Concor 5","quantity":1}]}' \
+            "$URL/api/intake")
+          echo "/api/intake estimate -> $code"
+          test "$code" = "200"
+          python3 -c "import json; d=json.load(open('/tmp/est.json')); assert d.get('ok') is True; assert d.get('total_egp') is not None or d.get('lines') is not None"
+
+          # Unknown request status should not 500
+          code=$(curl -sS -o /tmp/st.json -w "%{http_code}" \
+            "$URL/api/request-status?id=00000000-0000-0000-0000-000000000000")
+          echo "/api/request-status (missing) -> $code"
+          test "$code" = "404" -o "$code" = "400" -o "$code" = "200"
+
           # Ops endpoints must reject anonymous
           for path in /api/admin/audit /api/admin/org-requests /api/admin/org-members /api/admin/org-stats; do
             code=$(curl -sS -o /dev/null -w "%{http_code}" "$URL$path")
@@ -60,4 +84,5 @@ checks=d.get('checks') or {}
 assert checks.get('env_database',{}).get('ok') is True
 assert checks.get('neon',{}).get('ok') is True
 print('core checks ok')
+print('estimate sample total_egp=', json.load(open('/tmp/est.json')).get('total_egp'))
 PY
