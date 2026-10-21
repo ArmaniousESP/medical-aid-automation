@@ -143,7 +143,7 @@ export default async function ProgramsPage({
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="aid-section-label">Step 4 of 5 · Programs</p>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              <h1 className="aid-display text-3xl sm:text-4xl font-semibold tracking-tight">
                 Programs
               </h1>
               <p className="text-sm text-slate-600" dir="rtl">
@@ -312,12 +312,13 @@ export default async function ProgramsPage({
               ○
             </p>
             <p className="font-medium text-slate-700">No programs yet</p>
-            <p className="text-xs">
-              Run <strong>Process queue</strong> on{' '}
+            <p className="text-xs leading-relaxed">
+              After intake is processed, enrollments appear here. Run{' '}
+              <strong>Process queue</strong> on the{' '}
               <Link href="/intake-ops" className="text-violet-700 font-medium underline">
                 intake queue
               </Link>
-              .
+              , then open Claims → Pharmacy.
             </p>
           </div>
         )}
