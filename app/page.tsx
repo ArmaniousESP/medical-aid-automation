@@ -76,7 +76,9 @@ export default function Home() {
                   <span aria-hidden>·</span>
                   <span dir="rtl">~٣–٥ دقائق</span>
                   <span aria-hidden>·</span>
-                  <span>Auto-saves as you type</span>
+                  <span>Auto-saves</span>
+                  <span aria-hidden>·</span>
+                  <span>EGP cost estimate</span>
                 </div>
               </div>
               <span className="text-2xl opacity-80 group-hover:translate-x-0.5 transition" aria-hidden>
@@ -99,7 +101,7 @@ export default function Home() {
                   تابع طلبك برقم الطلب
                 </div>
                 <div className="text-xs text-slate-400 mt-2">
-                  Paste your Request ID · or open from the banner above
+                  Paste your Request ID · Share link from the status card
                 </div>
               </div>
               <span className="text-2xl text-slate-300 group-hover:text-emerald-500 transition" aria-hidden>
