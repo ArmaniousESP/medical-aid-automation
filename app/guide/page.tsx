@@ -29,9 +29,9 @@ const PUBLIC_STEPS: Step[] = [
     titleEn: 'Submit your request',
     titleAr: 'قدّم طلبك',
     bodyEn:
-      'On Home, tap Submit. Fill employee name, patient, and medicines (sections A–C). Optional: prescription links. After send you get a Request ID — copy it.',
+      'On Home, tap Submit. Fill employee name, patient, and medicines (A–C). Optional: estimate monthly EGP cost from the Egyptian catalog, add prescription links. After send you get a Request ID — copy it.',
     bodyAr:
-      'من الرئيسية اختر تقديم. أدخل بيانات الموظف والمريض والأدوية. بعد الإرسال انسخ رقم الطلب واحفظه.',
+      'من الرئيسية اختر تقديم. أدخل بيانات الموظف والمريض والأدوية. يمكنك تقدير التكلفة بالجنيه قبل الإرسال. بعد الإرسال انسخ رقم الطلب واحفظه.',
     href: '/intake',
     cta: 'Open submit form',
     mock: 'submit',
@@ -42,9 +42,9 @@ const PUBLIC_STEPS: Step[] = [
     titleEn: 'Check status anytime',
     titleAr: 'تابع حالة الطلب',
     bodyEn:
-      'Paste your Request ID on the status page. Names are masked; medicine details stay private. Add phone or employee ID to unlock full names when this is your request.',
+      'Paste your Request ID on the status page. Names are masked by default. Add phone or employee ID to unlock full names when this is your request. Use Share or Copy link to send the status page to family.',
     bodyAr:
-      'الصق رقم الطلب في صفحة الحالة. الأسماء جزئية؛ أضف الهاتف أو الرقم الوظيفي لإظهار الأسماء الكاملة لطلبك.',
+      'الصق رقم الطلب في صفحة الحالة. الأسماء جزئية؛ أضف الهاتف أو الرقم الوظيفي لإظهار الأسماء الكاملة. يمكنك مشاركة رابط الحالة مع العائلة.',
     href: '/request-status',
     cta: 'Open status page',
     mock: 'status',
